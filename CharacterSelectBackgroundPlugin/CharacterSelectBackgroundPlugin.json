@@ -1,0 +1,10 @@
+{
+    "Author": "Speedas",
+    "Name": "CharacterSelectBackgroundPlugin",
+    "Punchline": "CharacterSelectBackgroundPlugin punchline",
+    "Description": "CharacterSelectBackgroundPlugin description",
+    "ApplicableVersion": "any",
+    "Tags": [
+        "UI"
+    ]
+}

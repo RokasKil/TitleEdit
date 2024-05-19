@@ -1,22 +1,23 @@
-﻿using Dalamud.Game.Command;
+using CharacterSelectBackgroundPlugin.PluginServices;
+using CharacterSelectBackgroundPlugin.Utils;
+using CharacterSelectBackgroundPlugin.Windows;
+using Dalamud.Game.Command;
+using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using System.IO;
-using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
-using SamplePlugin.Windows;
 
-namespace SamplePlugin;
+namespace CharacterSelectBackgroundPlugin;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    private const string CommandName = "/pmycommand";
+    private const string CommandName = "/CharacterSelectBackgroundPlugin";
 
     private DalamudPluginInterface PluginInterface { get; init; }
     private ICommandManager CommandManager { get; init; }
-    public Configuration Configuration { get; init; }
+    public ConfigurationService Configuration { get; init; }
 
-    public readonly WindowSystem WindowSystem = new("SamplePlugin");
+    public readonly WindowSystem WindowSystem = new("CharacterSelectBackgroundPlugin");
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
 
@@ -26,26 +27,23 @@ public sealed class Plugin : IDalamudPlugin
         [RequiredVersion("1.0")] ITextureProvider textureProvider)
     {
         PluginInterface = pluginInterface;
+        Services.Initialize(PluginInterface);
         CommandManager = commandManager;
 
-        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        Configuration = PluginInterface.GetPluginConfig() as ConfigurationService ?? new ConfigurationService();
         Configuration.Initialize(PluginInterface);
 
-        // you might normally want to embed resources and load them from the manifest stream
-        var file = new FileInfo(Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png"));
-
-        // ITextureProvider takes care of the image caching and dispose
-        var goatImage = textureProvider.GetTextureFromFile(file);
 
         ConfigWindow = new ConfigWindow(this);
-        MainWindow = new MainWindow(this, goatImage);
+        MainWindow = new MainWindow(this);
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "A useful message to display in /xlhelp"
+            HelpMessage = "A useful message to display in /xlhelp",
+            ShowInHelp = false
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
@@ -66,6 +64,7 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow.Dispose();
 
         CommandManager.RemoveHandler(CommandName);
+        Services.Dispose();
     }
 
     private void OnCommand(string command, string args)

@@ -1,17 +1,19 @@
-﻿using Dalamud.Configuration;
+using CharacterSelectBackgroundPlugin.Data;
+using Dalamud.Configuration;
 using Dalamud.Plugin;
 using System;
+using System.Collections.Generic;
 
-namespace SamplePlugin;
+namespace CharacterSelectBackgroundPlugin.PluginServices;
 
 [Serializable]
-public class Configuration : IPluginConfiguration
+public class ConfigurationService : IPluginConfiguration
 {
     public int Version { get; set; } = 0;
 
-    public bool IsConfigWindowMovable { get; set; } = true;
-    public bool SomePropertyToBeSavedAndWithADefault { get; set; } = true;
-
+    public Dictionary<ulong, LocationModel> Locations { get; set; } = [];
+    public bool PeriodicSaving { get; set; } = true;
+    public int SavePeriod { get; set; } = 10;
     // the below exist just to make saving less cumbersome
     [NonSerialized]
     private DalamudPluginInterface? PluginInterface;
