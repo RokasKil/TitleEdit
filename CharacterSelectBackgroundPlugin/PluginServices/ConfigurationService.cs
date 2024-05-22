@@ -1,8 +1,6 @@
-using CharacterSelectBackgroundPlugin.Data;
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 using System;
-using System.Collections.Generic;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices;
 
@@ -11,7 +9,6 @@ public class ConfigurationService : IPluginConfiguration
 {
     public int Version { get; set; } = 0;
 
-    public Dictionary<ulong, LocationModel> Locations { get; set; } = [];
     public bool PeriodicSaving { get; set; } = true;
     public int SavePeriod { get; set; } = 10;
     // the below exist just to make saving less cumbersome

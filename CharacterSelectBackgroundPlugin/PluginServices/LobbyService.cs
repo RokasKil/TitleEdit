@@ -6,6 +6,7 @@ using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System;
 using System.Runtime.InteropServices;
@@ -17,13 +18,18 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         [Signature("C6 81 ?? ?? ?? ?? ?? 8B 02 89 41 60")]
         private readonly delegate* unmanaged<LobbyCamera*, float[], float[], float, IntPtr> fixOnNative = null!;
+        [Signature("40 53 48 83 EC ?? 44 0F BF C1")]
+        private readonly delegate* unmanaged<ushort, void> setTimeNative = null!;
 
         private delegate int OnCreateSceneDelegate(string territoryPath, uint p2, IntPtr p3, uint p4, IntPtr p5, int p6, uint p7);
         private delegate byte LobbyUpdateDelegate(GameLobbyType mapId, int time);
-        private delegate byte SelectCharacterDelegate(uint characterIndex, char unk);
-        private delegate byte SelectCharacter2Delegate(IntPtr self);
+        private delegate ulong SelectCharacterDelegate(uint characterIndex, char unk);
+        private delegate ulong SelectCharacter2Delegate(IntPtr self);
         private unsafe delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void SetCharSelectCurrentWorldDelegate(ulong unk);
+        private delegate void SomeEnvManagerThingyDelegate(ulong unk1, uint unk2, float unk3);
+        private delegate ulong WeatherThingyDelegate(ulong param, byte weatherId);
+        private delegate void CharSelectSetWeatherDelegate();
 
         private readonly Hook<OnCreateSceneDelegate> createSceneHook;
         //private readonly Hook<OnPlayMusic> _playMusicHook;
@@ -33,6 +39,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private readonly Hook<SelectCharacter2Delegate> selectCharacter2Hook;
         private readonly Hook<SetCameraCurveMidPointDelegate> setCameraCurveMidPointHook;
         private readonly Hook<SetCharSelectCurrentWorldDelegate> setCharSelectCurrentWorldHook;
+        private readonly Hook<CharSelectSetWeatherDelegate> charSelectSetWeatherHook;
 
         private readonly IntPtr lobbyCurrentMapAddress;
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.Movie;
@@ -41,6 +48,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private bool resetScene = false;
         private bool resetCamera = false;
+
         public short CurrentLobbyMap
         {
             get => Marshal.ReadInt16(lobbyCurrentMapAddress);
@@ -62,10 +70,26 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             setCameraCurveMidPointHook = Services.GameInteropProvider.HookFromSignature<SetCameraCurveMidPointDelegate>("0F 57 C0 0F 2F C1 73 ?? F3 0F 11 89", SetCameraCurveMidPointDetour);
             setCharSelectCurrentWorldHook = Services.GameInteropProvider.HookFromSignature<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 49 8B CD 48 8B 7C 24", SetCharSelectCurrentWorldDetour);
 
+            // Some scene thingy
+            charSelectSetWeatherHook = Services.GameInteropProvider.HookFromSignature<CharSelectSetWeatherDelegate>("0F B7 0D ?? ?? ?? ?? 8D 41", CharSelectSetWeatherDetour);
+
+
             Enable();
 
             Services.ClientState.Login += ResetState;
             Services.Framework.Update += Tick;
+        }
+
+        private void CharSelectSetWeatherDetour()
+        {
+            charSelectSetWeatherHook.Original();
+            Services.Log.Debug($"CharSelectSetWeatherDetour {EnvManager.Instance()->ActiveWeather}");
+            if (CurrentLobbyMap == (short)GameLobbyType.CharaSelect)
+            {
+                EnvManager.Instance()->ActiveWeather = locationModel.WeatherId;
+                setTime(locationModel.TimeOffset);
+                Services.Log.Debug($"SetWeather to {EnvManager.Instance()->ActiveWeather}");
+            }
         }
 
         private void SetCharSelectCurrentWorldDetour(ulong unk)
@@ -87,10 +111,19 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     var contentId = charaSelectCharacterList->CharacterMappingSpan[i].ContentId;
                     var clientObjectIndex = charaSelectCharacterList->CharacterMappingSpan[i].ClientObjectIndex;
                     Services.Log.Debug($"{charaSelectCharacterList->CharacterMappingSpan[i].ContentId:X} to {charaSelectCharacterList->CharacterMappingSpan[i].ClientObjectIndex}");
-                    var pos = Services.LocationService.GetLocationModel(contentId).Position;
+                    var location = Services.LocationService.GetLocationModel(contentId);
                     var gameObject = clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
-                    gameObject->SetPosition(pos.X, pos.Y, pos.Z);
-                    Services.Log.Debug($"{(IntPtr)gameObject:X} set to {pos}");
+                    if (gameObject != null)
+                    {
+
+                        gameObject->SetPosition(location.Position.X, location.Position.Y, location.Position.Z);
+
+                        Services.Log.Debug($"{(IntPtr)gameObject:X} set to {location.Position} {location.Rotation}");
+                    }
+                    else
+                    {
+                        Services.Log.Debug("Gameobject was null?");
+                    }
                 }
                 //Set current character cause SE forgot to do this ??
                 *(CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter) = GetCurrentCharacter();
@@ -117,8 +150,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             lastContentId = 0;
             locationModel = LocationService.DefaultLocation;
             resetCamera = true;
-
-
         }
 
         public void FixOn(LobbyCamera* camera, float[] cameraPos, float[] focusPos, float fovY)
@@ -127,6 +158,14 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 throw new InvalidOperationException("FixOn signature wasn't found!");
 
             fixOnNative(camera, cameraPos, focusPos, fovY);
+        }
+
+        public void setTime(ushort time)
+        {
+            if (setTimeNative == null)
+                throw new InvalidOperationException("SetTime signature wasn't found!");
+
+            setTimeNative(time);
         }
 
         private int OnCreateSceneDetour(string territoryPath, uint p2, IntPtr p3, uint p4, IntPtr p5, int p6, uint p7)
@@ -158,7 +197,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 territoryPath = locationModel.TerritoryPath;
                 Services.Log.Debug($"Loading char select screen: {territoryPath}");
                 var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
-
+                EnvManager.Instance()->ActiveWeather = locationModel.WeatherId;
+                //SetWeather();
                 //var camera = CameraManager.Instance()->LobbCamera;
                 //if (lastContentId == 0 && camera != null)
                 //{
@@ -192,16 +232,19 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             self->midPoint.value = value;
         }
 
-        private unsafe byte SelectCharacter2Detour(IntPtr self)
+        private ulong SelectCharacter2Detour(IntPtr self)
         {
+            Services.Log.Debug($"SelectCharacter2Detour");
             var result = selectCharacter2Hook.Original(self);
             UpdateCharacter();
             return result;
         }
 
-        private unsafe byte SelectCharacterDetour(uint characterIndex, char unk)
+        private ulong SelectCharacterDetour(uint characterIndex, char unk)
         {
+            Services.Log.Debug($"SelectCharacterDetour");
             var result = selectCharacterHook.Original(characterIndex, unk);
+            Services.Log.Debug($"{result}");
             UpdateCharacter();
             return result;
         }
@@ -276,6 +319,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             selectCharacter2Hook.Enable();
             setCameraCurveMidPointHook.Enable();
             setCharSelectCurrentWorldHook.Enable();
+            charSelectSetWeatherHook.Enable();
         }
 
         public void Dispose()
@@ -286,6 +330,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             selectCharacter2Hook?.Dispose();
             setCameraCurveMidPointHook?.Dispose();
             setCharSelectCurrentWorldHook?.Dispose();
+            charSelectSetWeatherHook?.Dispose();
             Services.ClientState.Login -= ResetState;
         }
     }

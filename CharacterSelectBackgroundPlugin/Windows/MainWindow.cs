@@ -1,4 +1,6 @@
+using CharacterSelectBackgroundPlugin.Utils;
 using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using ImGuiNET;
 using System;
 using System.Numerics;
@@ -28,7 +30,15 @@ public class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
-
+        unsafe
+        {
+            ImGui.Text($"Current character {Services.ClientState.LocalContentId:X16}");
+            ImGui.Text($"Current weather {EnvManager.Instance()->ActiveWeather}");
+            ImGui.Text($"Current lobbymap {Services.LobbyService.CurrentLobbyMap}");
+        }
+        if (ImGui.Button("weather"))
+        {
+        }
         if (ImGui.Button("Show Settings"))
         {
             Plugin.ToggleConfigUI();
