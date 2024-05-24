@@ -1,4 +1,5 @@
 using CharacterSelectBackgroundPlugin.Data;
+using CharacterSelectBackgroundPlugin.Data.Layout;
 using CharacterSelectBackgroundPlugin.Utils;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
@@ -6,6 +7,8 @@ using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 using System.Text.RegularExpressions;
@@ -16,6 +19,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 {
     public class LocationService : IDisposable
     {
+
+
         private readonly static Regex FileNameRegex = new("^([A-F0-9]{16})\\.json$", RegexOptions.IgnoreCase);
 
         public static readonly LocationModel DefaultLocation = new LocationModel
@@ -33,18 +38,18 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private string? territoryPath = null;
         private ConcurrentDictionary<ulong, LocationModel> locations = [];
         private ulong lastContentId;
+        private bool refreshLayout = true;
         public LocationService()
         {
             LoadSavedLocations();
-
-            //foreach (var pair in Services.ConfigurationService.Locations)
-            //{
-            //    locations[pair.Key] = pair.Value;
-            //    Save(pair.Key);
-            //}
             Services.Framework.Update += Tick;
-            Services.ClientState.Logout += OnLogout;
+            Services.ClientState.Logout += Logout;
             Services.ClientState.TerritoryChanged += TerritoryChanged;
+            Services.LayoutService.OnLayoutChange += LayoutChanged;
+            unsafe
+            {
+                Services.LayoutService.OnLayoutInstanceSetActive += LayoutInstanceSetActive;
+            }
             TerritoryChanged(Services.ClientState.TerritoryType);
             Task.Run(SaveTask, cancellationToken.Token);
 
@@ -60,15 +65,24 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 {
                     long etS = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->ClientTime.EorzeaTime;
                     var et = DateTimeOffset.FromUnixTimeSeconds(etS);
-                    locations[lastContentId] = new LocationModel
+
+                    var locationModel = locations.GetValueOrDefault(lastContentId);
+                    locationModel.TerritoryPath = territoryPath;
+                    locationModel.Position = Services.ClientState.LocalPlayer.Position;
+                    locationModel.Rotation = Services.ClientState.LocalPlayer.Rotation;
+                    locationModel.WeatherId = EnvManager.Instance()->ActiveWeather;
+                    locationModel.TimeOffset = (ushort)(et.Hour * 100 + (et.Minute / 60f * 100) % 100);
+                    locationModel.BgmPath = "";
+                    if (Services.LayoutService.LayoutInitialized)
                     {
-                        TerritoryPath = territoryPath,
-                        Position = Services.ClientState.LocalPlayer.Position,
-                        Rotation = Services.ClientState.LocalPlayer.Rotation,
-                        WeatherId = EnvManager.Instance()->ActiveWeather,
-                        TimeOffset = (ushort)(et.Hour * 100 + (et.Minute / 60f * 100) % 100),
-                        BgmPath = ""
-                    };
+                        if (Services.ConfigurationService.SaveLayout && refreshLayout)
+                        {
+                            SetLayout(ref locationModel);
+                        }
+
+                        refreshLayout = false;
+                    }
+                    locations[lastContentId] = locationModel;
                 }
                 else
                 {
@@ -77,18 +91,69 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
 
         }
+        private void TerritoryChanged(ushort territoryId)
+        {
+            territoryPath = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType)?.Bg.ToString();
+            Services.Log.Debug($"TerritoryChanged: {territoryPath}");
+        }
+        public void Logout()
+        {
+            Save(lastContentId);
+        }
+
+        private void LayoutChanged()
+        {
+            refreshLayout = true;
+        }
+
+        private unsafe void LayoutInstanceSetActive(ILayoutInstance* layout, bool active)
+        {
+            if (!refreshLayout && Services.ClientState.LocalPlayer != null && locations.TryGetValue(Services.ClientState.LocalContentId, out var locationModel))
+            {
+                var inActive = locationModel.Active.Contains(layout->UUID);
+                var inInactive = locationModel.Inactive.Contains(layout->UUID);
+                if ((inActive || inInactive) && ((active && !inActive) || (!active && !inInactive)))
+                {
+                    refreshLayout = true;
+
+                    Services.Log.Debug($"[LayoutSetActiveDetour] refreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayout");
+                }
+            }
+        }
+
+
+        private unsafe void SetLayout(ref LocationModel locationModel)
+        {
+
+            HashSet<ulong> active = [];
+            HashSet<ulong> inactive = [];
+            Services.LayoutService.ForEachInstance(instance =>
+            {
+                if (instance.Value->isActive)
+                {
+                    active.Add(instance.Value->UUID);
+                }
+                else
+                {
+                    inactive.Add(instance.Value->UUID);
+                }
+            });
+            locationModel.Active = active;
+            locationModel.Inactive = inactive;
+        }
 
 
         public void Save(ulong localContentId)
         {
             Services.Log.Debug($"Save {localContentId:X16}");
+            var sw = Stopwatch.StartNew();
             try
             {
                 if (locations.TryGetValue(localContentId, out LocationModel locationModel))
                 {
                     File.WriteAllText(
                         Path.Join(Services.PluginInterface.ConfigDirectory.FullName, $"{localContentId:X16}.json"),
-                        JsonConvert.SerializeObject(locationModel, Formatting.Indented)
+                        JsonConvert.SerializeObject(locationModel)
                     );
                 }
                 else
@@ -101,6 +166,9 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 Services.Log.Error(e.Message);
                 Services.Log.Error(e.StackTrace ?? "Null Stacktrace");
             }
+            sw.Stop();
+
+            Services.Log.Debug($"Save took {sw.Elapsed.TotalMilliseconds} ms");
         }
 
         private async Task SaveTask()
@@ -152,23 +220,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
         }
 
-        private void TerritoryChanged(ushort territoryId)
-        {
-            territoryPath = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType)?.Bg.ToString();
-            Services.Log.Debug($"TerritoryChanged: {territoryPath}");
-        }
-
-        public void OnLogout()
-        {
-            Save(lastContentId);
-        }
-
-
         public LocationModel GetLocationModel(ulong contentId)
         {
-            if (locations.ContainsKey(contentId))
+            if (locations.TryGetValue(contentId, out var locationModel))
             {
-                return locations[contentId];
+                return locationModel;
             }
             return DefaultLocation;
         }
@@ -176,8 +232,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         public void Dispose()
         {
             Services.Framework.Update -= Tick;
-            Services.ClientState.Logout -= OnLogout;
+            Services.ClientState.Logout -= Logout;
             Services.ClientState.TerritoryChanged -= TerritoryChanged;
+            Services.LayoutService.OnLayoutChange -= LayoutChanged;
+            unsafe
+            {
+                Services.LayoutService.OnLayoutInstanceSetActive -= LayoutInstanceSetActive;
+            }
             cancellationToken.Cancel();
             cancellationToken.Dispose();
         }

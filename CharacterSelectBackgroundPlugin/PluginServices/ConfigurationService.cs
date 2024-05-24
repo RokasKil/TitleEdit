@@ -11,6 +11,7 @@ public class ConfigurationService : IPluginConfiguration
 
     public bool PeriodicSaving { get; set; } = true;
     public int SavePeriod { get; set; } = 10;
+    public bool SaveLayout { get; set; } = false;
     // the below exist just to make saving less cumbersome
     [NonSerialized]
     private DalamudPluginInterface? PluginInterface;

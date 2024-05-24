@@ -9,6 +9,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
@@ -80,7 +81,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Services.Framework.Update += Tick;
         }
 
-        private void CharSelectSetWeatherDetour()
+        private unsafe void CharSelectSetWeatherDetour()
         {
             charSelectSetWeatherHook.Original();
             Services.Log.Debug($"CharSelectSetWeatherDetour {EnvManager.Instance()->ActiveWeather}");
@@ -89,6 +90,37 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 EnvManager.Instance()->ActiveWeather = locationModel.WeatherId;
                 setTime(locationModel.TimeOffset);
                 Services.Log.Debug($"SetWeather to {EnvManager.Instance()->ActiveWeather}");
+                if (locationModel.Active != null && locationModel.Inactive != null)
+                {
+                    List<ulong> unknownUUIDs = new();
+                    Services.LayoutService.ForEachInstance(instance =>
+                    {
+                        if (locationModel.Active.Contains(instance.Value->UUID))
+                        {
+                            instance.Value->SetActiveVF54(true);
+                            instance.Value->SetActive(true);
+
+                        }
+                        else if (locationModel.Inactive.Contains(instance.Value->UUID))
+                        {
+                            instance.Value->SetActiveVF54(false);
+                            instance.Value->SetActive(false);
+                        }
+                        else
+                        {
+                            unknownUUIDs.Add(instance.Value->UUID);
+                        }
+                    });
+                    if (unknownUUIDs.Count > 0)
+                    {
+                        Services.Log.Debug($"{unknownUUIDs.Count} UUIDs not found in the layout data");
+                    }
+                }
+                else
+                {
+                    Services.Log.Warning($"Layout data was null for {lastContentId:X16}");
+                }
+
             }
         }
 

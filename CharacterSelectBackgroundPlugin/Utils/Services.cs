@@ -23,11 +23,9 @@ namespace CharacterSelectBackgroundPlugin.Utils
         [PluginService] public static IFramework Framework { get; set; } = null!;
         public static DalamudPluginInterface PluginInterface { get; set; } = null!;
         public static ConfigurationService ConfigurationService { get; set; } = null!;
+        public static LayoutService LayoutService { get; set; } = null!;
         public static LobbyService LobbyService { get; set; } = null!;
         public static LocationService LocationService { get; set; } = null!;
-        public static WeatherService WeatherService { get; set; } = null!;
-
-        //public static LobbyService LobbyService { get; set; } = null!;
 
         public static void Initialize(DalamudPluginInterface pluginInterface)
         {
@@ -35,17 +33,16 @@ namespace CharacterSelectBackgroundPlugin.Utils
             PluginInterface = pluginInterface;
             ConfigurationService = pluginInterface.GetPluginConfig() as ConfigurationService ?? new();
             ConfigurationService.Initialize(pluginInterface);
+            LayoutService = new();
             LobbyService = new();
             LocationService = new();
-            WeatherService = new();
-
         }
 
         public static void Dispose()
         {
             LobbyService.Dispose();
             LocationService.Dispose();
-            WeatherService.Dispose();
+            LayoutService.Dispose(); // Other services subscribe on this so dispose last
         }
     }
 }

@@ -1,4 +1,5 @@
 using CharacterSelectBackgroundPlugin.PluginServices;
+using CharacterSelectBackgroundPlugin.Utils;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using System;
@@ -8,7 +9,7 @@ namespace CharacterSelectBackgroundPlugin.Windows;
 
 public class ConfigWindow : Window, IDisposable
 {
-    private ConfigurationService Configuration;
+    private ConfigurationService Configuration => Services.ConfigurationService;
 
     // We give this window a constant ID using ###
     // This allows for labels being dynamic, like "{FPS Counter}fps###XYZ counter window",
@@ -21,7 +22,6 @@ public class ConfigWindow : Window, IDisposable
         Size = new Vector2(232, 75);
         SizeCondition = ImGuiCond.Always;
 
-        Configuration = plugin.Configuration;
     }
 
     public void Dispose() { }
@@ -29,5 +29,18 @@ public class ConfigWindow : Window, IDisposable
 
     public override void Draw()
     {
+        CheckboxConfig("Get Layout", Configuration.SaveLayout, value => Configuration.SaveLayout = value);
+    }
+
+    private void CheckboxConfig(string title, bool value, Action<bool> action, bool save = true)
+    {
+        if (ImGui.Checkbox(title, ref value))
+        {
+            action(value);
+            if (save)
+            {
+                this.Configuration.Save();
+            }
+        }
     }
 }
