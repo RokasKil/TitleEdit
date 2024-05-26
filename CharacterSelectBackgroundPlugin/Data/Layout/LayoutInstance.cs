@@ -10,6 +10,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
         Light = 3,
         Vfx = 4,
         Prefab = 6,
+        Sound = 7,
         EnvSpace = 13,
         Prefab2 = 15, //???
         Weapon = 39,

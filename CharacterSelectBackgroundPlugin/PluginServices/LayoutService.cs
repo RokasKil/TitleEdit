@@ -2,6 +2,7 @@ using CharacterSelectBackgroundPlugin.Data.Layout;
 using CharacterSelectBackgroundPlugin.Utils;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using FFXIVClientStructs.Interop;
 using System;
@@ -12,6 +13,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
     public unsafe class LayoutService : IDisposable
     {
 
+        [Signature("48 89 5C 24 ?? 57 48 83 EC ?? 8B FA 48 8B D9 83 FA ?? 75")]
+        private readonly delegate* unmanaged<VfxLayoutInstance*, int, void> setVfxLayoutInstanceVfxTriggerIndex = null!;
         public LayoutManagerExpanded* LayoutManager => (LayoutManagerExpanded*)LayoutWorld.Instance()->ActiveLayout;
         public bool LayoutInitialized => LayoutManager->InitState == 7;
 
@@ -24,6 +27,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         public LayoutService()
         {
+            Services.GameInteropProvider.InitializeFromAttributes(this);
             Services.Framework.Update += Tick;
             Services.ClientState.Logout += OnLogout;
             Services.ClientState.TerritoryChanged += TerritoryChanged;
@@ -125,6 +129,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     ForEachInstanceAndDescendants(instanceData.Value->Instance, action);
                 }
             }
+        }
+
+        public void SetVfxLayoutInstanceVfxTriggerIndex(VfxLayoutInstance* instance, int index)
+        {
+            setVfxLayoutInstanceVfxTriggerIndex(instance, index);
         }
 
         public void Dispose()

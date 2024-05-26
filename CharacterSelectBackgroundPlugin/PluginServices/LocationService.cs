@@ -127,6 +127,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
             HashSet<ulong> active = [];
             HashSet<ulong> inactive = [];
+            Dictionary<ulong, short> vfxTriggerIndexes = [];
             Services.LayoutService.ForEachInstance(instance =>
             {
                 if (instance.Value->isActive)
@@ -137,9 +138,19 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 {
                     inactive.Add(instance.Value->UUID);
                 }
+                if (instance.Value->Id.Type == InstanceType.Vfx)
+                {
+                    var vfxInstance = (VfxLayoutInstance*)instance.Value;
+                    Services.Log.Debug($"{instance.Value->UUID} is vfx with triggerIndex {vfxInstance->VfxTriggerIndex}");
+                    if (vfxInstance->VfxTriggerIndex != -1)
+                    {
+                        vfxTriggerIndexes[instance.Value->UUID] = vfxInstance->VfxTriggerIndex;
+                    }
+                }
             });
             locationModel.Active = active;
             locationModel.Inactive = inactive;
+            locationModel.VfxTriggerIndexes = vfxTriggerIndexes;
         }
 
 
@@ -182,7 +193,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     if (Services.ConfigurationService.PeriodicSaving && (DateTime.Now - lastSave).TotalSeconds > Services.ConfigurationService.SavePeriod)
                     {
                         lastSave = DateTime.Now;
-                        Save(Services.ClientState.LocalContentId);
+                        Save(lastContentId);
                     }
                     else
                     {
@@ -204,7 +215,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     Services.Log.Debug($"Loading {contentId:X16}");
                     try
                     {
-                        locations[contentId] = JsonConvert.DeserializeObject<LocationModel>(File.ReadAllText(file.FullName));
+                        var location = JsonConvert.DeserializeObject<LocationModel>(File.ReadAllText(file.FullName));
+                        location.Active ??= [];
+                        location.Inactive ??= [];
+                        location.VfxTriggerIndexes ??= [];
+                        locations[contentId] = location;
                     }
                     catch (Exception e)
                     {

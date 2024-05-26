@@ -13,6 +13,7 @@ namespace CharacterSelectBackgroundPlugin.Data
         public string BgmPath = "";
         public HashSet<ulong> Active = [];
         public HashSet<ulong> Inactive = [];
+        public Dictionary<ulong, short> VfxTriggerIndexes = [];
 
         public LocationModel()
         {

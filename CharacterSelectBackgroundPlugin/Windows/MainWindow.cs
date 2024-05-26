@@ -35,7 +35,8 @@ public class MainWindow : Window, IDisposable
             ImGui.Text($"Current character {Services.ClientState.LocalContentId:X16}");
             ImGui.Text($"Current weather {EnvManager.Instance()->ActiveWeather}");
             ImGui.Text($"Current lobbymap {Services.LobbyService.CurrentLobbyMap}");
-            ImGui.Text($"Current layout {Services.LocationService.GetLocationModel(Services.ClientState.LocalContentId).Active.Count} {Services.LocationService.GetLocationModel(Services.ClientState.LocalContentId).Inactive.Count} ");
+            var location = Services.LocationService.GetLocationModel(Services.ClientState.LocalContentId);
+            ImGui.Text($"Current layout {location.Active.Count} {location.Inactive.Count} {location.VfxTriggerIndexes.Count}");
         }
         if (ImGui.Button("weather"))
         {

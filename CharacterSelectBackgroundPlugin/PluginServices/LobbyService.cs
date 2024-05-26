@@ -1,4 +1,5 @@
 using CharacterSelectBackgroundPlugin.Data;
+using CharacterSelectBackgroundPlugin.Data.Layout;
 using CharacterSelectBackgroundPlugin.Utils;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
@@ -97,14 +98,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     {
                         if (locationModel.Active.Contains(instance.Value->UUID))
                         {
-                            instance.Value->SetActiveVF54(true);
-                            instance.Value->SetActive(true);
-
+                            setActive(instance.Value, true);
                         }
                         else if (locationModel.Inactive.Contains(instance.Value->UUID))
                         {
-                            instance.Value->SetActiveVF54(false);
-                            instance.Value->SetActive(false);
+                            setActive(instance.Value, false);
                         }
                         else
                         {
@@ -121,6 +119,26 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     Services.Log.Warning($"Layout data was null for {lastContentId:X16}");
                 }
 
+            }
+        }
+        private void setActive(ILayoutInstance* instance, bool active)
+        {
+            if (instance->Id.Type == InstanceType.Vfx)
+            {
+                SetIndex((VfxLayoutInstance*)instance);
+                instance->SetActiveVF54(active);
+            }
+            else
+            {
+                instance->SetActive(active);
+            }
+        }
+
+        private void SetIndex(VfxLayoutInstance* instance)
+        {
+            if (locationModel.VfxTriggerIndexes.TryGetValue(instance->ILayoutInstance.UUID, out var index))
+            {
+                Services.LayoutService.SetVfxLayoutInstanceVfxTriggerIndex(instance, index);
             }
         }
 
