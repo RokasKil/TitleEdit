@@ -37,6 +37,8 @@ public class MainWindow : Window, IDisposable
             ImGui.Text($"Current lobbymap {Services.LobbyService.CurrentLobbyMap}");
             var location = Services.LocationService.GetLocationModel(Services.ClientState.LocalContentId);
             ImGui.Text($"Current layout {location.Active.Count} {location.Inactive.Count} {location.VfxTriggerIndexes.Count}");
+            ImGui.Text($"Current Song {Services.BgmService.CurrentSongId}");
+            ImGui.Text($"Current LobbyMusicIndex {Services.LobbyService.CurrentLobbyMusicIndex}");
         }
         if (ImGui.Button("weather"))
         {

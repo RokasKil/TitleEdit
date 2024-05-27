@@ -3,6 +3,7 @@ using CharacterSelectBackgroundPlugin.Data.Layout;
 using CharacterSelectBackgroundPlugin.Utils;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -32,29 +33,44 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private delegate void SomeEnvManagerThingyDelegate(ulong unk1, uint unk2, float unk3);
         private delegate ulong WeatherThingyDelegate(ulong param, byte weatherId);
         private delegate void CharSelectSetWeatherDelegate();
+        private delegate IntPtr PlayMusicDelegate(IntPtr self, string filename, float volume, uint fadeTime);
 
         private readonly Hook<OnCreateSceneDelegate> createSceneHook;
-        //private readonly Hook<OnPlayMusic> _playMusicHook;
-        //private readonly Hook<OnFixOn> _fixOnHook;
         private readonly Hook<LobbyUpdateDelegate> lobbyUpdateHook;
         private readonly Hook<SelectCharacterDelegate> selectCharacterHook;
         private readonly Hook<SelectCharacter2Delegate> selectCharacter2Hook;
         private readonly Hook<SetCameraCurveMidPointDelegate> setCameraCurveMidPointHook;
         private readonly Hook<SetCharSelectCurrentWorldDelegate> setCharSelectCurrentWorldHook;
         private readonly Hook<CharSelectSetWeatherDelegate> charSelectSetWeatherHook;
+        private readonly Hook<PlayMusicDelegate> playMusicHook;
 
-        private readonly IntPtr lobbyCurrentMapAddress;
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.Movie;
         private ulong lastContentId;
         private LocationModel locationModel = LocationService.DefaultLocation;
 
+        private string? lastBgmPath;
+
         private bool resetScene = false;
         private bool resetCamera = false;
 
+        private readonly IntPtr lobbyCurrentMapAddress;
         public short CurrentLobbyMap
         {
             get => Marshal.ReadInt16(lobbyCurrentMapAddress);
             set => Marshal.WriteInt16(lobbyCurrentMapAddress, value);
+        }
+
+        // Probably some lobby instance
+        // method at E8 ?? ?? ?? ?? 33 C9 E8 ?? ?? ?? ?? 48 8B 0D picks a song from an array of 7 entries
+        // ["", <arr title>, <char select>, <hw title>, <sb title>, <shb title>, <ew title>]
+        // calls the method hooked at playMusicHook with selected path and stores the result at 0x18 with the index being stored at 0x20
+        // on subsequent calls it checks if we need to reset by comparing offset 0x20 with provided music index
+        // we abuse that by setting it back to 0
+        private readonly IntPtr* lobbyBgmBasePointerAddress;
+        public uint CurrentLobbyMusicIndex
+        {
+            get => (uint)Marshal.ReadInt32(*lobbyBgmBasePointerAddress, 0x20);
+            set => Marshal.WriteInt32(*lobbyBgmBasePointerAddress, 0x20, (int)value);
         }
 
         public LobbyService()
@@ -62,6 +78,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Services.GameInteropProvider.InitializeFromAttributes(this);
 
             lobbyCurrentMapAddress = Services.SigScanner.GetStaticAddressFromSig("0F B7 05 ?? ?? ?? ?? 49 8B CE");
+            lobbyBgmBasePointerAddress = (IntPtr*)Services.SigScanner.GetStaticAddressFromSig("48 8B 35 ?? ?? ?? ?? 88 46");
 
             createSceneHook = Services.GameInteropProvider.HookFromSignature<OnCreateSceneDelegate>("E8 ?? ?? ?? ?? 66 89 1D ?? ?? ?? ?? E9 ?? ?? ?? ??", OnCreateSceneDetour);
             lobbyUpdateHook = Services.GameInteropProvider.HookFromSignature<LobbyUpdateDelegate>("E8 ?? ?? ?? ?? EB 1C 3B CF", LobbyUpdateDetour);
@@ -75,6 +92,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             // Some scene thingy
             charSelectSetWeatherHook = Services.GameInteropProvider.HookFromSignature<CharSelectSetWeatherDelegate>("0F B7 0D ?? ?? ?? ?? 8D 41", CharSelectSetWeatherDetour);
 
+            playMusicHook = Services.GameInteropProvider.HookFromSignature<PlayMusicDelegate>("E8 ?? ?? ?? ?? 48 89 47 18 89 5F 20", PlayMusicDetour);
 
             Enable();
 
@@ -88,6 +106,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Services.Log.Debug($"CharSelectSetWeatherDetour {EnvManager.Instance()->ActiveWeather}");
             if (CurrentLobbyMap == (short)GameLobbyType.CharaSelect)
             {
+                fixed (uint* pFestivals = locationModel.Festivals)
+                {
+                    Services.LayoutService.LayoutManager->layoutManager.SetActiveFestivals(pFestivals);
+                }
                 EnvManager.Instance()->ActiveWeather = locationModel.WeatherId;
                 setTime(locationModel.TimeOffset);
                 Services.Log.Debug($"SetWeather to {EnvManager.Instance()->ActiveWeather}");
@@ -98,11 +120,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     {
                         if (locationModel.Active.Contains(instance.Value->UUID))
                         {
-                            setActive(instance.Value, true);
+                            SetActive(instance.Value, true);
                         }
                         else if (locationModel.Inactive.Contains(instance.Value->UUID))
                         {
-                            setActive(instance.Value, false);
+                            SetActive(instance.Value, false);
                         }
                         else
                         {
@@ -121,7 +143,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
             }
         }
-        private void setActive(ILayoutInstance* instance, bool active)
+        private void SetActive(ILayoutInstance* instance, bool active)
         {
             if (instance->Id.Type == InstanceType.Vfx)
             {
@@ -140,6 +162,19 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             {
                 Services.LayoutService.SetVfxLayoutInstanceVfxTriggerIndex(instance, index);
             }
+        }
+
+        private IntPtr PlayMusicDetour(IntPtr self, string filename, float volume, uint fadeTime)
+        {
+            Services.Log.Debug($"PlayMusicDetour {self.ToInt64():X} {filename} {volume} {fadeTime}");
+
+            if (CurrentLobbyMap == (short)GameLobbyType.CharaSelect && !locationModel.BgmPath.IsNullOrEmpty())
+            {
+                Services.Log.Debug($"Setting music to {locationModel.BgmPath}");
+                filename = locationModel.BgmPath;
+            }
+            lastBgmPath = filename;
+            return playMusicHook.Original(self, filename, volume, fadeTime);
         }
 
         private void SetCharSelectCurrentWorldDetour(ulong unk)
@@ -247,7 +282,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 territoryPath = locationModel.TerritoryPath;
                 Services.Log.Debug($"Loading char select screen: {territoryPath}");
                 var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
-                EnvManager.Instance()->ActiveWeather = locationModel.WeatherId;
+                if ((!locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != locationModel.BgmPath) || (locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != LocationService.DefaultLocation.BgmPath))
+                {
+                    CurrentLobbyMusicIndex = 0;
+                }
                 //SetWeather();
                 //var camera = CameraManager.Instance()->LobbCamera;
                 //if (lastContentId == 0 && camera != null)
@@ -370,6 +408,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             setCameraCurveMidPointHook.Enable();
             setCharSelectCurrentWorldHook.Enable();
             charSelectSetWeatherHook.Enable();
+            playMusicHook.Enable();
         }
 
         public void Dispose()
@@ -381,6 +420,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             setCameraCurveMidPointHook?.Dispose();
             setCharSelectCurrentWorldHook?.Dispose();
             charSelectSetWeatherHook?.Dispose();
+            playMusicHook?.Dispose();
             Services.ClientState.Login -= ResetState;
         }
     }

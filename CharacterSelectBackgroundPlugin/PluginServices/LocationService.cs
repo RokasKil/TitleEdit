@@ -30,7 +30,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Rotation = 0,
             WeatherId = 2,
             TimeOffset = 0,
-            BgmPath = "music/ffxiv/BGM_System_Title.scd"
+            BgmPath = "music/ffxiv/BGM_System_Chara.scd"
         };
 
         private readonly CancellationTokenSource cancellationToken = new();
@@ -39,6 +39,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private ConcurrentDictionary<ulong, LocationModel> locations = [];
         private ulong lastContentId;
         private bool refreshLayout = true;
+        private string? bgmPath = null;
         public LocationService()
         {
             LoadSavedLocations();
@@ -46,11 +47,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Services.ClientState.Logout += Logout;
             Services.ClientState.TerritoryChanged += TerritoryChanged;
             Services.LayoutService.OnLayoutChange += LayoutChanged;
+            Services.BgmService.OnBgmChange += BgmChanged;
             unsafe
             {
                 Services.LayoutService.OnLayoutInstanceSetActive += LayoutInstanceSetActive;
             }
             TerritoryChanged(Services.ClientState.TerritoryType);
+            BgmChanged(Services.BgmService.CurrentSongId);
             Task.Run(SaveTask, cancellationToken.Token);
 
         }
@@ -67,12 +70,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     var et = DateTimeOffset.FromUnixTimeSeconds(etS);
 
                     var locationModel = locations.GetValueOrDefault(lastContentId);
+
                     locationModel.TerritoryPath = territoryPath;
                     locationModel.Position = Services.ClientState.LocalPlayer.Position;
                     locationModel.Rotation = Services.ClientState.LocalPlayer.Rotation;
                     locationModel.WeatherId = EnvManager.Instance()->ActiveWeather;
                     locationModel.TimeOffset = (ushort)(et.Hour * 100 + (et.Minute / 60f * 100) % 100);
-                    locationModel.BgmPath = "";
+                    locationModel.BgmPath = bgmPath;
                     if (Services.LayoutService.LayoutInitialized)
                     {
                         if (Services.ConfigurationService.SaveLayout && refreshLayout)
@@ -82,6 +86,12 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
                         refreshLayout = false;
                     }
+                    locationModel.Festivals = [
+                        Services.LayoutService.LayoutManager->ActiveFestivals[0],
+                        Services.LayoutService.LayoutManager->ActiveFestivals[1],
+                        Services.LayoutService.LayoutManager->ActiveFestivals[2],
+                        Services.LayoutService.LayoutManager->ActiveFestivals[3]
+                    ];
                     locations[lastContentId] = locationModel;
                 }
                 else
@@ -104,6 +114,12 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private void LayoutChanged()
         {
             refreshLayout = true;
+        }
+
+        private void BgmChanged(int songId)
+        {
+            bgmPath = Services.DataManager.GetExcelSheet<BGM>()!.GetRow((uint)songId)?.File.ToString();
+            Services.Log.Debug($"BgmChanged {songId} {bgmPath}");
         }
 
         private unsafe void LayoutInstanceSetActive(ILayoutInstance* layout, bool active)
@@ -219,6 +235,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         location.Active ??= [];
                         location.Inactive ??= [];
                         location.VfxTriggerIndexes ??= [];
+                        location.Festivals ??= [0, 0, 0, 0];
                         locations[contentId] = location;
                     }
                     catch (Exception e)
@@ -250,6 +267,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Services.ClientState.Logout -= Logout;
             Services.ClientState.TerritoryChanged -= TerritoryChanged;
             Services.LayoutService.OnLayoutChange -= LayoutChanged;
+            Services.BgmService.OnBgmChange -= BgmChanged;
             unsafe
             {
                 Services.LayoutService.OnLayoutInstanceSetActive -= LayoutInstanceSetActive;

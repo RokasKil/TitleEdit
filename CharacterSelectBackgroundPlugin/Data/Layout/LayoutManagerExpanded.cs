@@ -13,6 +13,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
     [StructLayout(LayoutKind.Explicit, Size = 0xB90)]
     public unsafe struct LayoutManagerExpanded
     {
+        [FieldOffset(0x000)] public LayoutManager layoutManager;
         [FieldOffset(0x000)] public IManagerBase IManagerBase;
         [FieldOffset(0x018)] public int InitState; // 7 is fully loaded and ready, <7 are various stages of init
         [FieldOffset(0x01C)] public int Type; // 2 for normal levels, 3 ???

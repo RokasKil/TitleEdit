@@ -26,6 +26,7 @@ namespace CharacterSelectBackgroundPlugin.Utils
         public static LayoutService LayoutService { get; set; } = null!;
         public static LobbyService LobbyService { get; set; } = null!;
         public static LocationService LocationService { get; set; } = null!;
+        public static BgmService BgmService { get; set; } = null!;
 
         public static void Initialize(DalamudPluginInterface pluginInterface)
         {
@@ -34,6 +35,7 @@ namespace CharacterSelectBackgroundPlugin.Utils
             ConfigurationService = pluginInterface.GetPluginConfig() as ConfigurationService ?? new();
             ConfigurationService.Initialize(pluginInterface);
             LayoutService = new();
+            BgmService = new();
             LobbyService = new();
             LocationService = new();
         }
@@ -42,7 +44,9 @@ namespace CharacterSelectBackgroundPlugin.Utils
         {
             LobbyService.Dispose();
             LocationService.Dispose();
+            // Provider services get subscribed to so we dispose of them last
             LayoutService.Dispose(); // Other services subscribe on this so dispose last
+            BgmService.Dispose(); // Other services subscribe on this so dispose last
         }
     }
 }

@@ -10,10 +10,11 @@ namespace CharacterSelectBackgroundPlugin.Data
         public float Rotation;
         public byte WeatherId;
         public ushort TimeOffset;
-        public string BgmPath = "";
+        public string? BgmPath;
         public HashSet<ulong> Active = [];
         public HashSet<ulong> Inactive = [];
         public Dictionary<ulong, short> VfxTriggerIndexes = [];
+        public uint[] Festivals = new uint[4];
 
         public LocationModel()
         {
