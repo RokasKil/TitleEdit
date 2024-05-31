@@ -1,7 +1,8 @@
 using CharacterSelectBackgroundPlugin.Data;
 using CharacterSelectBackgroundPlugin.Data.Layout;
-using CharacterSelectBackgroundPlugin.Utils;
+using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
@@ -17,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {
-    public class LocationService : IDisposable
+    public class LocationService : AbstractService
     {
 
 
@@ -30,7 +31,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Rotation = 0,
             WeatherId = 2,
             TimeOffset = 0,
-            BgmPath = "music/ffxiv/BGM_System_Chara.scd"
+            BgmPath = "music/ffxiv/BGM_System_Chara.scd",
+            MountId = 186
         };
 
         private readonly CancellationTokenSource cancellationToken = new();
@@ -75,6 +77,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     locationModel.Position = Services.ClientState.LocalPlayer.Position;
                     locationModel.Rotation = Services.ClientState.LocalPlayer.Rotation;
                     locationModel.WeatherId = EnvManager.Instance()->ActiveWeather;
+                    locationModel.MountId = ((Character*)Services.ClientState.LocalPlayer.Address)->Mount.MountId;
                     locationModel.TimeOffset = (ushort)(et.Hour * 100 + (et.Minute / 60f * 100) % 100);
                     locationModel.BgmPath = bgmPath;
                     if (Services.LayoutService.LayoutInitialized)
@@ -104,6 +107,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private void TerritoryChanged(ushort territoryId)
         {
             territoryPath = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType)?.Bg.ToString();
+            var test = Services.DataManager.GetExcelSheet<Mount>()!.GetRow(Services.ClientState.TerritoryType);
             Services.Log.Debug($"TerritoryChanged: {territoryPath}");
         }
         public void Logout()
@@ -236,6 +240,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         location.Inactive ??= [];
                         location.VfxTriggerIndexes ??= [];
                         location.Festivals ??= [0, 0, 0, 0];
+                        location.MountId = (ushort)(location.MountId == 0 ? 245 : location.MountId); // TODO: remove me
                         locations[contentId] = location;
                     }
                     catch (Exception e)
@@ -261,8 +266,9 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             return DefaultLocation;
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
+            base.Dispose();
             Services.Framework.Update -= Tick;
             Services.ClientState.Logout -= Logout;
             Services.ClientState.TerritoryChanged -= TerritoryChanged;

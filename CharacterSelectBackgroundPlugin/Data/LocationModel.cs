@@ -11,6 +11,7 @@ namespace CharacterSelectBackgroundPlugin.Data
         public byte WeatherId;
         public ushort TimeOffset;
         public string? BgmPath;
+        public ushort MountId;
         public HashSet<ulong> Active = [];
         public HashSet<ulong> Inactive = [];
         public Dictionary<ulong, short> VfxTriggerIndexes = [];

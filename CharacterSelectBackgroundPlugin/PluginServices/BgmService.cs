@@ -1,5 +1,5 @@
 using CharacterSelectBackgroundPlugin.Data.Bgm;
-using CharacterSelectBackgroundPlugin.Utils;
+using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Plugin.Services;
 using System;
 using System.Runtime.InteropServices;
@@ -41,7 +41,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         public BgmService()
         {
-            baseAddress = Services.SigScanner.GetStaticAddressFromSig("48 8B 05 ?? ?? ?? ?? 48 85 C0 74 37 83 78 08 04");
+            baseAddress = Utils.GetStaticAddressFromSigOrThrow("48 8B 05 ?? ?? ?? ?? 48 85 C0 74 37 83 78 08 04");
             Services.Framework.Update += Tick;
 
         }

@@ -1,5 +1,5 @@
 using CharacterSelectBackgroundPlugin.Data.Layout;
-using CharacterSelectBackgroundPlugin.Utils;
+using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility.Signatures;
@@ -10,7 +10,7 @@ using System.Collections.Generic;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {
-    public unsafe class LayoutService : IDisposable
+    public unsafe class LayoutService : AbstractService
     {
 
         [Signature("48 89 5C 24 ?? 57 48 83 EC ?? 8B FA 48 8B D9 83 FA ?? 75")]
@@ -136,8 +136,9 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             setVfxLayoutInstanceVfxTriggerIndex(instance, index);
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
+            base.Dispose();
             ClearSetActiveHooks();
             Services.Framework.Update -= Tick;
             Services.ClientState.Logout -= OnLogout;

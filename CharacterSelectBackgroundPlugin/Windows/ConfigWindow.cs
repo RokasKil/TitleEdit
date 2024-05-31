@@ -1,5 +1,5 @@
 using CharacterSelectBackgroundPlugin.PluginServices;
-using CharacterSelectBackgroundPlugin.Utils;
+using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using System;

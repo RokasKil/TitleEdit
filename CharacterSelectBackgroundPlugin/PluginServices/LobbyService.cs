@@ -1,11 +1,12 @@
 using CharacterSelectBackgroundPlugin.Data;
 using CharacterSelectBackgroundPlugin.Data.Layout;
-using CharacterSelectBackgroundPlugin.Utils;
+using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
@@ -16,7 +17,7 @@ using System.Runtime.InteropServices;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {
-    public unsafe class LobbyService : IDisposable
+    public unsafe class LobbyService : AbstractService
     {
 
         [Signature("C6 81 ?? ?? ?? ?? ?? 8B 02 89 41 60")]
@@ -34,6 +35,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private delegate ulong WeatherThingyDelegate(ulong param, byte weatherId);
         private delegate void CharSelectSetWeatherDelegate();
         private delegate IntPtr PlayMusicDelegate(IntPtr self, string filename, float volume, uint fadeTime);
+        private delegate IntPtr CreateBattleCharacterDelegate(IntPtr objectManager, uint index, bool assignCompanion);
+        private delegate void CharSelectWorldPreviewEventHandlerDelegate(ulong p1, ulong p2, ulong p3, uint p4);
 
         private readonly Hook<OnCreateSceneDelegate> createSceneHook;
         private readonly Hook<LobbyUpdateDelegate> lobbyUpdateHook;
@@ -43,6 +46,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private readonly Hook<SetCharSelectCurrentWorldDelegate> setCharSelectCurrentWorldHook;
         private readonly Hook<CharSelectSetWeatherDelegate> charSelectSetWeatherHook;
         private readonly Hook<PlayMusicDelegate> playMusicHook;
+        private readonly Hook<CreateBattleCharacterDelegate> createBattleCharacterHook;
+        private readonly Hook<CharSelectWorldPreviewEventHandlerDelegate> charSelectWorldPreviewEventHandlerHook;
 
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.Movie;
         private ulong lastContentId;
@@ -53,7 +58,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private bool resetScene = false;
         private bool resetCamera = false;
 
+        private bool renderingSelected = false;
+
         private readonly IntPtr lobbyCurrentMapAddress;
+
+        private bool creatingCharSelectGameObjects = false;
         public short CurrentLobbyMap
         {
             get => Marshal.ReadInt16(lobbyCurrentMapAddress);
@@ -77,27 +86,45 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
 
-            lobbyCurrentMapAddress = Services.SigScanner.GetStaticAddressFromSig("0F B7 05 ?? ?? ?? ?? 49 8B CE");
-            lobbyBgmBasePointerAddress = (IntPtr*)Services.SigScanner.GetStaticAddressFromSig("48 8B 35 ?? ?? ?? ?? 88 46");
+            lobbyCurrentMapAddress = Utils.GetStaticAddressFromSigOrThrow("0F B7 05 ?? ?? ?? ?? 49 8B CE");
+            lobbyBgmBasePointerAddress = (IntPtr*)Utils.GetStaticAddressFromSigOrThrow("48 8B 35 ?? ?? ?? ?? 88 46");
 
-            createSceneHook = Services.GameInteropProvider.HookFromSignature<OnCreateSceneDelegate>("E8 ?? ?? ?? ?? 66 89 1D ?? ?? ?? ?? E9 ?? ?? ?? ??", OnCreateSceneDetour);
-            lobbyUpdateHook = Services.GameInteropProvider.HookFromSignature<LobbyUpdateDelegate>("E8 ?? ?? ?? ?? EB 1C 3B CF", LobbyUpdateDetour);
+            createSceneHook = Hook<OnCreateSceneDelegate>("E8 ?? ?? ?? ?? 66 89 1D ?? ?? ?? ?? E9 ?? ?? ?? ??", OnCreateSceneDetour);
+            lobbyUpdateHook = Hook<LobbyUpdateDelegate>("E8 ?? ?? ?? ?? EB 1C 3B CF", LobbyUpdateDetour);
             // Happends on character list hover - probably don't need to set player pos here cause covered by setCharSelectCurrentWorldHook
-            selectCharacterHook = Services.GameInteropProvider.HookFromSignature<SelectCharacterDelegate>("E8 ?? ?? ?? ?? 0F B6 D8 84 C0 75 ?? 49 8B CD", SelectCharacterDetour);
+            selectCharacterHook = Hook<SelectCharacterDelegate>("E8 ?? ?? ?? ?? 0F B6 D8 84 C0 75 ?? 49 8B CD", SelectCharacterDetour);
             // Happens on world list hover
-            selectCharacter2Hook = Services.GameInteropProvider.HookFromSignature<SelectCharacter2Delegate>("40 53 48 83 EC ?? 41 83 C8 ?? 4C 8D 15", SelectCharacter2Detour);
-            setCameraCurveMidPointHook = Services.GameInteropProvider.HookFromSignature<SetCameraCurveMidPointDelegate>("0F 57 C0 0F 2F C1 73 ?? F3 0F 11 89", SetCameraCurveMidPointDetour);
-            setCharSelectCurrentWorldHook = Services.GameInteropProvider.HookFromSignature<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 49 8B CD 48 8B 7C 24", SetCharSelectCurrentWorldDetour);
+            selectCharacter2Hook = Hook<SelectCharacter2Delegate>("40 53 48 83 EC ?? 41 83 C8 ?? 4C 8D 15", SelectCharacter2Detour);
+            setCameraCurveMidPointHook = Hook<SetCameraCurveMidPointDelegate>("0F 57 C0 0F 2F C1 73 ?? F3 0F 11 89", SetCameraCurveMidPointDetour);
+            setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 49 8B CD 48 8B 7C 24", SetCharSelectCurrentWorldDetour);
 
             // Some scene thingy
-            charSelectSetWeatherHook = Services.GameInteropProvider.HookFromSignature<CharSelectSetWeatherDelegate>("0F B7 0D ?? ?? ?? ?? 8D 41", CharSelectSetWeatherDetour);
+            charSelectSetWeatherHook = Hook<CharSelectSetWeatherDelegate>("0F B7 0D ?? ?? ?? ?? 8D 41", CharSelectSetWeatherDetour);
 
-            playMusicHook = Services.GameInteropProvider.HookFromSignature<PlayMusicDelegate>("E8 ?? ?? ?? ?? 48 89 47 18 89 5F 20", PlayMusicDetour);
+            playMusicHook = Hook<PlayMusicDelegate>("E8 ?? ?? ?? ?? 48 89 47 18 89 5F 20", PlayMusicDetour);
 
-            Enable();
+            createBattleCharacterHook = Hook<CreateBattleCharacterDelegate>("E8 ?? ?? ?? ?? 83 F8 ?? 74 ?? 8B D0", CreateBattleCharacterDetour);
+            charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 41 83 FE ?? 0F 8C", CharSelectWorldPreviewEventHandlerDetour);
+            EnableHooks();
 
             Services.ClientState.Login += ResetState;
             Services.Framework.Update += Tick;
+        }
+
+        private void CharSelectWorldPreviewEventHandlerDetour(ulong p1, ulong p2, ulong p3, uint p4)
+        {
+            creatingCharSelectGameObjects = true;
+            charSelectWorldPreviewEventHandlerHook.Original(p1, p2, p3, p4);
+            creatingCharSelectGameObjects = false;
+        }
+
+        private IntPtr CreateBattleCharacterDetour(IntPtr objectManager, uint index, bool assignCompanion)
+        {
+            if (creatingCharSelectGameObjects)
+            {
+                Services.Log.Debug("[CreateBattleCharacterDetour] setting assignCompanion");
+            }
+            return createBattleCharacterHook.Original(objectManager, index, assignCompanion || creatingCharSelectGameObjects);
         }
 
         private unsafe void CharSelectSetWeatherDetour()
@@ -179,14 +206,16 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private void SetCharSelectCurrentWorldDetour(ulong unk)
         {
+            creatingCharSelectGameObjects = true;
             setCharSelectCurrentWorldHook.Original(unk);
+            creatingCharSelectGameObjects = false;
             Services.Log.Debug("SetCharSelectCurrentWorldDetour");
 
             var charaSelectCharacterList = CharaSelectCharacterList.Instance();
             var clientObjectManager = ClientObjectManager.Instance();
-            if (charaSelectCharacterList != null && clientObjectManager != null)
+            var characterManager = CharacterManager.Instance();
+            if (charaSelectCharacterList != null && clientObjectManager != null && characterManager != null)
             {
-
                 for (int i = 0; i < charaSelectCharacterList->CharacterMappingSpan.Length; i++)
                 {
                     if (charaSelectCharacterList->CharacterMappingSpan[i].ContentId == 0)
@@ -200,9 +229,17 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     var gameObject = clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
                     if (gameObject != null)
                     {
-
                         gameObject->SetPosition(location.Position.X, location.Position.Y, location.Position.Z);
+                        if (location.MountId != 0 && gameObject->IsCharacter())
+                        {
+                            var character = (FFXIVClientStructs.FFXIV.Client.Game.Character.Character*)gameObject;
+                            character->Mount.CreateAndSetupMount((short)location.MountId, 0, 0, 0, 0, 0, 0);
+                        }
+                        else if (!gameObject->IsCharacter())
+                        {
 
+                            Services.Log.Debug($"{(IntPtr)gameObject:X} is not character?");
+                        }
                         Services.Log.Debug($"{(IntPtr)gameObject:X} set to {location.Position} {location.Rotation}");
                     }
                     else
@@ -217,16 +254,31 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
             else
             {
-                Services.Log.Warning($"[SetCharSelectCurrentWorldDetour] failed to get instance {(IntPtr)charaSelectCharacterList:X} {(IntPtr)clientObjectManager:X}");
+                Services.Log.Warning($"[SetCharSelectCurrentWorldDetour] failed to get instance {(IntPtr)charaSelectCharacterList:X} {(IntPtr)clientObjectManager:X} {(IntPtr)characterManager:X}");
             }
         }
 
         public void Tick(IFramework framework)
         {
-            if (lastContentId != 0 && CharaSelectCharacterList.GetCurrentCharacter() == null)
+            var currentChar = CharaSelectCharacterList.GetCurrentCharacter();
+            if (lastContentId != 0 && currentChar == null)
             {
                 ResetState();
                 resetScene = true;
+            }
+            // We do a slight polling cause it's simpler than figuring when exactly are mounts and stuff are good to draw
+            if (CurrentLobbyMap == (short)GameLobbyType.CharaSelect && currentChar != null)
+            {
+                if (currentChar->GameObject.RenderFlags != 0 && currentChar->GameObject.RenderFlags != 0x40 && currentChar->GameObject.IsReadyToDraw())
+                {
+                    Services.Log.Debug($"Drawing character {(IntPtr)currentChar:X} {currentChar->GameObject.RenderFlags:X}");
+                    currentChar->GameObject.EnableDraw();
+                    if (currentChar->IsMounted() && currentChar->CompanionObject != null && currentChar->CompanionObject->Character.GameObject.IsReadyToDraw())
+                    {
+                        Services.Log.Debug($"Drawing companion {(IntPtr)currentChar->CompanionObject:X} {currentChar->CompanionObject->Character.GameObject.RenderFlags:X}");
+                        currentChar->CompanionObject->Character.GameObject.EnableDraw();
+                    }
+                }
             }
         }
 
@@ -235,14 +287,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             lastContentId = 0;
             locationModel = LocationService.DefaultLocation;
             resetCamera = true;
-        }
-
-        public void FixOn(LobbyCamera* camera, float[] cameraPos, float[] focusPos, float fovY)
-        {
-            if (fixOnNative == null)
-                throw new InvalidOperationException("FixOn signature wasn't found!");
-
-            fixOnNative(camera, cameraPos, focusPos, fovY);
         }
 
         public void setTime(ushort time)
@@ -369,58 +413,38 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             var character = CharaSelectCharacterList.GetCurrentCharacter();
 
-            if (character != null)
+            var agentLobby = AgentLobby.Instance();
+            if (character != null && agentLobby != null)
             {
-                var agentLobby = AgentLobby.Instance();
-                if (agentLobby != null)
+                var contentId = agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
+                if (lastContentId != contentId)
                 {
-                    var contentId = agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
-                    if (lastContentId != contentId)
+                    lastContentId = contentId;
+
+                    var newLocationModel = Services.LocationService.GetLocationModel(contentId);
+                    if (!newLocationModel.Equals(locationModel))
                     {
-                        lastContentId = contentId;
+                        locationModel = newLocationModel;
+                        resetScene = true;
+                    }
+                    Services.Log.Debug($"Setting character postion {(IntPtr)character:X}");
+                    character->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
 
-                        var newLocationModel = Services.LocationService.GetLocationModel(contentId);
-                        if (!newLocationModel.Equals(locationModel))
+                    if (locationModel.MountId != 0)
+                    {
+                        if (character->Mount.MountId == 0)
                         {
-                            locationModel = newLocationModel;
-                            resetScene = true;
+                            character->Mount.CreateAndSetupMount((short)locationModel.MountId, 0, 0, 0, 0, 0, 0);
                         }
-                        Services.Log.Debug($"Setting character postion {(IntPtr)character:X}");
-                        character->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
-
                     }
                 }
-
-
-            }
-            else
-            {
-                Services.Log.Info("Character was null :(");
             }
 
         }
-        public void Enable()
-        {
-            createSceneHook.Enable();
-            lobbyUpdateHook.Enable();
-            selectCharacterHook.Enable();
-            selectCharacter2Hook.Enable();
-            setCameraCurveMidPointHook.Enable();
-            setCharSelectCurrentWorldHook.Enable();
-            charSelectSetWeatherHook.Enable();
-            playMusicHook.Enable();
-        }
 
-        public void Dispose()
+        public override void Dispose()
         {
-            createSceneHook?.Dispose();
-            lobbyUpdateHook?.Dispose();
-            selectCharacterHook?.Dispose();
-            selectCharacter2Hook?.Dispose();
-            setCameraCurveMidPointHook?.Dispose();
-            setCharSelectCurrentWorldHook?.Dispose();
-            charSelectSetWeatherHook?.Dispose();
-            playMusicHook?.Dispose();
+            base.Dispose();
             Services.ClientState.Login -= ResetState;
         }
     }

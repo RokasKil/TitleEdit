@@ -1,5 +1,5 @@
 using CharacterSelectBackgroundPlugin.PluginServices;
-using CharacterSelectBackgroundPlugin.Utils;
+using CharacterSelectBackgroundPlugin.Utility;
 using CharacterSelectBackgroundPlugin.Windows;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
