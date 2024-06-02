@@ -2,7 +2,6 @@ using CharacterSelectBackgroundPlugin.Data;
 using CharacterSelectBackgroundPlugin.Data.Layout;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
@@ -32,7 +31,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             WeatherId = 2,
             TimeOffset = 0,
             BgmPath = "music/ffxiv/BGM_System_Chara.scd",
-            MountId = 186
+            Mount = new()
         };
 
         private readonly CancellationTokenSource cancellationToken = new();
@@ -41,6 +40,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private ConcurrentDictionary<ulong, LocationModel> locations = [];
         private ulong lastContentId;
         private bool refreshLayout = true;
+        private int bgmId;
         private string? bgmPath = null;
         public LocationService()
         {
@@ -62,39 +62,73 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private unsafe void Tick(IFramework framework)
         {
+            if (!Services.ConfigurationService.TrackPlayerLocation) return;
             if (Services.ClientState.LocalPlayer != null)
             {
                 lastContentId = Services.ClientState.LocalContentId;
 
                 if (territoryPath != null)
                 {
-                    long etS = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->ClientTime.EorzeaTime;
-                    var et = DateTimeOffset.FromUnixTimeSeconds(etS);
 
                     var locationModel = locations.GetValueOrDefault(lastContentId);
-
+                    locationModel.TerritoryTypeId = Services.ClientState.TerritoryType;
                     locationModel.TerritoryPath = territoryPath;
                     locationModel.Position = Services.ClientState.LocalPlayer.Position;
                     locationModel.Rotation = Services.ClientState.LocalPlayer.Rotation;
                     locationModel.WeatherId = EnvManager.Instance()->ActiveWeather;
-                    locationModel.MountId = ((Character*)Services.ClientState.LocalPlayer.Address)->Mount.MountId;
-                    locationModel.TimeOffset = (ushort)(et.Hour * 100 + (et.Minute / 60f * 100) % 100);
-                    locationModel.BgmPath = bgmPath;
-                    if (Services.LayoutService.LayoutInitialized)
+                    var character = ((CharacterExpanded*)Services.ClientState.LocalPlayer.Address);
+                    locationModel.MovementMode = character->movementMode;
+                    if (Services.ConfigurationService.SaveMount)
                     {
-                        if (Services.ConfigurationService.SaveLayout && refreshLayout)
+                        locationModel.Mount.MountId = character->Character.Mount.MountId;
+                        if (character->Character.Mount.MountId != 0)
                         {
-                            SetLayout(ref locationModel);
+                            var mountCharacter = character->Character.Mount.MountObject;
+                            locationModel.Mount.BuddyModelTop = mountCharacter->DrawData.Head.Value;
+                            locationModel.Mount.BuddyModelBody = mountCharacter->DrawData.Top.Value;
+                            locationModel.Mount.BuddyModelLegs = mountCharacter->DrawData.Feet.Value;
+                            locationModel.Mount.BuddyStain = mountCharacter->DrawData.Legs.Stain;
                         }
-
-                        refreshLayout = false;
                     }
-                    locationModel.Festivals = [
-                        Services.LayoutService.LayoutManager->ActiveFestivals[0],
-                        Services.LayoutService.LayoutManager->ActiveFestivals[1],
-                        Services.LayoutService.LayoutManager->ActiveFestivals[2],
-                        Services.LayoutService.LayoutManager->ActiveFestivals[3]
-                    ];
+                    if (Services.ConfigurationService.SaveTime)
+                    {
+                        long etS = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->ClientTime.EorzeaTime;
+                        var et = DateTimeOffset.FromUnixTimeSeconds(etS);
+                        locationModel.TimeOffset = (ushort)(et.Hour * 100 + (et.Minute / 60f * 100) % 100);
+                    }
+                    else
+                    {
+                        locationModel.TimeOffset = 0;
+                    }
+                    if (Services.ConfigurationService.SaveBgm)
+                    {
+                        locationModel.BgmPath = bgmPath;
+                        locationModel.BgmId = bgmId;
+                    }
+                    else
+                    {
+                        locationModel.BgmId = -1;
+                        locationModel.BgmPath = null;
+                    }
+                    if (Services.ConfigurationService.SaveLayout)
+                    {
+
+                        if (Services.LayoutService.LayoutInitialized)
+                        {
+                            if (refreshLayout)
+                            {
+                                SetLayout(ref locationModel);
+                            }
+
+                            refreshLayout = false;
+                        }
+                    }
+                    else
+                    {
+                        locationModel.Active.Clear();
+                        locationModel.Inactive.Clear();
+                        locationModel.Festivals = [];
+                    }
                     locations[lastContentId] = locationModel;
                 }
                 else
@@ -104,12 +138,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
 
         }
+
         private void TerritoryChanged(ushort territoryId)
         {
             territoryPath = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType)?.Bg.ToString();
-            var test = Services.DataManager.GetExcelSheet<Mount>()!.GetRow(Services.ClientState.TerritoryType);
             Services.Log.Debug($"TerritoryChanged: {territoryPath}");
         }
+
         public void Logout()
         {
             Save(lastContentId);
@@ -122,6 +157,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private void BgmChanged(int songId)
         {
+            bgmId = songId;
             bgmPath = Services.DataManager.GetExcelSheet<BGM>()!.GetRow((uint)songId)?.File.ToString();
             Services.Log.Debug($"BgmChanged {songId} {bgmPath}");
         }
@@ -208,20 +244,21 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken.Token);
 
-                if (Services.ClientState.IsLoggedIn)
+                if ((DateTime.Now - lastSave).TotalSeconds > Services.ConfigurationService.SavePeriod)
                 {
-                    if (Services.ConfigurationService.PeriodicSaving && (DateTime.Now - lastSave).TotalSeconds > Services.ConfigurationService.SavePeriod)
+                    if (Services.ConfigurationService.SaveLayout && Services.ConfigurationService.PeriodicSaving && Services.ClientState.IsLoggedIn)
                     {
-                        lastSave = DateTime.Now;
                         Save(lastContentId);
                     }
-                    else
-                    {
-                        continue;
-                    }
-
+                    lastSave = DateTime.Now;
                 }
+                else
+                {
+                    continue;
+                }
+
             }
+
         }
 
         private void LoadSavedLocations()
@@ -240,7 +277,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         location.Inactive ??= [];
                         location.VfxTriggerIndexes ??= [];
                         location.Festivals ??= [0, 0, 0, 0];
-                        location.MountId = (ushort)(location.MountId == 0 ? 245 : location.MountId); // TODO: remove me
                         locations[contentId] = location;
                     }
                     catch (Exception e)

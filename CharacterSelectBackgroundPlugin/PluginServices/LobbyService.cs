@@ -5,8 +5,6 @@ using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
-using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
@@ -14,25 +12,23 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {
     public unsafe class LobbyService : AbstractService
     {
-
-        [Signature("C6 81 ?? ?? ?? ?? ?? 8B 02 89 41 60")]
-        private readonly delegate* unmanaged<LobbyCamera*, float[], float[], float, IntPtr> fixOnNative = null!;
         [Signature("40 53 48 83 EC ?? 44 0F BF C1")]
         private readonly delegate* unmanaged<ushort, void> setTimeNative = null!;
 
         private delegate int OnCreateSceneDelegate(string territoryPath, uint p2, IntPtr p3, uint p4, IntPtr p5, int p6, uint p7);
         private delegate byte LobbyUpdateDelegate(GameLobbyType mapId, int time);
-        private delegate ulong SelectCharacterDelegate(uint characterIndex, char unk);
-        private delegate ulong SelectCharacter2Delegate(IntPtr self);
+        private delegate ulong SelectCharacterDelegate(uint characterIndex, char p2);
+        private delegate ulong SelectCharacter2Delegate(IntPtr p1);
         private unsafe delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
-        private delegate void SetCharSelectCurrentWorldDelegate(ulong unk);
-        private delegate void SomeEnvManagerThingyDelegate(ulong unk1, uint unk2, float unk3);
-        private delegate ulong WeatherThingyDelegate(ulong param, byte weatherId);
+        private delegate void SetCharSelectCurrentWorldDelegate(ulong p1);
+        private delegate void SomeEnvManagerThingyDelegate(ulong p1, uint p2, float p3);
+        private delegate ulong WeatherThingyDelegate(ulong p1, byte weatherId);
         private delegate void CharSelectSetWeatherDelegate();
         private delegate IntPtr PlayMusicDelegate(IntPtr self, string filename, float volume, uint fadeTime);
         private delegate IntPtr CreateBattleCharacterDelegate(IntPtr objectManager, uint index, bool assignCompanion);
@@ -49,7 +45,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private readonly Hook<CreateBattleCharacterDelegate> createBattleCharacterHook;
         private readonly Hook<CharSelectWorldPreviewEventHandlerDelegate> charSelectWorldPreviewEventHandlerHook;
 
-        private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.Movie;
+        private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.None;
         private ulong lastContentId;
         private LocationModel locationModel = LocationService.DefaultLocation;
 
@@ -86,25 +82,42 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
 
+            // Points to a value that says what type of lobby map is being displayer
             lobbyCurrentMapAddress = Utils.GetStaticAddressFromSigOrThrow("0F B7 05 ?? ?? ?? ?? 49 8B CE");
+            // Points to a value that indicates the current lobby bgm type that's playing, we maniplate this to force bgm change alongside playMusicHook
             lobbyBgmBasePointerAddress = (IntPtr*)Utils.GetStaticAddressFromSigOrThrow("48 8B 35 ?? ?? ?? ?? 88 46");
 
+
+            // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
             createSceneHook = Hook<OnCreateSceneDelegate>("E8 ?? ?? ?? ?? 66 89 1D ?? ?? ?? ?? E9 ?? ?? ?? ??", OnCreateSceneDetour);
+
+            // Lobby manager update (I think) - we use this as a point to change the value at lobbyCurrentMapAddress to reload the scene
             lobbyUpdateHook = Hook<LobbyUpdateDelegate>("E8 ?? ?? ?? ?? EB 1C 3B CF", LobbyUpdateDetour);
-            // Happends on character list hover - probably don't need to set player pos here cause covered by setCharSelectCurrentWorldHook
+
+            // Happends on character list hover - update character positions, mount, redraw the scene if needed
             selectCharacterHook = Hook<SelectCharacterDelegate>("E8 ?? ?? ?? ?? 0F B6 D8 84 C0 75 ?? 49 8B CD", SelectCharacterDetour);
-            // Happens on world list hover
+
+            // Happens on world list hover - we update the previewd character's position and mount
             selectCharacter2Hook = Hook<SelectCharacter2Delegate>("40 53 48 83 EC ?? 41 83 C8 ?? 4C 8D 15", SelectCharacter2Detour);
+
+            // Sets the middle point of the camera Y position curve (made out of 3 point), called every frame, by default doesn't accept negartive values, we fix that
             setCameraCurveMidPointHook = Hook<SetCameraCurveMidPointDelegate>("0F 57 C0 0F 2F C1 73 ?? F3 0F 11 89", SetCameraCurveMidPointDetour);
+
+            // Called when you select a new world in character select or cancel selection so it reload the current - we use it make sure characters get created with a companion slots, initialze their positions and mounts
             setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 49 8B CD 48 8B 7C 24", SetCharSelectCurrentWorldDetour);
 
-            // Some scene thingy
+            // Called when game does some lobby weather setting - we use it as an indicator to set scene details like weather, time and layout 
             charSelectSetWeatherHook = Hook<CharSelectSetWeatherDelegate>("0F B7 0D ?? ?? ?? ?? 8D 41", CharSelectSetWeatherDetour);
 
+            // Called when lobby music needs to be changed - we force call the game to call it by resetting the CurrentLobbyMusicIndex pointer
             playMusicHook = Hook<PlayMusicDelegate>("E8 ?? ?? ?? ?? 48 89 47 18 89 5F 20", PlayMusicDetour);
 
+            // Called when the game is making a new character - if set by other hooks we force the flag to include a companionObject so we can display a mount
             createBattleCharacterHook = Hook<CreateBattleCharacterDelegate>("E8 ?? ?? ?? ?? 83 F8 ?? 74 ?? 8B D0", CreateBattleCharacterDetour);
+
+            // Happens on world list hover when loading a world - we use it make sure characters get created with a companion slots (maybe makes selectCharacter2Hook redundant)
             charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 41 83 FE ?? 0F 8C", CharSelectWorldPreviewEventHandlerDetour);
+
             EnableHooks();
 
             Services.ClientState.Login += ResetState;
@@ -204,17 +217,16 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             return playMusicHook.Original(self, filename, volume, fadeTime);
         }
 
-        private void SetCharSelectCurrentWorldDetour(ulong unk)
+        private void SetCharSelectCurrentWorldDetour(ulong p1)
         {
             creatingCharSelectGameObjects = true;
-            setCharSelectCurrentWorldHook.Original(unk);
+            setCharSelectCurrentWorldHook.Original(p1);
             creatingCharSelectGameObjects = false;
             Services.Log.Debug("SetCharSelectCurrentWorldDetour");
 
             var charaSelectCharacterList = CharaSelectCharacterList.Instance();
             var clientObjectManager = ClientObjectManager.Instance();
-            var characterManager = CharacterManager.Instance();
-            if (charaSelectCharacterList != null && clientObjectManager != null && characterManager != null)
+            if (charaSelectCharacterList != null && clientObjectManager != null)
             {
                 for (int i = 0; i < charaSelectCharacterList->CharacterMappingSpan.Length; i++)
                 {
@@ -230,15 +242,20 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     if (gameObject != null)
                     {
                         gameObject->SetPosition(location.Position.X, location.Position.Y, location.Position.Z);
-                        if (location.MountId != 0 && gameObject->IsCharacter())
-                        {
-                            var character = (FFXIVClientStructs.FFXIV.Client.Game.Character.Character*)gameObject;
-                            character->Mount.CreateAndSetupMount((short)location.MountId, 0, 0, 0, 0, 0, 0);
-                        }
-                        else if (!gameObject->IsCharacter())
-                        {
 
-                            Services.Log.Debug($"{(IntPtr)gameObject:X} is not character?");
+                        if (gameObject->IsCharacter()) //Probably useless check?
+                        {
+                            CharacterExpanded* character = (CharacterExpanded*)gameObject;
+                            character->movementMode = locationModel.MovementMode;
+                            if (location.Mount.MountId != 0)
+                            {
+                                SetupMount(&character->Character, locationModel);
+                            }
+                            else if (!gameObject->IsCharacter())
+                            {
+
+                                Services.Log.Debug($"{(IntPtr)gameObject:X} is not character?");
+                            }
                         }
                         Services.Log.Debug($"{(IntPtr)gameObject:X} set to {location.Position} {location.Rotation}");
                     }
@@ -254,7 +271,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
             else
             {
-                Services.Log.Warning($"[SetCharSelectCurrentWorldDetour] failed to get instance {(IntPtr)charaSelectCharacterList:X} {(IntPtr)clientObjectManager:X} {(IntPtr)characterManager:X}");
+                Services.Log.Warning($"[SetCharSelectCurrentWorldDetour] failed to get instance {(IntPtr)charaSelectCharacterList:X} {(IntPtr)clientObjectManager:X}");
             }
         }
 
@@ -352,7 +369,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             if (resetScene)
             {
                 resetScene = false;
-                CurrentLobbyMap = (short)GameLobbyType.Movie;
+                CurrentLobbyMap = (short)GameLobbyType.None;
             }
 
             return lobbyUpdateHook.Original(mapId, time);
@@ -364,24 +381,24 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             self->midPoint.value = value;
         }
 
-        private ulong SelectCharacter2Detour(IntPtr self)
+        private ulong SelectCharacter2Detour(IntPtr p1)
         {
             Services.Log.Debug($"SelectCharacter2Detour");
-            var result = selectCharacter2Hook.Original(self);
+            var result = selectCharacter2Hook.Original(p1);
             UpdateCharacter();
             return result;
         }
 
-        private ulong SelectCharacterDetour(uint characterIndex, char unk)
+        private ulong SelectCharacterDetour(uint characterIndex, char p2)
         {
             Services.Log.Debug($"SelectCharacterDetour");
-            var result = selectCharacterHook.Original(characterIndex, unk);
+            var result = selectCharacterHook.Original(characterIndex, p2);
             Services.Log.Debug($"{result}");
             UpdateCharacter();
             return result;
         }
 
-        private unsafe FFXIVClientStructs.FFXIV.Client.Game.Character.Character* GetCurrentCharacter()
+        private unsafe Character* GetCurrentCharacter()
         {
 
             var agentLobby = AgentLobby.Instance();
@@ -429,12 +446,12 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     }
                     Services.Log.Debug($"Setting character postion {(IntPtr)character:X}");
                     character->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
-
-                    if (locationModel.MountId != 0)
+                    ((CharacterExpanded*)character)->movementMode = locationModel.MovementMode;
+                    if (locationModel.Mount.MountId != 0)
                     {
                         if (character->Mount.MountId == 0)
                         {
-                            character->Mount.CreateAndSetupMount((short)locationModel.MountId, 0, 0, 0, 0, 0, 0);
+                            SetupMount(character, locationModel);
                         }
                     }
                 }
@@ -442,6 +459,16 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         }
 
+        private void SetupMount(Character* character, LocationModel location)
+        {
+            character->Mount.CreateAndSetupMount(
+                (short)locationModel.Mount.MountId,
+                locationModel.Mount.BuddyModelTop,
+                locationModel.Mount.BuddyModelBody,
+                locationModel.Mount.BuddyModelLegs,
+                locationModel.Mount.BuddyStain,
+                0, 0);
+        }
         public override void Dispose()
         {
             base.Dispose();

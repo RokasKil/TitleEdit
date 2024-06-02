@@ -2,7 +2,7 @@ namespace CharacterSelectBackgroundPlugin.Data
 {
     public enum GameLobbyType
     {
-        Movie = -1,
+        None = -1,
         Title = 0,
         CharaSelect = 1,
         Aetherial = 2,

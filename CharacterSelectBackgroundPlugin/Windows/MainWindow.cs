@@ -39,7 +39,7 @@ public class MainWindow : Window, IDisposable
             ImGui.Text($"Current layout {location.Active.Count} {location.Inactive.Count} {location.VfxTriggerIndexes.Count}");
             ImGui.Text($"Current Song {Services.BgmService.CurrentSongId}");
             ImGui.Text($"Current LobbyMusicIndex {Services.LobbyService.CurrentLobbyMusicIndex}");
-            ImGui.Text($"Current MountId {location.MountId}");
+            ImGui.Text($"Current MountId {location.Mount.MountId}");
         }
         if (ImGui.Button("weather"))
         {
