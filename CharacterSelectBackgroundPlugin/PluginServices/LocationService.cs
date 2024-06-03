@@ -1,7 +1,9 @@
-using CharacterSelectBackgroundPlugin.Data;
+using CharacterSelectBackgroundPlugin.Data.Character;
 using CharacterSelectBackgroundPlugin.Data.Layout;
+using CharacterSelectBackgroundPlugin.Data.Persistence;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
@@ -19,8 +21,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 {
     public class LocationService : AbstractService
     {
-
-
         private readonly static Regex FileNameRegex = new("^([A-F0-9]{16})\\.json$", RegexOptions.IgnoreCase);
 
         public static readonly LocationModel DefaultLocation = new LocationModel
@@ -33,15 +33,27 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             BgmPath = "music/ffxiv/BGM_System_Chara.scd",
             Mount = new()
         };
+        //Move this to a different service?
+        public unsafe ushort TimeOffset
+        {
+            get
+            {
+                long etS = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->ClientTime.EorzeaTime;
+                var et = DateTimeOffset.FromUnixTimeSeconds(etS);
+                return (ushort)((et.Hour * 100) + Math.Round(et.Minute * 100f / 60f));
+            }
+        }
 
         private readonly CancellationTokenSource cancellationToken = new();
         private DateTime lastSave = DateTime.Now;
-        private string? territoryPath = null;
+        public string? TerritoryPath { get; private set; }
         private ConcurrentDictionary<ulong, LocationModel> locations = [];
         private ulong lastContentId;
         private bool refreshLayout = true;
-        private int bgmId;
+        private uint bgmId;
         private string? bgmPath = null;
+
+        private DirectoryInfo saveDirectory;
         public LocationService()
         {
             LoadSavedLocations();
@@ -67,34 +79,23 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             {
                 lastContentId = Services.ClientState.LocalContentId;
 
-                if (territoryPath != null)
+                if (TerritoryPath != null)
                 {
-
                     var locationModel = locations.GetValueOrDefault(lastContentId);
                     locationModel.TerritoryTypeId = Services.ClientState.TerritoryType;
-                    locationModel.TerritoryPath = territoryPath;
+                    locationModel.TerritoryPath = TerritoryPath;
                     locationModel.Position = Services.ClientState.LocalPlayer.Position;
                     locationModel.Rotation = Services.ClientState.LocalPlayer.Rotation;
                     locationModel.WeatherId = EnvManager.Instance()->ActiveWeather;
                     var character = ((CharacterExpanded*)Services.ClientState.LocalPlayer.Address);
-                    locationModel.MovementMode = character->movementMode;
+                    locationModel.MovementMode = character->MovementMode;
                     if (Services.ConfigurationService.SaveMount)
                     {
-                        locationModel.Mount.MountId = character->Character.Mount.MountId;
-                        if (character->Character.Mount.MountId != 0)
-                        {
-                            var mountCharacter = character->Character.Mount.MountObject;
-                            locationModel.Mount.BuddyModelTop = mountCharacter->DrawData.Head.Value;
-                            locationModel.Mount.BuddyModelBody = mountCharacter->DrawData.Top.Value;
-                            locationModel.Mount.BuddyModelLegs = mountCharacter->DrawData.Feet.Value;
-                            locationModel.Mount.BuddyStain = mountCharacter->DrawData.Legs.Stain;
-                        }
+                        SetMount(ref locationModel, &character->Character);
                     }
                     if (Services.ConfigurationService.SaveTime)
                     {
-                        long etS = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->ClientTime.EorzeaTime;
-                        var et = DateTimeOffset.FromUnixTimeSeconds(etS);
-                        locationModel.TimeOffset = (ushort)(et.Hour * 100 + (et.Minute / 60f * 100) % 100);
+                        locationModel.TimeOffset = TimeOffset;
                     }
                     else
                     {
@@ -107,7 +108,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     }
                     else
                     {
-                        locationModel.BgmId = -1;
+                        locationModel.BgmId = 0;
                         locationModel.BgmPath = null;
                     }
                     if (Services.ConfigurationService.SaveLayout)
@@ -139,10 +140,24 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         }
 
+        public unsafe void SetMount(ref LocationModel locationModel, Character* character)
+        {
+            locationModel.Mount.MountId = character->Mount.MountId;
+            if (character->Mount.MountId != 0)
+            {
+                var mountCharacter = character->Mount.MountObject;
+                locationModel.Mount.BuddyModelTop = mountCharacter->DrawData.Head.Value;
+                locationModel.Mount.BuddyModelBody = mountCharacter->DrawData.Top.Value;
+                locationModel.Mount.BuddyModelLegs = mountCharacter->DrawData.Feet.Value;
+                locationModel.Mount.BuddyStain = mountCharacter->DrawData.Legs.Stain;
+            }
+        }
+
+
         private void TerritoryChanged(ushort territoryId)
         {
-            territoryPath = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType)?.Bg.ToString();
-            Services.Log.Debug($"TerritoryChanged: {territoryPath}");
+            TerritoryPath = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType)?.Bg.ToString();
+            Services.Log.Debug($"TerritoryChanged: {TerritoryPath}");
         }
 
         public void Logout()
@@ -155,10 +170,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             refreshLayout = true;
         }
 
-        private void BgmChanged(int songId)
+        private void BgmChanged(uint songId)
         {
             bgmId = songId;
-            bgmPath = Services.DataManager.GetExcelSheet<BGM>()!.GetRow((uint)songId)?.File.ToString();
+            bgmPath = Services.BgmService.BgmPaths[bgmId];
             Services.Log.Debug($"BgmChanged {songId} {bgmPath}");
         }
 
@@ -178,7 +193,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         }
 
 
-        private unsafe void SetLayout(ref LocationModel locationModel)
+        public unsafe void SetLayout(ref LocationModel locationModel)
         {
 
             HashSet<ulong> active = [];
@@ -219,7 +234,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 if (locations.TryGetValue(localContentId, out LocationModel locationModel))
                 {
                     File.WriteAllText(
-                        Path.Join(Services.PluginInterface.ConfigDirectory.FullName, $"{localContentId:X16}.json"),
+                        Path.Join(saveDirectory.FullName, $"{localContentId:X16}.json"),
                         JsonConvert.SerializeObject(locationModel)
                     );
                 }
@@ -230,8 +245,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
             catch (Exception e)
             {
-                Services.Log.Error(e.Message);
-                Services.Log.Error(e.StackTrace ?? "Null Stacktrace");
+                Services.Log.Error(e, e.Message);
             }
             sw.Stop();
 
@@ -263,7 +277,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private void LoadSavedLocations()
         {
-            foreach (var file in Services.PluginInterface.ConfigDirectory.EnumerateFiles())
+            saveDirectory = Services.PluginInterface.ConfigDirectory.CreateSubdirectory("characters");
+            foreach (var file in saveDirectory.EnumerateFiles())
             {
                 var match = FileNameRegex.Match(file.Name);
                 if (match.Success)

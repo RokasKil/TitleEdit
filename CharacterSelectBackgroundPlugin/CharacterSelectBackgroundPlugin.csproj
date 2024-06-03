@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="..\Data\goat.png">
+    <Content Include="..\Data\xiv_bgm_en.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>

@@ -1,6 +1,6 @@
-namespace CharacterSelectBackgroundPlugin.Data
+namespace CharacterSelectBackgroundPlugin.Data.Lobby
 {
-    public enum GameLobbyType
+    public enum GameLobbyType : short
     {
         None = -1,
         Title = 0,
@@ -9,6 +9,6 @@ namespace CharacterSelectBackgroundPlugin.Data
         LaNoscea = 3,
         BlackShroud = 4,
         Thanalan = 5,
-        Residence = 6,
+        Residence = 6
     }
 }

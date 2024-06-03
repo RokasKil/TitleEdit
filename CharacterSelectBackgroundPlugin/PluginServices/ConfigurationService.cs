@@ -1,4 +1,4 @@
-using CharacterSelectBackgroundPlugin.Data;
+using CharacterSelectBackgroundPlugin.Data.Persistence;
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 using System;
@@ -18,6 +18,7 @@ public class ConfigurationService : IPluginConfiguration
     public bool SaveMount { get; set; } = true;
     public bool SaveBgm { get; set; } = true;
     public bool SaveTime { get; set; } = true;
+    public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.ModelPosition;
     public DisplayTypeOption GlobalDisplayType { get; set; } = new()
     {
         type = DisplayType.Preset

@@ -19,6 +19,14 @@ namespace CharacterSelectBackgroundPlugin.Utility
                 throw new Exception($"Failed to get static address from '{signature}'");
             }
         }
+        public static string Truncate(this string value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return value;
+            }
 
+            return value[..Math.Min(value.Length, maxLength)];
+        }
     }
 }

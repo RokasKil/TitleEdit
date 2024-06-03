@@ -7,7 +7,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
 {
 
     [StructLayout(LayoutKind.Explicit, Size = 0x190)]
-    public unsafe partial struct PrefabLayoutInstance
+    public unsafe struct PrefabLayoutInstance
     {
         [FieldOffset(0x000)] public ILayoutInstance ILayoutInstance;
         [FieldOffset(0x030)] public void** ResourceEventListener; // base class; contains only vtable

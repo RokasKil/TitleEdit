@@ -26,7 +26,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
         ColliderLayer10 = 89,
     }
     [StructLayout(LayoutKind.Explicit)]
-    public unsafe partial struct ILayoutInstanceVTable
+    public unsafe struct ILayoutInstanceVTable
     {
         //[VirtualFunction(54)]
         //public partial void SetActiveVF54(bool active);
@@ -38,11 +38,11 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
 
     // instances can have both graphics and collision representation; for ones that have both one is 'primary' and other is 'secondary'
     [StructLayout(LayoutKind.Explicit, Size = 0x30)]
-    public unsafe partial struct ILayoutInstance
+    public unsafe struct ILayoutInstance
     {
         [FieldOffset(0x0)] public ILayoutInstanceVTable* VTable;
         [StructLayout(LayoutKind.Explicit, Size = 0x8)]
-        public unsafe partial struct Identifier
+        public unsafe struct Identifier
         {
             [FieldOffset(0)] public byte u0; // high 6 bits: index of this instance in prefab, or 'all ones' (0x3F) if top level
             [FieldOffset(1)] public InstanceType Type;

@@ -1,4 +1,4 @@
-namespace CharacterSelectBackgroundPlugin.Data
+namespace CharacterSelectBackgroundPlugin.Data.Persistence
 {
     public struct DisplayTypeOption
     {

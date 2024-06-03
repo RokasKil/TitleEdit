@@ -1,17 +1,20 @@
-using CharacterSelectBackgroundPlugin.Data;
+using CharacterSelectBackgroundPlugin.Data.Character;
 using CharacterSelectBackgroundPlugin.Data.Layout;
+using CharacterSelectBackgroundPlugin.Data.Lobby;
+using CharacterSelectBackgroundPlugin.Data.Persistence;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using CameraManager = FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager;
 using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
@@ -246,7 +249,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         if (gameObject->IsCharacter()) //Probably useless check?
                         {
                             CharacterExpanded* character = (CharacterExpanded*)gameObject;
-                            character->movementMode = locationModel.MovementMode;
+                            character->MovementMode = locationModel.MovementMode;
                             if (location.Mount.MountId != 0)
                             {
                                 SetupMount(&character->Character, locationModel);
@@ -295,6 +298,21 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         Services.Log.Debug($"Drawing companion {(IntPtr)currentChar->CompanionObject:X} {currentChar->CompanionObject->Character.GameObject.RenderFlags:X}");
                         currentChar->CompanionObject->Character.GameObject.EnableDraw();
                     }
+                }
+
+
+                var cameraManager = CameraManager.Instance();
+                if (cameraManager != null)
+                {
+                    var camera = (LobbyCameraExpanded*)cameraManager->LobbCamera;
+                    var drawObject = (CharacterBase*)currentChar->GameObject.GetDrawObject();
+                    //if (drawObject != null)
+                    {
+                        var lookAt = currentChar->GameObject.Position;
+                        lookAt.Y = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
+                        camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = lookAt;
+                    }
+
                 }
             }
         }
@@ -446,7 +464,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     }
                     Services.Log.Debug($"Setting character postion {(IntPtr)character:X}");
                     character->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
-                    ((CharacterExpanded*)character)->movementMode = locationModel.MovementMode;
+                    ((CharacterExpanded*)character)->MovementMode = locationModel.MovementMode;
                     if (locationModel.Mount.MountId != 0)
                     {
                         if (character->Mount.MountId == 0)

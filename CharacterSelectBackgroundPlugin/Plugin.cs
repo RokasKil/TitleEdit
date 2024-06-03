@@ -11,7 +11,7 @@ namespace CharacterSelectBackgroundPlugin;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    private const string CommandName = "/CharacterSelectBackgroundPlugin";
+    private const string CommandName = "/ics";
 
     private DalamudPluginInterface PluginInterface { get; init; }
     private ICommandManager CommandManager { get; init; }
@@ -42,8 +42,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "A useful message to display in /xlhelp",
-            ShowInHelp = false
+            HelpMessage = "Open Immersive Character Select configuration"
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
@@ -70,7 +69,7 @@ public sealed class Plugin : IDalamudPlugin
     private void OnCommand(string command, string args)
     {
         // in response to the slash command, just toggle the display status of our main ui
-        ToggleMainUI();
+        ToggleConfigUI();
     }
 
     private void DrawUI() => WindowSystem.Draw();

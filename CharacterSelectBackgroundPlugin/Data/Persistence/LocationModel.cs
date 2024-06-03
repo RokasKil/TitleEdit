@@ -1,8 +1,8 @@
+using CharacterSelectBackgroundPlugin.Data.Character;
 using System.Collections.Generic;
 using System.Numerics;
-using static CharacterSelectBackgroundPlugin.Data.CharacterExpanded;
 
-namespace CharacterSelectBackgroundPlugin.Data
+namespace CharacterSelectBackgroundPlugin.Data.Persistence
 {
     public struct LocationModel
     {
@@ -13,7 +13,7 @@ namespace CharacterSelectBackgroundPlugin.Data
         public float Rotation;
         public byte WeatherId;
         public ushort TimeOffset;
-        public int BgmId = -1;
+        public uint BgmId = 0;
         public string? BgmPath;
         public MovementMode MovementMode = MovementMode.Normal;
         public MountModel Mount;

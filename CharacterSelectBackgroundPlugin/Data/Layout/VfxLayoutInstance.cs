@@ -5,7 +5,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
 {
 
     [StructLayout(LayoutKind.Explicit, Size = 0xa0)]
-    public unsafe partial struct VfxLayoutInstance
+    public unsafe struct VfxLayoutInstance
     {
         [FieldOffset(0x00)] public ILayoutInstance ILayoutInstance;
         [FieldOffset(0x30)] public DrawObject* VfxDrawObject; // probably drawobject not 100% either way it represents the vfx object

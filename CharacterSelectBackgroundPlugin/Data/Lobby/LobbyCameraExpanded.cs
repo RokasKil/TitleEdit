@@ -1,7 +1,7 @@
 using FFXIVClientStructs.FFXIV.Client.Game;
 using System.Runtime.InteropServices;
 
-namespace CharacterSelectBackgroundPlugin.Data
+namespace CharacterSelectBackgroundPlugin.Data.Lobby
 {
     [StructLayout(LayoutKind.Explicit, Size = 0x300)]
     public unsafe struct LobbyCameraExpanded

@@ -32,14 +32,14 @@ public class MainWindow : Window, IDisposable
     {
         unsafe
         {
-            ImGui.Text($"Current character {Services.ClientState.LocalContentId:X16}");
-            ImGui.Text($"Current weather {EnvManager.Instance()->ActiveWeather}");
-            ImGui.Text($"Current lobbymap {Services.LobbyService.CurrentLobbyMap}");
+            ImGui.TextUnformatted($"Current character {Services.ClientState.LocalContentId:X16}");
+            ImGui.TextUnformatted($"Current weather {EnvManager.Instance()->ActiveWeather}");
+            ImGui.TextUnformatted($"Current lobbymap {Services.LobbyService.CurrentLobbyMap}");
             var location = Services.LocationService.GetLocationModel(Services.ClientState.LocalContentId);
-            ImGui.Text($"Current layout {location.Active.Count} {location.Inactive.Count} {location.VfxTriggerIndexes.Count}");
-            ImGui.Text($"Current Song {Services.BgmService.CurrentSongId}");
-            ImGui.Text($"Current LobbyMusicIndex {Services.LobbyService.CurrentLobbyMusicIndex}");
-            ImGui.Text($"Current MountId {location.Mount.MountId}");
+            ImGui.TextUnformatted($"Current layout {location.Active.Count} {location.Inactive.Count} {location.VfxTriggerIndexes.Count}");
+            ImGui.TextUnformatted($"Current Song {Services.BgmService.CurrentSongId}");
+            ImGui.TextUnformatted($"Current LobbyMusicIndex {Services.LobbyService.CurrentLobbyMusicIndex}");
+            ImGui.TextUnformatted($"Current MountId {location.Mount.MountId}");
         }
         if (ImGui.Button("weather"))
         {
