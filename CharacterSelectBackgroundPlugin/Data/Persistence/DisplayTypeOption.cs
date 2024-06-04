@@ -2,13 +2,14 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
 {
     public struct DisplayTypeOption
     {
-        public DisplayType type;
-        public string? presetPath;
+        public DisplayType Type;
+        public string? PresetPath;
     }
 
     public enum DisplayType
     {
         LastLocation,
-        Preset
+        Preset,
+        AetherialSea
     }
 }

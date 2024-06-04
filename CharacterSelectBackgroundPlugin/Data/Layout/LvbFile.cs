@@ -5,7 +5,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
 {
     public class LvbFile : FileResource
     {
-        public ushort[] weatherIds;
+        public ushort[] weatherIds = [];
 
         public override void LoadFile()
         {

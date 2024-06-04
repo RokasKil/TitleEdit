@@ -1,4 +1,3 @@
-using CharacterSelectBackgroundPlugin.PluginServices;
 using CharacterSelectBackgroundPlugin.Utility;
 using CharacterSelectBackgroundPlugin.Windows;
 using Dalamud.Game.Command;
@@ -15,7 +14,6 @@ public sealed class Plugin : IDalamudPlugin
 
     private DalamudPluginInterface PluginInterface { get; init; }
     private ICommandManager CommandManager { get; init; }
-    public ConfigurationService Configuration { get; init; }
 
     public readonly WindowSystem WindowSystem = new("CharacterSelectBackgroundPlugin");
     private ConfigWindow ConfigWindow { get; init; }
@@ -29,10 +27,6 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface = pluginInterface;
         Services.Initialize(PluginInterface);
         CommandManager = commandManager;
-
-        Configuration = PluginInterface.GetPluginConfig() as ConfigurationService ?? new ConfigurationService();
-        Configuration.Initialize(PluginInterface);
-
 
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);

@@ -10,9 +10,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,7 +24,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         public static readonly LocationModel DefaultLocation = new LocationModel
         {
             TerritoryPath = "ffxiv/zon_z1/chr/z1c1/level/z1c1",
-            Position = Vector3.Zero,
+            Position = new(0.001f, 0.001f, 0.001f),
             Rotation = 0,
             WeatherId = 2,
             TimeOffset = 0,
@@ -56,6 +54,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private DirectoryInfo saveDirectory;
         public LocationService()
         {
+            saveDirectory = Services.PluginInterface.ConfigDirectory.CreateSubdirectory("characters");
             LoadSavedLocations();
             Services.Framework.Update += Tick;
             Services.ClientState.Logout += Logout;
@@ -81,7 +80,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
                 if (TerritoryPath != null)
                 {
-                    var locationModel = locations.GetValueOrDefault(lastContentId);
+                    var locationModel = locations.ContainsKey(lastContentId) ? locations[lastContentId] : new();
                     locationModel.TerritoryTypeId = Services.ClientState.TerritoryType;
                     locationModel.TerritoryPath = TerritoryPath;
                     locationModel.Position = Services.ClientState.LocalPlayer.Position;
@@ -227,8 +226,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         public void Save(ulong localContentId)
         {
-            Services.Log.Debug($"Save {localContentId:X16}");
-            var sw = Stopwatch.StartNew();
+            //Services.Log.Debug($"Save {localContentId:X16}");
+            //var sw = Stopwatch.StartNew();
             try
             {
                 if (locations.TryGetValue(localContentId, out LocationModel locationModel))
@@ -247,9 +246,9 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             {
                 Services.Log.Error(e, e.Message);
             }
-            sw.Stop();
+            //sw.Stop();
 
-            Services.Log.Debug($"Save took {sw.Elapsed.TotalMilliseconds} ms");
+            //Services.Log.Debug($"Save took {sw.Elapsed.TotalMilliseconds} ms");
         }
 
         private async Task SaveTask()
@@ -277,7 +276,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private void LoadSavedLocations()
         {
-            saveDirectory = Services.PluginInterface.ConfigDirectory.CreateSubdirectory("characters");
             foreach (var file in saveDirectory.EnumerateFiles())
             {
                 var match = FileNameRegex.Match(file.Name);
@@ -292,6 +290,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         location.Inactive ??= [];
                         location.VfxTriggerIndexes ??= [];
                         location.Festivals ??= [0, 0, 0, 0];
+                        Validate(location);
                         locations[contentId] = location;
                     }
                     catch (Exception e)
@@ -317,6 +316,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             return DefaultLocation;
         }
 
+        public void Validate(LocationModel locationModel)
+        {
+            if (locationModel.Version != 1 || string.IsNullOrEmpty(locationModel.TerritoryPath))
+            {
+                throw new("Location is not valid");
+            }
+        }
         public override void Dispose()
         {
             base.Dispose();

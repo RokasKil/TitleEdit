@@ -11,11 +11,14 @@ using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text;
 using CameraManager = FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager;
 using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
+using World = Lumina.Excel.GeneratedSheets.World;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {
@@ -57,8 +60,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private bool resetScene = false;
         private bool resetCamera = false;
 
-        private bool renderingSelected = false;
-
         private readonly IntPtr lobbyCurrentMapAddress;
 
         private bool creatingCharSelectGameObjects = false;
@@ -71,7 +72,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         // Probably some lobby instance
         // method at E8 ?? ?? ?? ?? 33 C9 E8 ?? ?? ?? ?? 48 8B 0D picks a song from an array of 7 entries
         // ["", <arr title>, <char select>, <hw title>, <sb title>, <shb title>, <ew title>]
-        // calls the method hooked at playMusicHook with selected path and stores the result at 0x18 with the index being stored at 0x20
+        // calls the method hooked at playMusicHook with selected path and stores the model at 0x18 with the index being stored at 0x20
         // on subsequent calls it checks if we need to reset by comparing offset 0x20 with provided music index
         // we abuse that by setting it back to 0
         private readonly IntPtr* lobbyBgmBasePointerAddress;
@@ -80,14 +81,15 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             get => (uint)Marshal.ReadInt32(*lobbyBgmBasePointerAddress, 0x20);
             set => Marshal.WriteInt32(*lobbyBgmBasePointerAddress, 0x20, (int)value);
         }
-
+        Vector3 lastLookAt = Vector3.Zero;
+        Vector3 lastCameraPos = Vector3.Zero;
         public LobbyService()
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
 
-            // Points to a value that says what type of lobby map is being displayer
+            // Points to a value that says what Type of lobby map is being displayer
             lobbyCurrentMapAddress = Utils.GetStaticAddressFromSigOrThrow("0F B7 05 ?? ?? ?? ?? 49 8B CE");
-            // Points to a value that indicates the current lobby bgm type that's playing, we maniplate this to force bgm change alongside playMusicHook
+            // Points to a value that indicates the current lobby bgm Type that's playing, we maniplate this to force bgm change alongside playMusicHook
             lobbyBgmBasePointerAddress = (IntPtr*)Utils.GetStaticAddressFromSigOrThrow("48 8B 35 ?? ?? ?? ?? 88 46");
 
 
@@ -127,6 +129,29 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Services.Framework.Update += Tick;
         }
 
+        public Dictionary<ulong, string> GetCurrentCharacterNames()
+        {
+            Dictionary<ulong, string> result = [];
+            if (CurrentLobbyMap != (short)GameLobbyType.CharaSelect) return result;
+            var agentLobby = AgentLobby.Instance();
+            if (agentLobby != null)
+            {
+                var characterSelects = agentLobby->LobbyData.CharaSelectEntries.Span;
+                foreach (var character in characterSelects)
+                {
+                    if (character.Value->ContentId != 0)
+                    {
+                        var world = Services.DataManager.GetExcelSheet<World>()?.GetRow(character.Value->HomeWorldId);
+                        if (world != null)
+                        {
+                            result[character.Value->ContentId] = $"{Encoding.UTF8.GetString(character.Value->Name, 32).TrimEnd('\0')}@{world.Name}";
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
         private void CharSelectWorldPreviewEventHandlerDetour(ulong p1, ulong p2, ulong p3, uint p4)
         {
             creatingCharSelectGameObjects = true;
@@ -154,7 +179,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     Services.LayoutService.LayoutManager->layoutManager.SetActiveFestivals(pFestivals);
                 }
                 EnvManager.Instance()->ActiveWeather = locationModel.WeatherId;
-                setTime(locationModel.TimeOffset);
+                SetTime(locationModel.TimeOffset);
                 Services.Log.Debug($"SetWeather to {EnvManager.Instance()->ActiveWeather}");
                 if (locationModel.Active != null && locationModel.Inactive != null)
                 {
@@ -207,6 +232,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
         }
 
+        // TODO: figure out looping on tracks that don't loop
         private IntPtr PlayMusicDetour(IntPtr self, string filename, float volume, uint fadeTime)
         {
             Services.Log.Debug($"PlayMusicDetour {self.ToInt64():X} {filename} {volume} {fadeTime}");
@@ -226,6 +252,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             setCharSelectCurrentWorldHook.Original(p1);
             creatingCharSelectGameObjects = false;
             Services.Log.Debug("SetCharSelectCurrentWorldDetour");
+            foreach (var entry in GetCurrentCharacterNames())
+            {
+                Services.CharactersService.PutCharacter(entry.Key, entry.Value);
+            }
+            Services.CharactersService.SaveCharacters();
 
             var charaSelectCharacterList = CharaSelectCharacterList.Instance();
             var clientObjectManager = ClientObjectManager.Instance();
@@ -240,7 +271,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     var contentId = charaSelectCharacterList->CharacterMappingSpan[i].ContentId;
                     var clientObjectIndex = charaSelectCharacterList->CharacterMappingSpan[i].ClientObjectIndex;
                     Services.Log.Debug($"{charaSelectCharacterList->CharacterMappingSpan[i].ContentId:X} to {charaSelectCharacterList->CharacterMappingSpan[i].ClientObjectIndex}");
-                    var location = Services.LocationService.GetLocationModel(contentId);
+                    var location = GetLocationForContentId(contentId);
                     var gameObject = clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
                     if (gameObject != null)
                     {
@@ -278,7 +309,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
         }
 
-        public void Tick(IFramework framework)
+        private void Tick(IFramework framework)
         {
             var currentChar = CharaSelectCharacterList.GetCurrentCharacter();
             if (lastContentId != 0 && currentChar == null)
@@ -304,6 +335,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 var cameraManager = CameraManager.Instance();
                 if (cameraManager != null)
                 {
+
                     var camera = (LobbyCameraExpanded*)cameraManager->LobbCamera;
                     var drawObject = (CharacterBase*)currentChar->GameObject.GetDrawObject();
                     //if (drawObject != null)
@@ -312,6 +344,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         lookAt.Y = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
                         camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = lookAt;
                     }
+                    lastLookAt = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector;
+                    lastCameraPos = camera->LobbyCamera.Camera.CameraBase.SceneCamera.Object.Position;
 
                 }
             }
@@ -324,7 +358,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             resetCamera = true;
         }
 
-        public void setTime(ushort time)
+        private void SetTime(ushort time)
         {
             if (setTimeNative == null)
                 throw new InvalidOperationException("SetTime signature wasn't found!");
@@ -345,10 +379,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 if (cameraManager != null)
                 {
                     LobbyCameraExpanded* camera = (LobbyCameraExpanded*)cameraManager->LobbCamera;
-                    camera->lowPoint.value = 1.4350828f;
-                    camera->midPoint.value = 0.85870504f;
-                    camera->highPoint.value = 0.6742642f;
-                    camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = FFXIVClientStructs.FFXIV.Common.Math.Vector3.Zero;
+                    camera->lowPoint.value = 1.4350828f + locationModel.Position.Y;
+                    camera->midPoint.value = 0.85870504f + locationModel.Position.Y;
+                    camera->highPoint.value = 0.6742642f + locationModel.Position.Y;
+                    camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = new(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
                 }
 
                 Services.Log.Debug($"Reset Lobby camera");
@@ -456,7 +490,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 {
                     lastContentId = contentId;
 
-                    var newLocationModel = Services.LocationService.GetLocationModel(contentId);
+                    var newLocationModel = GetLocationForContentId(contentId);
                     if (!newLocationModel.Equals(locationModel))
                     {
                         locationModel = newLocationModel;
@@ -465,16 +499,101 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     Services.Log.Debug($"Setting character postion {(IntPtr)character:X}");
                     character->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
                     ((CharacterExpanded*)character)->MovementMode = locationModel.MovementMode;
-                    if (locationModel.Mount.MountId != 0)
+                    if (character->Mount.MountId != locationModel.Mount.MountId)
                     {
-                        if (character->Mount.MountId == 0)
-                        {
-                            SetupMount(character, locationModel);
-                        }
+                        SetupMount(character, locationModel);
                     }
                 }
             }
+        }
 
+        public LocationModel GetLocationForContentId(ulong contentId)
+        {
+            var displayOverrideIdx = Services.ConfigurationService.DisplayTypeOverrides.FindIndex((entry) => entry.Key == contentId);
+            DisplayTypeOption displayOption;
+            LocationModel model;
+            if (displayOverrideIdx != -1)
+            {
+                displayOption = Services.ConfigurationService.DisplayTypeOverrides[displayOverrideIdx].Value;
+            }
+            else
+            {
+                displayOption = Services.ConfigurationService.GlobalDisplayType;
+            }
+            if (displayOption.Type == DisplayType.LastLocation)
+            {
+                model = Services.LocationService.GetLocationModel(contentId);
+            }
+            else if (displayOption.Type == DisplayType.AetherialSea)
+            {
+                var location = LocationService.DefaultLocation; ;
+                model = LocationService.DefaultLocation;
+            }
+            else
+            {
+                if (displayOption.PresetPath != null && Services.PresetService.Presets.TryGetValue(displayOption.PresetPath, out var preset))
+                {
+                    model = preset.LocationModel;
+                    if (preset.LastLocationMount)
+                    {
+                        locationModel.Mount = Services.LocationService.GetLocationModel(contentId).Mount;
+                    }
+                    locationModel.CameraFollowMode = preset.CameraFollowMode;
+                }
+                else
+                {
+                    Services.Log.Error($"Preset \"{displayOption.PresetPath}\" not found");
+                    model = LocationService.DefaultLocation;
+                }
+            }
+            FixLocationModelPosition(ref model);
+            return model;
+        }
+
+        public void Apply(PresetModel preset)
+        {
+            var character = CharaSelectCharacterList.GetCurrentCharacter();
+            var agentLobby = AgentLobby.Instance();
+            locationModel = preset.LocationModel;
+            locationModel.CameraFollowMode = preset.CameraFollowMode;
+            FixLocationModelPosition(ref locationModel);
+            Services.Log.Debug("Applying location model");
+            if (character != null && agentLobby != null)
+            {
+                var contentId = agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
+                if (preset.LastLocationMount)
+                {
+                    locationModel.Mount = Services.LocationService.GetLocationModel((ulong)contentId).Mount;
+                }
+                Services.Log.Debug($"Setting character postion {(IntPtr)character:X}");
+                character->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
+                ((CharacterExpanded*)character)->MovementMode = locationModel.MovementMode;
+
+                if (character->Mount.MountId != locationModel.Mount.MountId)
+                {
+                    SetupMount(character, locationModel);
+                }
+
+
+            }
+            else
+            {
+                resetCamera = true;
+            }
+            resetScene = true;
+        }
+
+        private void FixLocationModelPosition(ref LocationModel locationModel)
+        {
+            // There is some weird issue when rapidly switching the camera while the world is loading 
+            // and the camera focus is at (0,0,0)
+            // that causes incredibly loud and persistent noises to start playing
+            // we work around that by imperceivably offsetting the position
+            var pos = locationModel.Position;
+            if (pos.X == 0) pos.X = 0.001f;
+            if (pos.Y == 0) pos.Y = 0.001f;
+            if (pos.Z == 0) pos.Z = 0.001f;
+            locationModel.Position = pos;
         }
 
         private void SetupMount(Character* character, LocationModel location)

@@ -10,19 +10,19 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 {
     public class PresetService : AbstractService
     {
-        private readonly static Regex FileNameRegex = new(@"^.*\((\d+)\)\.json$", RegexOptions.IgnoreCase);
         private readonly static Regex FileInvalidSymbolsRegex = new(@"[/\\:*?|""<>]");
 
-        public Dictionary<string, PresetModel> Presets { get; private set; } = new(StringComparer.InvariantCultureIgnoreCase);
+        public IReadOnlyDictionary<string, PresetModel> Presets => presets;
+        private Dictionary<string, PresetModel> presets = new(StringComparer.InvariantCultureIgnoreCase);
 
         private DirectoryInfo saveDirectory;
         public PresetService()
         {
+            saveDirectory = Services.PluginInterface.ConfigDirectory.CreateSubdirectory("presets");
             LoadSavedPresets();
         }
         private void LoadSavedPresets()
         {
-            saveDirectory = Services.PluginInterface.ConfigDirectory.CreateSubdirectory("presets");
             foreach (var file in saveDirectory.EnumerateFiles())
             {
                 if (file.Name.EndsWith(".json", true, null))
@@ -30,10 +30,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     Services.Log.Debug($"Loading {file.Name}");
                     try
                     {
-                        var preset = JsonConvert.DeserializeObject<PresetModel>(File.ReadAllText(file.FullName));
-                        //TODO: validate
-                        preset.FileName = file.Name;
-                        Presets[preset.FileName] = preset;
+                        var preset = Load(file.FullName);
+                        presets[preset.FileName] = preset;
                     }
                     catch (Exception e)
                     {
@@ -54,10 +52,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             if (string.IsNullOrEmpty(preset.FileName))
             {
                 var namePart = FileInvalidSymbolsRegex.Replace(preset.Name, "").Truncate(50);
-                if (Presets.ContainsKey($"{namePart}.json"))
+                if (presets.ContainsKey($"{namePart}.json"))
                 {
                     int i = 1;
-                    while (Presets.ContainsKey($"{namePart} ({i}).json")) i++;
+                    while (presets.ContainsKey($"{namePart} ({i}).json")) i++;
                     namePart = $"{namePart} ({i})";
                 }
                 preset.FileName = $"{namePart}.json";
@@ -76,15 +74,107 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 Services.Log.Error(e, e.Message);
                 throw;
             }
-            Presets[preset.FileName] = preset;
+            presets[preset.FileName] = preset;
             return preset.FileName;
         }
+
+        public void Export(string presetFileName, string filePath)
+        {
+            if (presets.TryGetValue(presetFileName, out var preset))
+            {
+                try
+                {
+                    Services.Log.Debug($"Exporting {preset.FileName} to {filePath}");
+                    File.WriteAllText(
+                        filePath,
+                        JsonConvert.SerializeObject(preset)
+                    );
+                }
+                catch (Exception e)
+                {
+                    Services.Log.Error(e, e.Message);
+                    throw;
+                }
+            }
+            throw new("Preset not found");
+        }
+
+        public string ExportText(string presetFileName)
+        {
+            if (presets.TryGetValue(presetFileName, out var preset))
+            {
+                try
+                {
+                    Services.Log.Debug($"Exporting {preset.FileName}");
+                    return JsonConvert.SerializeObject(preset);
+                }
+                catch (Exception e)
+                {
+                    Services.Log.Error(e, e.Message);
+                    throw;
+                }
+            }
+            throw new("Preset not found");
+        }
+
+        public string Import(string filePath)
+        {
+            PresetModel preset;
+            try
+            {
+                preset = Load(filePath, false);
+            }
+            catch (Exception e)
+            {
+                Services.Log.Error(e, e.Message);
+                throw;
+            }
+            return Save(preset);
+        }
+
+        public string ImportText(string textData)
+        {
+            PresetModel preset;
+            try
+            {
+                preset = LoadText(textData);
+            }
+            catch (Exception e)
+            {
+                Services.Log.Error(e, e.Message);
+                throw;
+            }
+            return Save(preset);
+        }
+
+        private PresetModel Load(string path, bool setFileName = true)
+        {
+            var file = new FileInfo(path);
+            var preset = LoadText(File.ReadAllText(file.FullName));
+            if (setFileName)
+            {
+                preset.FileName = file.Name;
+            }
+            return preset;
+        }
+
+        private PresetModel LoadText(string textData)
+        {
+            var preset = JsonConvert.DeserializeObject<PresetModel>(textData);
+            if (preset.Version != 1 || string.IsNullOrEmpty(preset.Name))
+            {
+                throw new("Invalid preset");
+            }
+            Services.LocationService.Validate(preset.LocationModel);
+            return preset;
+        }
+
         public void Delete(string presetFileName)
         {
-            if (Presets.ContainsKey(presetFileName))
+            if (presets.ContainsKey(presetFileName))
             {
                 File.Delete(Path.Join(saveDirectory.FullName, presetFileName));
-                Presets.Remove(presetFileName);
+                presets.Remove(presetFileName);
             }
             return;
         }
@@ -93,5 +183,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             base.Dispose();
         }
+
     }
 }

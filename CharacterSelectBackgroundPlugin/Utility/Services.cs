@@ -29,6 +29,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
         public static BgmService BgmService { get; set; } = null!;
         public static WeatherService WeatherService { get; set; } = null!;
         public static PresetService PresetService { get; set; } = null!;
+        public static CharactersService CharactersService { get; set; } = null!;
 
         public static void Initialize(DalamudPluginInterface pluginInterface)
         {
@@ -44,6 +45,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
                 LocationService = new();
                 WeatherService = new();
                 PresetService = new();
+                CharactersService = new();
             }
             catch
             {
@@ -60,6 +62,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
             BgmService?.Dispose();
             WeatherService?.Dispose();
             PresetService?.Dispose();
+            CharactersService?.Dispose();
         }
     }
 }

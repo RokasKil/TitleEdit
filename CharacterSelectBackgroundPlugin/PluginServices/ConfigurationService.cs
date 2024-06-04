@@ -10,21 +10,21 @@ namespace CharacterSelectBackgroundPlugin.PluginServices;
 public class ConfigurationService : IPluginConfiguration
 {
     public int Version { get; set; } = 0;
-    public bool TrackPlayerLocation { get; set; } = true;
-    public bool PeriodicSaving { get; set; } = true;
-    public int SavePeriod { get; set; } = 10;
-    public bool SaveLayout { get; set; } = true;
-    public bool SaveLayoutInInstance { get; set; } = true;
-    public bool SaveMount { get; set; } = true;
-    public bool SaveBgm { get; set; } = true;
-    public bool SaveTime { get; set; } = true;
-    public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.ModelPosition;
-    public DisplayTypeOption GlobalDisplayType { get; set; } = new()
+    public bool TrackPlayerLocation = true;
+    public bool PeriodicSaving = true;
+    public int SavePeriod = 10;
+    public bool SaveLayout = true;
+    public bool SaveLayoutInInstance = true;
+    public bool SaveMount = true;
+    public bool SaveBgm = true;
+    public bool SaveTime = true;
+    public CameraFollowMode CameraFollowMode = CameraFollowMode.ModelPosition;
+    public DisplayTypeOption GlobalDisplayType = new()
     {
-        type = DisplayType.Preset
+        Type = DisplayType.Preset
     };
 
-    public Dictionary<ulong, DisplayTypeOption> DisplayTypeOverrides { get; set; } = [];
+    public List<KeyValuePair<ulong, DisplayTypeOption>> DisplayTypeOverrides = [];
     // the below exist just to make saving less cumbersome
     [NonSerialized]
     private DalamudPluginInterface? pluginInterface;

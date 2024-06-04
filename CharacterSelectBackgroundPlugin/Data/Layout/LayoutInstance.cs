@@ -128,7 +128,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
         //[VirtualFunction(25)]
         //public partial void SetGraphics(Graphics.Scene.Object* obj, Transform* transform);
 
-        //// arg can be either byte** path or int* type
+        //// arg can be either byte** path or int* Type
         //[VirtualFunction(27)]
         //public partial void CreatePrimary(Transform* transform, void* pathOrType);
 
@@ -208,7 +208,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
     public unsafe partial struct Transform
     {
         [FieldOffset(0x00)] public Vector3 Translation;
-        [FieldOffset(0x0C)] public int Type; // note: this is a padding field that in some contexts is used to store collider type
+        [FieldOffset(0x0C)] public int Type; // note: this is a padding field that in some contexts is used to store collider Type
         [FieldOffset(0x10)] public Quaternion Rotation;
         [FieldOffset(0x20)] public Vector3 Scale;
 
@@ -237,7 +237,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
         //[FieldOffset(0x60)] public int u60;
         //[FieldOffset(0x64)] public int u64;
 
-        // yes, they really store the collider type in the padding of SRT structure...
+        // yes, they really store the collider Type in the padding of SRT structure...
         //public FileLayerGroupAnalyticCollider.Type Type => (FileLayerGroupAnalyticCollider.Type)Transform.Type;
     }
 }

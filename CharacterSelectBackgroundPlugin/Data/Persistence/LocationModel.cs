@@ -1,4 +1,5 @@
 using CharacterSelectBackgroundPlugin.Data.Character;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -21,6 +22,9 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
         public HashSet<ulong> Inactive = [];
         public Dictionary<ulong, short> VfxTriggerIndexes = [];
         public uint[] Festivals = new uint[4];
+        // Only set when used with a preset
+        [NonSerialized]
+        public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;
 
         public LocationModel()
         {

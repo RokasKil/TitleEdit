@@ -8,10 +8,8 @@ namespace CharacterSelectBackgroundPlugin.Utility
     {
         private static readonly Dictionary<string, bool> OpenCombos = [];
 
-        public static void Combo(string title, string value, Action elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None)
-        {
+        public static void Combo(string title, string value, Action elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None) =>
             Combo(title, value, (_) => elementsAction.Invoke(), flags);
-        }
 
         public static void Combo(string title, string value, Action<bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None)
         {
@@ -27,13 +25,14 @@ namespace CharacterSelectBackgroundPlugin.Utility
             }
         }
 
-        public static void HoverTooltip(string text, ImGuiHoveredFlags flags = ImGuiHoveredFlags.None)
+        public static void HoverTooltip(string text, ImGuiHoveredFlags flags = ImGuiHoveredFlags.None) => HoverTooltip(() => ImGui.TextUnformatted(text), flags);
+
+        public static void HoverTooltip(Action element, ImGuiHoveredFlags flags = ImGuiHoveredFlags.None)
         {
             if (ImGui.IsItemHovered(flags))
             {
                 ImGui.BeginTooltip();
-                ImGui.TextUnformatted(text);
-                ImGui.SetTooltip(text);
+                element.Invoke();
                 ImGui.EndTooltip();
             }
         }

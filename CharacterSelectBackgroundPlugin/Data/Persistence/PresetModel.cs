@@ -10,7 +10,8 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
         [NonSerialized]
         public string FileName = "";
         public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;
-        public LocationModel LocationModel;
+        public bool LastLocationMount = false;
+        public LocationModel LocationModel = new();
 
         public PresetModel()
         {

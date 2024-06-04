@@ -18,14 +18,13 @@ public class ConfigWindow : Window, IDisposable
     };
 
     public ConfigWindow(Plugin plugin) : base(
-        "Immersive Character Background Configuration", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.AlwaysAutoResize)
+        "Immersive Character Background Configuration", ImGuiWindowFlags.AlwaysAutoResize)
     {
         this.SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = new Vector2(375, 330),
-            MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
+            MaximumSize = new Vector2(float.MaxValue, 1000)
         };
-        //this.RespectCloseHotkey = false;
     }
 
     public void Dispose()
@@ -45,18 +44,7 @@ public class ConfigWindow : Window, IDisposable
                     ImGui.EndTabItem();
                 }
             }
-
-        }
-    }
-    private void CheckboxConfig(string title, bool value, Action<bool> action, bool save = true)
-    {
-        if (ImGui.Checkbox(title, ref value))
-        {
-            action(value);
-            if (save)
-            {
-                //this.Configuration.Save();
-            }
+            ImGui.EndTabBar();
         }
     }
 }
