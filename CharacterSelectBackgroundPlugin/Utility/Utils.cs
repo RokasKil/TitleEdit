@@ -19,6 +19,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
                 throw new Exception($"Failed to get static address from '{signature}'");
             }
         }
+
         public static string Truncate(this string value, int maxLength)
         {
             if (string.IsNullOrEmpty(value))
@@ -27,6 +28,10 @@ namespace CharacterSelectBackgroundPlugin.Utility
             }
 
             return value[..Math.Min(value.Length, maxLength)];
+        }
+        public static float NormalizeAngle(float angle)
+        {
+            return ((angle + (float)Math.PI) % (float)(Math.PI * 2.0)) - (float)Math.PI;
         }
     }
 }

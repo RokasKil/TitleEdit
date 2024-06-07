@@ -17,7 +17,9 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
 
         public void Draw()
         {
-            DrawSelectPresetCombo("Global setting", Services.ConfigurationService.GlobalDisplayType, (result) => Services.ConfigurationService.GlobalDisplayType = result);
+            DrawSelectPresetCombo("Nothing selected setting", Services.ConfigurationService.NoCharacterDisplayType, (result) => Services.ConfigurationService.NoCharacterDisplayType = result, false);
+            ImGuiComponents.HelpMarker("Preset that is used when no character is selected");
+            DrawSelectPresetCombo("Global character setting", Services.ConfigurationService.GlobalDisplayType, (result) => Services.ConfigurationService.GlobalDisplayType = result);
             ImGui.Separator();
             ImGui.TextUnformatted("Character overrides");
             var usedIds = new HashSet<ulong>(Services.ConfigurationService.DisplayTypeOverrides.Count);
@@ -39,6 +41,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                     if (ImGuiComponents.IconButton($"##{Title}##{i}##Delete", FontAwesomeIcon.Trash))
                     {
                         Services.ConfigurationService.DisplayTypeOverrides.RemoveRange(i, 1);
+                        Services.ConfigurationService.Save();
                         i--;
                     }
                 }
@@ -63,6 +66,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                     ImGui.TextUnformatted("All characters configured");
                 }
             });
+            ImGuiComponents.HelpMarker("These characters are collected from the character select screen.\nIf any are missing go through all the worlds with characters created.");
             ImGui.SameLine();
             ImGui.BeginDisabled(currentContentId == 0);
             if (ImGuiComponents.IconButton($"##{Title}##New", FontAwesomeIcon.Plus))
@@ -76,7 +80,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             ImGui.EndDisabled();
         }
 
-        private void DrawSelectPresetCombo(string label, DisplayTypeOption value, Action<DisplayTypeOption> selectAction)
+        private void DrawSelectPresetCombo(string label, DisplayTypeOption value, Action<DisplayTypeOption> selectAction, bool showLastLocationOption = true)
         {
             string display;
             bool invalid = false;
@@ -112,7 +116,8 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                     ImGui.PopStyleColor();
                     stylePopped = true;
                 }
-                if (ImGui.Selectable($"Last location##{Title}##{label}##last location", value.Type == DisplayType.LastLocation))
+
+                if (showLastLocationOption && ImGui.Selectable($"Last location##{Title}##{label}##last location", value.Type == DisplayType.LastLocation))
                 {
                     selectAction.Invoke(new()
                     {

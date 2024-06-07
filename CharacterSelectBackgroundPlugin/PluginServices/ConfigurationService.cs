@@ -21,7 +21,11 @@ public class ConfigurationService : IPluginConfiguration
     public CameraFollowMode CameraFollowMode = CameraFollowMode.ModelPosition;
     public DisplayTypeOption GlobalDisplayType = new()
     {
-        Type = DisplayType.Preset
+        Type = DisplayType.LastLocation
+    };
+    public DisplayTypeOption NoCharacterDisplayType = new()
+    {
+        Type = DisplayType.AetherialSea
     };
 
     public List<KeyValuePair<ulong, DisplayTypeOption>> DisplayTypeOverrides = [];

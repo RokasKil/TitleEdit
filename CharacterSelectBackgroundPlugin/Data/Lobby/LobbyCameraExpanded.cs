@@ -8,6 +8,11 @@ namespace CharacterSelectBackgroundPlugin.Data.Lobby
     {
         [FieldOffset(0x00)]
         public LobbyCamera LobbyCamera;
+        //Yaw and Pitch is part of Client::Game::Camera
+        [FieldOffset(0x130)]
+        public float Yaw;
+        [FieldOffset(0x134)]
+        public float Pitch;
         [FieldOffset(0x2D0)]
         public CurvePoint lowPoint;
         [FieldOffset(0x2C0)]

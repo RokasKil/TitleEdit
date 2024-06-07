@@ -39,6 +39,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private delegate IntPtr PlayMusicDelegate(IntPtr self, string filename, float volume, uint fadeTime);
         private delegate IntPtr CreateBattleCharacterDelegate(IntPtr objectManager, uint index, bool assignCompanion);
         private delegate void CharSelectWorldPreviewEventHandlerDelegate(ulong p1, ulong p2, ulong p3, uint p4);
+        private delegate void LobbySceneLoadedDelegate(ulong p1, int p2, float p3, ushort p4, uint p5, uint p6, uint p7);
 
         private readonly Hook<OnCreateSceneDelegate> createSceneHook;
         private readonly Hook<LobbyUpdateDelegate> lobbyUpdateHook;
@@ -50,15 +51,22 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private readonly Hook<PlayMusicDelegate> playMusicHook;
         private readonly Hook<CreateBattleCharacterDelegate> createBattleCharacterHook;
         private readonly Hook<CharSelectWorldPreviewEventHandlerDelegate> charSelectWorldPreviewEventHandlerHook;
+        private readonly Hook<LobbySceneLoadedDelegate> lobbySceneLoadedHook;
 
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.None;
+        private GameLobbyType lastSceneType = GameLobbyType.None;
         private ulong lastContentId;
-        private LocationModel locationModel = LocationService.DefaultLocation;
+        private LocationModel locationModel;
 
         private string? lastBgmPath;
 
         private bool resetScene = false;
         private bool resetCamera = false;
+
+        private float lastYaw = 0;
+        private float lastPitch = 0;
+        private float lastDistance = 0;
+        private bool rotationRecorded;
 
         private readonly IntPtr lobbyCurrentMapAddress;
 
@@ -111,7 +119,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             // Called when you select a new world in character select or cancel selection so it reload the current - we use it make sure characters get created with a companion slots, initialze their positions and mounts
             setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 49 8B CD 48 8B 7C 24", SetCharSelectCurrentWorldDetour);
 
-            // Called when game does some lobby weather setting - we use it as an indicator to set scene details like weather, time and layout 
+            // Called when game does some lobby weather setting - we use it as an indicator to set scene details like weather, time and layout
+            // Called on scene load and on displayed character switch
             charSelectSetWeatherHook = Hook<CharSelectSetWeatherDelegate>("0F B7 0D ?? ?? ?? ?? 8D 41", CharSelectSetWeatherDetour);
 
             // Called when lobby music needs to be changed - we force call the game to call it by resetting the CurrentLobbyMusicIndex pointer
@@ -122,11 +131,21 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
             // Happens on world list hover when loading a world - we use it make sure characters get created with a companion slots (maybe makes selectCharacter2Hook redundant)
             charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 41 83 FE ?? 0F 8C", CharSelectWorldPreviewEventHandlerDetour);
+            // Some LobbySceneLoaded thingy
+            lobbySceneLoadedHook = Hook<LobbySceneLoadedDelegate>("E8 ?? ?? ?? ?? 41 0F B7 CC C6 05", LobbySceneLoadedDetour);
 
             EnableHooks();
 
             Services.ClientState.Login += ResetState;
             Services.Framework.Update += Tick;
+            locationModel = GetNothingSelectedLocation();
+        }
+
+        private void LobbySceneLoadedDetour(ulong p1, int p2, float p3, ushort p4, uint p5, uint p6, uint p7)
+        {
+            Services.Log.Debug($"[LobbySceneLoaded] {p1:X} {p2:X} {p3} {p4:X} {p5:X} {p6:X} {p7:X}");
+            lobbySceneLoadedHook.Original(p1, p2, p3, p4, p5, p6, p7);
+            SetLayoutInfo();
         }
 
         public Dictionary<ulong, string> GetCurrentCharacterNames()
@@ -172,6 +191,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             charSelectSetWeatherHook.Original();
             Services.Log.Debug($"CharSelectSetWeatherDetour {EnvManager.Instance()->ActiveWeather}");
+
+        }
+
+        private void SetLayoutInfo()
+        {
             if (CurrentLobbyMap == (short)GameLobbyType.CharaSelect)
             {
                 fixed (uint* pFestivals = locationModel.Festivals)
@@ -208,9 +232,31 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 {
                     Services.Log.Warning($"Layout data was null for {lastContentId:X16}");
                 }
-
+                var camera = GetCamera();
+                if (rotationRecorded)
+                {
+                    if (camera != null)
+                    {
+                        camera->Yaw = Utils.NormalizeAngle(lastYaw);
+                        camera->Pitch = lastPitch;
+                        camera->LobbyCamera.Camera.Distance = lastDistance;
+                        camera->LobbyCamera.Camera.InterpDistance = lastDistance;
+                    }
+                    rotationRecorded = false;
+                    Services.Log.Debug($"Loaded rotation {lastYaw} {lastPitch} {lastDistance}");
+                    if (CharaSelectCharacterList.GetCurrentCharacter() != null)
+                    {
+                        if (camera != null)
+                        {
+                            camera->Yaw = Utils.NormalizeAngle(camera->Yaw + locationModel.Rotation);
+                        }
+                        CharaSelectCharacterList.GetCurrentCharacter()->GameObject.Rotate(locationModel.Rotation);
+                    }
+                }
+                Services.Log.Debug($"After load rotation {camera->Yaw} {camera->Pitch} {camera->LobbyCamera.Camera.Distance}");
             }
         }
+
         private void SetActive(ILayoutInstance* instance, bool active)
         {
             if (instance->Id.Type == InstanceType.Vfx)
@@ -233,6 +279,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         }
 
         // TODO: figure out looping on tracks that don't loop
+        // Figure out new character creation music 
         private IntPtr PlayMusicDetour(IntPtr self, string filename, float volume, uint fadeTime)
         {
             Services.Log.Debug($"PlayMusicDetour {self.ToInt64():X} {filename} {volume} {fadeTime}");
@@ -318,34 +365,52 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 resetScene = true;
             }
             // We do a slight polling cause it's simpler than figuring when exactly are mounts and stuff are good to draw
-            if (CurrentLobbyMap == (short)GameLobbyType.CharaSelect && currentChar != null)
+            var camera = GetCamera();
+            if (CurrentLobbyMap == (short)GameLobbyType.CharaSelect)
             {
-                if (currentChar->GameObject.RenderFlags != 0 && currentChar->GameObject.RenderFlags != 0x40 && currentChar->GameObject.IsReadyToDraw())
+                if (currentChar != null)
                 {
-                    Services.Log.Debug($"Drawing character {(IntPtr)currentChar:X} {currentChar->GameObject.RenderFlags:X}");
-                    currentChar->GameObject.EnableDraw();
-                    if (currentChar->IsMounted() && currentChar->CompanionObject != null && currentChar->CompanionObject->Character.GameObject.IsReadyToDraw())
+                    if (currentChar->GameObject.RenderFlags != 0 && currentChar->GameObject.RenderFlags != 0x40 && currentChar->GameObject.IsReadyToDraw())
                     {
-                        Services.Log.Debug($"Drawing companion {(IntPtr)currentChar->CompanionObject:X} {currentChar->CompanionObject->Character.GameObject.RenderFlags:X}");
-                        currentChar->CompanionObject->Character.GameObject.EnableDraw();
+                        Services.Log.Debug($"Drawing character {(IntPtr)currentChar:X} {currentChar->GameObject.RenderFlags:X}");
+                        currentChar->GameObject.EnableDraw();
+                        if (currentChar->IsMounted() && currentChar->CompanionObject != null && currentChar->CompanionObject->Character.GameObject.IsReadyToDraw())
+                        {
+                            Services.Log.Debug($"Drawing companion {(IntPtr)currentChar->CompanionObject:X} {currentChar->CompanionObject->Character.GameObject.RenderFlags:X}");
+                            currentChar->CompanionObject->Character.GameObject.EnableDraw();
+                        }
                     }
+
+
+                    if (camera != null)
+                    {
+
+                        var drawObject = (CharacterBase*)currentChar->GameObject.GetDrawObject();
+                        //if (drawObject != null)
+                        {
+                            var lookAt = currentChar->GameObject.Position;
+                            lookAt.Y = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
+                            camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = lookAt;
+                        }
+                        lastLookAt = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector;
+                        lastCameraPos = camera->LobbyCamera.Camera.CameraBase.SceneCamera.Object.Position;
+                    }
+
                 }
-
-
-                var cameraManager = CameraManager.Instance();
-                if (cameraManager != null)
+                if (camera != null)
                 {
-
-                    var camera = (LobbyCameraExpanded*)cameraManager->LobbCamera;
-                    var drawObject = (CharacterBase*)currentChar->GameObject.GetDrawObject();
-                    //if (drawObject != null)
-                    {
-                        var lookAt = currentChar->GameObject.Position;
-                        lookAt.Y = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
-                        camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = lookAt;
-                    }
-                    lastLookAt = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector;
-                    lastCameraPos = camera->LobbyCamera.Camera.CameraBase.SceneCamera.Object.Position;
+                    camera->midPoint.position = 10;
+                    camera->highPoint.position = 20;
+                    camera->LobbyCamera.Camera.MaxDistance = 20;
+                }
+            }
+            else
+            {
+                if (camera != null)
+                {
+                    camera->midPoint.position = 3.3f;
+                    camera->highPoint.position = 5.5f;
+                    camera->LobbyCamera.Camera.MaxDistance = 5.5f;
 
                 }
             }
@@ -354,7 +419,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         public unsafe void ResetState()
         {
             lastContentId = 0;
-            locationModel = LocationService.DefaultLocation;
+            locationModel = GetNothingSelectedLocation();
             resetCamera = true;
         }
 
@@ -372,46 +437,53 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             //_titleCameraNeedsSet = false;
             //_amForcingTime = false;
             //_amForcingWeather = false;
-            Services.Log.Debug($"Loading Scene {lastLobbyUpdateMapId}");
-            if (resetCamera)
+            try
             {
-                var cameraManager = CameraManager.Instance();
-                if (cameraManager != null)
+
+                Services.Log.Debug($"Loading Scene {lastLobbyUpdateMapId}");
+                var camera = GetCamera();
+                if (resetCamera)
                 {
-                    LobbyCameraExpanded* camera = (LobbyCameraExpanded*)cameraManager->LobbCamera;
-                    camera->lowPoint.value = 1.4350828f + locationModel.Position.Y;
-                    camera->midPoint.value = 0.85870504f + locationModel.Position.Y;
-                    camera->highPoint.value = 0.6742642f + locationModel.Position.Y;
-                    camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = new(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
+                    if (camera != null)
+                    {
+                        camera->lowPoint.value = 1.4350828f + locationModel.Position.Y;
+                        camera->midPoint.value = 0.85870504f + locationModel.Position.Y;
+                        camera->highPoint.value = 0.6742642f + locationModel.Position.Y;
+                        camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = new(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
+                    }
+
+                    Services.Log.Debug($"Reset Lobby camera");
+                    resetCamera = false;
                 }
+                if (lastLobbyUpdateMapId == GameLobbyType.CharaSelect)
+                {
 
-                Services.Log.Debug($"Reset Lobby camera");
-                resetCamera = false;
-            }
-            if (lastLobbyUpdateMapId == GameLobbyType.CharaSelect)
-            {
-                //RefreshCurrentTitleEditScreen();
+                    territoryPath = locationModel.TerritoryPath;
+                    Services.Log.Debug($"Loading char select screen: {territoryPath}");
+                    var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
+                    if ((!locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != locationModel.BgmPath) || (locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != LocationService.DefaultLocation.BgmPath))
+                    {
+                        CurrentLobbyMusicIndex = 0;
+                    }
 
-                territoryPath = locationModel.TerritoryPath;
-                Services.Log.Debug($"Loading char select screen: {territoryPath}");
-                var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
-                if ((!locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != locationModel.BgmPath) || (locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != LocationService.DefaultLocation.BgmPath))
+                    return returnVal;
+                }
+                else if (lastSceneType == GameLobbyType.CharaSelect)
                 {
                     CurrentLobbyMusicIndex = 0;
+                    if (camera != null)
+                    {
+                        camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = Vector3.Zero;
+                    }
+
                 }
-                //SetWeather();
-                //var camera = CameraManager.Instance()->LobbCamera;
-                //if (lastContentId == 0 && camera != null)
-                //{
-                //    FixOn(camera, Vector3.Zero.ToArray(), new Vector3(0, 0.8580103f, 0).ToArray(), 1);
-                //}
-                //ForceWeather(_currentScreen.WeatherId, 5000);
-                //ForceTime(_currentScreen.TimeOffset, 5000);
-                //FixOn(_currentScreen.CameraPos, _currentScreen.FixOnPos, 1);
-                // SetRevisionStringVisibility(_configuration.DisplayVersionText);
-                return returnVal;
+                return createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
             }
-            return createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
+            finally
+            {
+                lastSceneType = lastLobbyUpdateMapId;
+            }
+
         }
 
         private byte LobbyUpdateDetour(GameLobbyType mapId, int time)
@@ -420,6 +492,23 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Services.Log.Verbose($"mapId {mapId}");
             if (resetScene)
             {
+                if (!rotationRecorded)
+                {
+                    var camera = GetCamera();
+                    if (camera != null)
+                    {
+                        lastYaw = camera->Yaw;
+                        lastPitch = camera->Pitch;
+                        lastDistance = camera->LobbyCamera.Camera.Distance;
+                        rotationRecorded = true;
+                        if (CharaSelectCharacterList.GetCurrentCharacter() != null)
+                        {
+                            lastYaw -= CharaSelectCharacterList.GetCurrentCharacter()->GameObject.Rotation;
+                        }
+                        lastYaw = Utils.NormalizeAngle(lastYaw);
+                        Services.Log.Debug($"Recorded rotation {lastYaw} {lastPitch} {lastDistance}");
+                    }
+                }
                 resetScene = false;
                 CurrentLobbyMap = (short)GameLobbyType.None;
             }
@@ -468,7 +557,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     Services.Log.Warning($"[getCurrentCharacter] clientObjectIndex -1 for {agentLobby->HoveredCharacterIndex}");
                     return null;
                 }
-                return (FFXIVClientStructs.FFXIV.Client.Game.Character.Character*)clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
+                return (Character*)clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
             }
             else
             {
@@ -526,7 +615,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
             else if (displayOption.Type == DisplayType.AetherialSea)
             {
-                var location = LocationService.DefaultLocation; ;
                 model = LocationService.DefaultLocation;
             }
             else
@@ -549,6 +637,33 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             FixLocationModelPosition(ref model);
             return model;
         }
+
+        public LocationModel GetNothingSelectedLocation()
+        {
+
+            var displayOption = Services.ConfigurationService.NoCharacterDisplayType;
+            LocationModel model;
+            if (displayOption.Type == DisplayType.AetherialSea || displayOption.Type == DisplayType.LastLocation)
+            {
+                model = LocationService.DefaultLocation;
+            }
+            else
+            {
+                if (displayOption.PresetPath != null && Services.PresetService.Presets.TryGetValue(displayOption.PresetPath, out var preset))
+                {
+                    model = preset.LocationModel;
+                    locationModel.CameraFollowMode = preset.CameraFollowMode;
+                }
+                else
+                {
+                    Services.Log.Error($"Preset \"{displayOption.PresetPath}\" not found");
+                    model = LocationService.DefaultLocation;
+                }
+            }
+            FixLocationModelPosition(ref model);
+            return model;
+        }
+
 
         public void Apply(PresetModel preset)
         {
@@ -606,9 +721,17 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 locationModel.Mount.BuddyStain,
                 0, 0);
         }
+
+        private LobbyCameraExpanded* GetCamera()
+        {
+            var cameraManager = CameraManager.Instance();
+            return cameraManager != null ? (LobbyCameraExpanded*)cameraManager->LobbCamera : null;
+        }
+
         public override void Dispose()
         {
             base.Dispose();
+            Services.Framework.Update -= Tick;
             Services.ClientState.Login -= ResetState;
         }
     }

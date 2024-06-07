@@ -2,6 +2,7 @@ using CharacterSelectBackgroundPlugin.Data.Character;
 using CharacterSelectBackgroundPlugin.Data.Layout;
 using CharacterSelectBackgroundPlugin.Data.Persistence;
 using CharacterSelectBackgroundPlugin.Utility;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
@@ -52,6 +53,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private string? bgmPath = null;
 
         private DirectoryInfo saveDirectory;
+
         public LocationService()
         {
             saveDirectory = Services.PluginInterface.ConfigDirectory.CreateSubdirectory("characters");
@@ -68,7 +70,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             TerritoryChanged(Services.ClientState.TerritoryType);
             BgmChanged(Services.BgmService.CurrentSongId);
             Task.Run(SaveTask, cancellationToken.Token);
-
         }
 
         private unsafe void Tick(IFramework framework)
@@ -110,7 +111,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         locationModel.BgmId = 0;
                         locationModel.BgmPath = null;
                     }
-                    if (Services.ConfigurationService.SaveLayout)
+                    if (Services.ConfigurationService.SaveLayout && (!Services.Condition.Any(ConditionFlag.BoundByDuty) || Services.ConfigurationService.SaveLayoutInInstance))
                     {
 
                         if (Services.LayoutService.LayoutInitialized)
@@ -255,7 +256,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken.Token);
+                await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken.Token);
 
                 if ((DateTime.Now - lastSave).TotalSeconds > Services.ConfigurationService.SavePeriod)
                 {

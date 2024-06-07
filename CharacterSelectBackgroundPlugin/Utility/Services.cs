@@ -41,10 +41,10 @@ namespace CharacterSelectBackgroundPlugin.Utility
             {
                 LayoutService = new();
                 BgmService = new();
-                LobbyService = new();
                 LocationService = new();
                 WeatherService = new();
                 PresetService = new();
+                LobbyService = new();
                 CharactersService = new();
             }
             catch
@@ -56,12 +56,12 @@ namespace CharacterSelectBackgroundPlugin.Utility
 
         public static void Dispose()
         {
-            LobbyService?.Dispose();
-            LocationService?.Dispose();
             LayoutService?.Dispose();
             BgmService?.Dispose();
+            LocationService?.Dispose();
             WeatherService?.Dispose();
             PresetService?.Dispose();
+            LobbyService?.Dispose();
             CharactersService?.Dispose();
         }
     }
