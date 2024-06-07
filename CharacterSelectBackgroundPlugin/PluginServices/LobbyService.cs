@@ -26,6 +26,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
     {
         [Signature("40 53 48 83 EC ?? 44 0F BF C1")]
         private readonly delegate* unmanaged<ushort, void> setTimeNative = null!;
+        [Signature("E8 ?? ?? ?? ?? 33 C9 E8 ?? ?? ?? ?? 48 8B 0D")]
+        private readonly delegate* unmanaged<IntPtr, ushort, void> pickSongNative = null!;
 
         private delegate int OnCreateSceneDelegate(string territoryPath, uint p2, IntPtr p3, uint p4, IntPtr p5, int p6, uint p7);
         private delegate byte LobbyUpdateDelegate(GameLobbyType mapId, int time);
@@ -411,8 +413,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     camera->midPoint.position = 3.3f;
                     camera->highPoint.position = 5.5f;
                     camera->LobbyCamera.Camera.MaxDistance = 5.5f;
-
                 }
+                rotationRecorded = false;
             }
         }
 
@@ -429,6 +431,14 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 throw new InvalidOperationException("SetTime signature wasn't found!");
 
             setTimeNative(time);
+        }
+
+        private void PickSong(ushort songIndex)
+        {
+            if (pickSongNative == null)
+                throw new InvalidOperationException("SetTime signature wasn't found!");
+
+            pickSongNative(*lobbyBgmBasePointerAddress, songIndex);
         }
 
         private int OnCreateSceneDetour(string territoryPath, uint p2, IntPtr p3, uint p4, IntPtr p5, int p6, uint p7)
@@ -470,10 +480,19 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 }
                 else if (lastSceneType == GameLobbyType.CharaSelect)
                 {
-                    CurrentLobbyMusicIndex = 0;
+                    // always reset camera when leaving character select
+                    rotationRecorded = false;
                     if (camera != null)
                     {
                         camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = Vector3.Zero;
+                    }
+                    // making new char
+                    if (lastLobbyUpdateMapId == GameLobbyType.Aetherial)
+                    {
+                        // The game doesn't call the function responsible for picking BGM when moving from char select to char creation
+                        // Probably because it will already be playing the correct music
+                        CurrentLobbyMusicIndex = 0;
+                        PickSong(2);
                     }
 
                 }
