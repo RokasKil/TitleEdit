@@ -1,3 +1,4 @@
+using CharacterSelectBackgroundPlugin.Data.Persistence;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Interface.Components;
 using ImGuiNET;
@@ -30,6 +31,17 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             SettingCheckbox($"Save mount##{Title}", ref Services.ConfigurationService.SaveMount);
             SettingCheckbox($"Save song##{Title}", ref Services.ConfigurationService.SaveBgm);
             SettingCheckbox($"Save Eorzea time##{Title}", ref Services.ConfigurationService.SaveTime);
+
+            GuiUtils.Combo($"Camera follow mode##{Title}", Services.ConfigurationService.CameraFollowMode.ToString(), () =>
+            {
+                foreach (var mode in Enum.GetValues<CameraFollowMode>().AsSpan(1))
+                {
+                    if (ImGui.Selectable($"{mode}##{Title}", Services.ConfigurationService.CameraFollowMode == mode))
+                    {
+                        Services.ConfigurationService.CameraFollowMode = mode;
+                    }
+                }
+            });
         }
 
         private void SettingCheckbox(string label, ref bool value, bool save = true)

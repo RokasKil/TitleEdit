@@ -51,6 +51,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private bool refreshLayout = true;
         private uint bgmId;
         private string? bgmPath = null;
+        private bool isLoggedIn = false;
 
         private DirectoryInfo saveDirectory;
 
@@ -74,6 +75,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private unsafe void Tick(IFramework framework)
         {
+            isLoggedIn = Services.ClientState.IsLoggedIn;
             if (!Services.ConfigurationService.TrackPlayerLocation) return;
             if (Services.ClientState.LocalPlayer != null)
             {
@@ -260,7 +262,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
                 if ((DateTime.Now - lastSave).TotalSeconds > Services.ConfigurationService.SavePeriod)
                 {
-                    if (Services.ConfigurationService.SaveLayout && Services.ConfigurationService.PeriodicSaving && Services.ClientState.IsLoggedIn)
+                    if (Services.ConfigurationService.SaveLayout && Services.ConfigurationService.PeriodicSaving && isLoggedIn)
                     {
                         Save(lastContentId);
                     }

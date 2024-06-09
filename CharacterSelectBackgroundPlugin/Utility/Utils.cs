@@ -31,7 +31,12 @@ namespace CharacterSelectBackgroundPlugin.Utility
         }
         public static float NormalizeAngle(float angle)
         {
-            return ((angle + (float)Math.PI) % (float)(Math.PI * 2.0)) - (float)Math.PI;
+            var normalized = angle % (Math.PI * 2);
+            if (normalized <= -Math.PI)
+                normalized += Math.PI * 2;
+            else if (normalized > Math.PI)
+                normalized -= Math.PI * 2;
+            return (float)normalized;
         }
     }
 }

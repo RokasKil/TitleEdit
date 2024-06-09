@@ -26,6 +26,9 @@ public class MainWindow : Window, IDisposable
         Plugin = plugin;
     }
 
+    private float test1 = 0;
+    private float test2 = 0;
+
     public void Dispose() { }
 
     public override void Draw()
@@ -40,6 +43,10 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted($"Current Song {Services.BgmService.CurrentSongId}");
             ImGui.TextUnformatted($"Current LobbyMusicIndex {Services.LobbyService.CurrentLobbyMusicIndex}");
             ImGui.TextUnformatted($"Current MountId {location.Mount.MountId}");
+            ImGui.SliderAngle($"test", ref test1, -360, 360);
+            ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle(test1) / Math.PI * 180}");
+            ImGui.SliderFloat($"Testing normalizer", ref test2, -720, 720);
+            ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle((float)(test2 / 180 * Math.PI)) / Math.PI * 180}");
         }
         if (ImGui.Button("weather"))
         {

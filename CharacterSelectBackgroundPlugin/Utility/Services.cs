@@ -30,6 +30,8 @@ namespace CharacterSelectBackgroundPlugin.Utility
         public static WeatherService WeatherService { get; set; } = null!;
         public static PresetService PresetService { get; set; } = null!;
         public static CharactersService CharactersService { get; set; } = null!;
+        public static MountService MountService { get; set; } = null!;
+        public static BoneService BoneService { get; set; } = null!;
 
         public static void Initialize(DalamudPluginInterface pluginInterface)
         {
@@ -37,6 +39,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
             PluginInterface = pluginInterface;
             ConfigurationService = pluginInterface.GetPluginConfig() as ConfigurationService ?? new();
             ConfigurationService.Initialize(pluginInterface);
+            //Rework this into a 2 stage initalization cause some stuff depends on each other 
             try
             {
                 LayoutService = new();
@@ -46,6 +49,8 @@ namespace CharacterSelectBackgroundPlugin.Utility
                 PresetService = new();
                 LobbyService = new();
                 CharactersService = new();
+                MountService = new();
+                BoneService = new();
             }
             catch
             {
@@ -63,6 +68,8 @@ namespace CharacterSelectBackgroundPlugin.Utility
             PresetService?.Dispose();
             LobbyService?.Dispose();
             CharactersService?.Dispose();
+            MountService?.Dispose();
+            BoneService?.Dispose();
         }
     }
 }

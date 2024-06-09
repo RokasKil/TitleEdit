@@ -330,7 +330,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             // Character MovementMode
             GuiUtils.Combo($"Character state##{Title}", preset.LocationModel.MovementMode.ToString(), () =>
             {
-                foreach (var mode in (MovementMode[])Enum.GetValues(typeof(MovementMode)))
+                foreach (var mode in Enum.GetValues<MovementMode>())
                 {
                     if (ImGui.Selectable($"{mode}##{Title}", preset.LocationModel.MovementMode == mode))
                     {
@@ -380,7 +380,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
 
                     foreach (var entry in mounts)
                     {
-                        if (entry.Value.Contains(mountSearchValue, StringComparison.OrdinalIgnoreCase))
+                        if (Services.MountService.Mounts.Contains(entry.Key) && entry.Value.Contains(mountSearchValue, StringComparison.OrdinalIgnoreCase))
                         {
                             if (ImGui.Selectable($"{entry.Value}##{Title}##{entry.Key}", !preset.LastLocationMount && entry.Key == mountId))
                             {
@@ -388,7 +388,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                                 {
                                     MountId = entry.Key
                                 };
-                                // TODO: fetch chocobo data if chocobo was last selected
+                                // TODO: fetch chocobo data if chocobo was selected
                                 preset.LastLocationMount = false;
                                 ImGui.CloseCurrentPopup();
                             }
@@ -416,7 +416,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             //Setting overrides
             GuiUtils.Combo($"Camera follow mode override##{Title}", preset.CameraFollowMode.ToString(), () =>
             {
-                foreach (var mode in (CameraFollowMode[])Enum.GetValues(typeof(CameraFollowMode)))
+                foreach (var mode in Enum.GetValues<CameraFollowMode>())
                 {
                     if (ImGui.Selectable($"{mode}##{Title}", preset.CameraFollowMode == mode))
                     {

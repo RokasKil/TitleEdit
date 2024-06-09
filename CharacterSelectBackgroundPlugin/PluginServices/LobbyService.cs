@@ -34,6 +34,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private delegate ulong SelectCharacterDelegate(uint characterIndex, char p2);
         private delegate ulong SelectCharacter2Delegate(IntPtr p1);
         private unsafe delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
+        private unsafe delegate void CalculateCameraCurveLowAndHighPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void SetCharSelectCurrentWorldDelegate(ulong p1);
         private delegate void SomeEnvManagerThingyDelegate(ulong p1, uint p2, float p3);
         private delegate ulong WeatherThingyDelegate(ulong p1, byte weatherId);
@@ -48,6 +49,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private readonly Hook<SelectCharacterDelegate> selectCharacterHook;
         private readonly Hook<SelectCharacter2Delegate> selectCharacter2Hook;
         private readonly Hook<SetCameraCurveMidPointDelegate> setCameraCurveMidPointHook;
+        private readonly Hook<CalculateCameraCurveLowAndHighPointDelegate> calculateCameraCurveLowAndHighPointHook;
         private readonly Hook<SetCharSelectCurrentWorldDelegate> setCharSelectCurrentWorldHook;
         private readonly Hook<CharSelectSetWeatherDelegate> charSelectSetWeatherHook;
         private readonly Hook<PlayMusicDelegate> playMusicHook;
@@ -68,7 +70,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private float lastYaw = 0;
         private float lastPitch = 0;
         private float lastDistance = 0;
-        private bool rotationRecorded;
+        private bool rotationJustRecorded;
+        private float cameraYOffset = 0;
 
         private readonly IntPtr lobbyCurrentMapAddress;
 
@@ -91,8 +94,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             get => (uint)Marshal.ReadInt32(*lobbyBgmBasePointerAddress, 0x20);
             set => Marshal.WriteInt32(*lobbyBgmBasePointerAddress, 0x20, (int)value);
         }
-        Vector3 lastLookAt = Vector3.Zero;
-        Vector3 lastCameraPos = Vector3.Zero;
+
         public LobbyService()
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
@@ -116,7 +118,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             selectCharacter2Hook = Hook<SelectCharacter2Delegate>("40 53 48 83 EC ?? 41 83 C8 ?? 4C 8D 15", SelectCharacter2Detour);
 
             // Sets the middle point of the camera Y position curve (made out of 3 point), called every frame, by default doesn't accept negartive values, we fix that
+            // and adjust by head offset so camera gets centered better
             setCameraCurveMidPointHook = Hook<SetCameraCurveMidPointDelegate>("0F 57 C0 0F 2F C1 73 ?? F3 0F 11 89", SetCameraCurveMidPointDetour);
+            // Sets the low and high point of the camera Y position curve we adjust with head offset here so camera stays centered better
+            calculateCameraCurveLowAndHighPointHook = Hook<CalculateCameraCurveLowAndHighPointDelegate>("F3 0F 10 81 ?? ?? ?? ?? F3 0F 11 89", CalculateCameraCurveLowAndHighPointDetour);
 
             // Called when you select a new world in character select or cancel selection so it reload the current - we use it make sure characters get created with a companion slots, initialze their positions and mounts
             setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 49 8B CD 48 8B 7C 24", SetCharSelectCurrentWorldDetour);
@@ -133,7 +138,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
             // Happens on world list hover when loading a world - we use it make sure characters get created with a companion slots (maybe makes selectCharacter2Hook redundant)
             charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 41 83 FE ?? 0F 8C", CharSelectWorldPreviewEventHandlerDetour);
-            // Some LobbySceneLoaded thingy
+
+            // Some LobbySceneLoaded thingy, called once a new level is loaded we use it to restore camera position
             lobbySceneLoadedHook = Hook<LobbySceneLoadedDelegate>("E8 ?? ?? ?? ?? 41 0F B7 CC C6 05", LobbySceneLoadedDetour);
 
             EnableHooks();
@@ -147,7 +153,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             Services.Log.Debug($"[LobbySceneLoaded] {p1:X} {p2:X} {p3} {p4:X} {p5:X} {p6:X} {p7:X}");
             lobbySceneLoadedHook.Original(p1, p2, p3, p4, p5, p6, p7);
-            SetLayoutInfo();
+            //SetLayoutInfo();
+            SetCameraRotation();
         }
 
         public Dictionary<ulong, string> GetCurrentCharacterNames()
@@ -192,8 +199,33 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private unsafe void CharSelectSetWeatherDetour()
         {
             charSelectSetWeatherHook.Original();
+            SetLayoutInfo();
             Services.Log.Debug($"CharSelectSetWeatherDetour {EnvManager.Instance()->ActiveWeather}");
 
+        }
+
+        private void SetCameraRotation()
+        {
+            var camera = GetCamera();
+            if (camera != null)
+            {
+                camera->Yaw = Utils.NormalizeAngle(lastYaw);
+                camera->Pitch = lastPitch;
+                camera->LobbyCamera.Camera.Distance = lastDistance;
+                camera->LobbyCamera.Camera.InterpDistance = lastDistance;
+            }
+            rotationJustRecorded = false;
+            Services.Log.Debug($"Loaded rotation {lastYaw} {lastPitch} {lastDistance}");
+            if (CharaSelectCharacterList.GetCurrentCharacter() != null)
+            {
+                if (camera != null)
+                {
+                    camera->Yaw = Utils.NormalizeAngle(camera->Yaw + locationModel.Rotation);
+                }
+                CharaSelectCharacterList.GetCurrentCharacter()->GameObject.Rotate(locationModel.Rotation);
+            }
+
+            Services.Log.Debug($"After load rotation {camera->Yaw} {camera->Pitch} {camera->LobbyCamera.Camera.Distance}");
         }
 
         private void SetLayoutInfo()
@@ -234,28 +266,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 {
                     Services.Log.Warning($"Layout data was null for {lastContentId:X16}");
                 }
-                var camera = GetCamera();
-                if (rotationRecorded)
-                {
-                    if (camera != null)
-                    {
-                        camera->Yaw = Utils.NormalizeAngle(lastYaw);
-                        camera->Pitch = lastPitch;
-                        camera->LobbyCamera.Camera.Distance = lastDistance;
-                        camera->LobbyCamera.Camera.InterpDistance = lastDistance;
-                    }
-                    rotationRecorded = false;
-                    Services.Log.Debug($"Loaded rotation {lastYaw} {lastPitch} {lastDistance}");
-                    if (CharaSelectCharacterList.GetCurrentCharacter() != null)
-                    {
-                        if (camera != null)
-                        {
-                            camera->Yaw = Utils.NormalizeAngle(camera->Yaw + locationModel.Rotation);
-                        }
-                        CharaSelectCharacterList.GetCurrentCharacter()->GameObject.Rotate(locationModel.Rotation);
-                    }
-                }
-                Services.Log.Debug($"After load rotation {camera->Yaw} {camera->Pitch} {camera->LobbyCamera.Camera.Distance}");
             }
         }
 
@@ -388,14 +398,18 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     {
 
                         var drawObject = (CharacterBase*)currentChar->GameObject.GetDrawObject();
-                        //if (drawObject != null)
+                        var cameraFollowMode = GetCameraFollowMode();
+                        Vector3 lookAt;
+                        if (drawObject != null && currentChar->GameObject.RenderFlags == 0 && cameraFollowMode == CameraFollowMode.ModelPosition)
                         {
-                            var lookAt = currentChar->GameObject.Position;
-                            lookAt.Y = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
-                            camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = lookAt;
+                            lookAt = drawObject->Skeleton->Transform.Position;
                         }
-                        lastLookAt = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector;
-                        lastCameraPos = camera->LobbyCamera.Camera.CameraBase.SceneCamera.Object.Position;
+                        else
+                        {
+                            lookAt = currentChar->GameObject.Position;
+                        }
+                        lookAt.Y = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
+                        camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(lookAt);
                     }
 
                 }
@@ -406,7 +420,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     camera->LobbyCamera.Camera.MaxDistance = 20;
                 }
             }
-            else
+            else if (CurrentLobbyMap != (short)GameLobbyType.None)
             {
                 if (camera != null)
                 {
@@ -414,9 +428,18 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     camera->highPoint.position = 5.5f;
                     camera->LobbyCamera.Camera.MaxDistance = 5.5f;
                 }
-                rotationRecorded = false;
+                rotationJustRecorded = false;
+                lastYaw = 0;
+                lastPitch = 0;
+                lastDistance = 3.3f;
             }
         }
+
+        private CameraFollowMode GetCameraFollowMode()
+        {
+            return locationModel.CameraFollowMode == CameraFollowMode.Inherit ? Services.ConfigurationService.CameraFollowMode : locationModel.CameraFollowMode; ;
+        }
+
 
         public unsafe void ResetState()
         {
@@ -475,13 +498,12 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     {
                         CurrentLobbyMusicIndex = 0;
                     }
-
                     return returnVal;
                 }
                 else if (lastSceneType == GameLobbyType.CharaSelect)
                 {
                     // always reset camera when leaving character select
-                    rotationRecorded = false;
+                    rotationJustRecorded = false;
                     if (camera != null)
                     {
                         camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = Vector3.Zero;
@@ -509,9 +531,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             lastLobbyUpdateMapId = mapId;
             Services.Log.Verbose($"mapId {mapId}");
+
             if (resetScene)
             {
-                if (!rotationRecorded)
+                // Prevent overwriting camera location when going through characters rapidly (switching while a scene is still loading)
+                if (!rotationJustRecorded)
                 {
                     var camera = GetCamera();
                     if (camera != null)
@@ -519,7 +543,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         lastYaw = camera->Yaw;
                         lastPitch = camera->Pitch;
                         lastDistance = camera->LobbyCamera.Camera.Distance;
-                        rotationRecorded = true;
+                        rotationJustRecorded = true;
                         if (CharaSelectCharacterList.GetCurrentCharacter() != null)
                         {
                             lastYaw -= CharaSelectCharacterList.GetCurrentCharacter()->GameObject.Rotation;
@@ -536,9 +560,22 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         }
 
         //SE's implenetation does nothing if value is below 0 which breaks the camera when character is in negative Y
-        private unsafe void SetCameraCurveMidPointDetour(LobbyCameraExpanded* self, float value)
+        private void SetCameraCurveMidPointDetour(LobbyCameraExpanded* self, float value)
         {
-            self->midPoint.value = value;
+            if (GetCameraFollowMode() == CameraFollowMode.ModelPosition)
+            {
+                cameraYOffset = Services.BoneService.GetHeadOffset(CharaSelectCharacterList.GetCurrentCharacter());
+            }
+            else
+            {
+                cameraYOffset = 0;
+            }
+            self->midPoint.value = value + cameraYOffset;
+        }
+
+        private void CalculateCameraCurveLowAndHighPointDetour(LobbyCameraExpanded* self, float value)
+        {
+            calculateCameraCurveLowAndHighPointHook.Original(self, value + cameraYOffset);
         }
 
         private ulong SelectCharacter2Detour(IntPtr p1)
@@ -653,13 +690,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     model = LocationService.DefaultLocation;
                 }
             }
-            FixLocationModelPosition(ref model);
+
+            model.Position = OffsetPosition(model.Position);
             return model;
         }
 
         public LocationModel GetNothingSelectedLocation()
         {
-
             var displayOption = Services.ConfigurationService.NoCharacterDisplayType;
             LocationModel model;
             if (displayOption.Type == DisplayType.AetherialSea || displayOption.Type == DisplayType.LastLocation)
@@ -679,7 +716,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     model = LocationService.DefaultLocation;
                 }
             }
-            FixLocationModelPosition(ref model);
+            model.Position = OffsetPosition(model.Position);
             return model;
         }
 
@@ -690,7 +727,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             var agentLobby = AgentLobby.Instance();
             locationModel = preset.LocationModel;
             locationModel.CameraFollowMode = preset.CameraFollowMode;
-            FixLocationModelPosition(ref locationModel);
+            locationModel.Position = OffsetPosition(locationModel.Position);
             Services.Log.Debug("Applying location model");
             if (character != null && agentLobby != null)
             {
@@ -717,17 +754,17 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             resetScene = true;
         }
 
-        private void FixLocationModelPosition(ref LocationModel locationModel)
+        private Vector3 OffsetPosition(Vector3 position)
         {
             // There is some weird issue when rapidly switching the camera while the world is loading 
             // and the camera focus is at (0,0,0)
             // that causes incredibly loud and persistent noises to start playing
             // we work around that by imperceivably offsetting the position
-            var pos = locationModel.Position;
-            if (pos.X == 0) pos.X = 0.001f;
-            if (pos.Y == 0) pos.Y = 0.001f;
-            if (pos.Z == 0) pos.Z = 0.001f;
-            locationModel.Position = pos;
+
+            if (position.X == 0) position.X = 0.001f;
+            if (position.Y == 0) position.Y = 0.001f;
+            if (position.Z == 0) position.Z = 0.001f;
+            return position;
         }
 
         private void SetupMount(Character* character, LocationModel location)
