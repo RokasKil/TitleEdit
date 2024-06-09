@@ -7,6 +7,8 @@ using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using FFXIVClientStructs.Interop;
 using System;
 using System.Collections.Generic;
+using ILayoutInstance = CharacterSelectBackgroundPlugin.Data.Layout.ILayoutInstance;
+using InstanceType = CharacterSelectBackgroundPlugin.Data.Layout.InstanceType;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {
@@ -124,7 +126,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             if (instance->Id.Type == InstanceType.Prefab || instance->Id.Type == InstanceType.Prefab2)
             {
                 var prefabInstance = (PrefabLayoutInstance*)instance;
-                foreach (var instanceData in prefabInstance->Instances.Instances.Span)
+                foreach (var instanceData in prefabInstance->Instances.Instances.AsSpan())
                 {
                     ForEachInstanceAndDescendants(instanceData.Value->Instance, action);
                 }

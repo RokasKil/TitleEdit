@@ -124,6 +124,12 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                             }
 
                             refreshLayout = false;
+                            locationModel.Festivals = [
+                                Services.LayoutService.LayoutManager->ActiveFestivals[0],
+                                Services.LayoutService.LayoutManager->ActiveFestivals[1],
+                                Services.LayoutService.LayoutManager->ActiveFestivals[2],
+                                Services.LayoutService.LayoutManager->ActiveFestivals[3]
+                            ];
                         }
                     }
                     else

@@ -1,8 +1,8 @@
 
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
-using FFXIVClientStructs.Havok;
-using static FFXIVClientStructs.Havok.hkaPose;
+using FFXIVClientStructs.Havok.Animation.Rig;
+using static FFXIVClientStructs.Havok.Animation.Rig.hkaPose;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {

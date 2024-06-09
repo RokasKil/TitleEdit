@@ -1,7 +1,11 @@
+using CharacterSelectBackgroundPlugin.Nodes;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
+using KamiToolKit.Classes;
+using KamiToolKit.Nodes;
 using System;
 using System.Numerics;
 
@@ -29,8 +33,14 @@ public class MainWindow : Window, IDisposable
     private float test1 = 0;
     private float test2 = 0;
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+        node?.Dispose();
+        node2?.Dispose();
+    }
 
+    private CharSelectButtonNode node = null;
+    private ProgressBarNode node2 = null;
     public override void Draw()
     {
         unsafe
@@ -47,9 +57,39 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle(test1) / Math.PI * 180}");
             ImGui.SliderFloat($"Testing normalizer", ref test2, -720, 720);
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle((float)(test2 / 180 * Math.PI)) / Math.PI * 180}");
-        }
-        if (ImGui.Button("weather"))
-        {
+
+            // Works in theory but need to resize the _CharaSelectListMenu root node and adjust all Y positions because our button is out of bounds for the parent node so events don't trigger
+            if (ImGui.Button("node test"))
+            {
+                var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_CharaSelectListMenu");
+                if (node != null)
+                {
+                    node.Dispose();
+                    node2.Dispose();
+                }
+                node = new(15 + 18565)
+                {
+                    Width = 200,
+                    Height = 40,
+                    NodeFlags = NodeFlags.Visible,
+                    Position = new Vector2(16f - 200, 46f)
+                    //Position = new Vector2(16f, 16f)
+                };
+                node2 = new(16)
+                {
+
+                    Position = new Vector2(16f - 200, 46f),
+                    NodeFlags = NodeFlags.Visible
+                };
+                if (addon != null)
+                {
+                    node.AttachNode(addon, addon->RootNode, NodePosition.AsFirstChild);
+                    node.EnableTooltip(Services.AddonEventManager, addon);
+                    node.EnableOnClick(Services.AddonEventManager, addon);
+                    //node2.AttachNode(addon, addon->RootNode, NodePosition.AsFirstChild);
+                }
+
+            }
         }
         if (ImGui.Button("Show Settings"))
         {

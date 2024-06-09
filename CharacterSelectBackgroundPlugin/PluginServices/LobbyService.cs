@@ -7,6 +7,7 @@ using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
@@ -164,7 +165,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             var agentLobby = AgentLobby.Instance();
             if (agentLobby != null)
             {
-                var characterSelects = agentLobby->LobbyData.CharaSelectEntries.Span;
+                var characterSelects = agentLobby->LobbyData.CharaSelectEntries.AsSpan();
                 foreach (var character in characterSelects)
                 {
                     if (character.Value->ContentId != 0)
@@ -172,7 +173,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         var world = Services.DataManager.GetExcelSheet<World>()?.GetRow(character.Value->HomeWorldId);
                         if (world != null)
                         {
-                            result[character.Value->ContentId] = $"{Encoding.UTF8.GetString(character.Value->Name, 32).TrimEnd('\0')}@{world.Name}";
+                            result[character.Value->ContentId] = $"{Encoding.UTF8.GetString(character.Value->Name).TrimEnd('\0')}@{world.Name}";
                         }
                     }
                 }
@@ -234,7 +235,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             {
                 fixed (uint* pFestivals = locationModel.Festivals)
                 {
-                    Services.LayoutService.LayoutManager->layoutManager.SetActiveFestivals(pFestivals);
+                    Services.LayoutService.LayoutManager->layoutManager.SetActiveFestivals((GameMain.Festival*)pFestivals);
                 }
                 EnvManager.Instance()->ActiveWeather = locationModel.WeatherId;
                 SetTime(locationModel.TimeOffset);
@@ -321,15 +322,15 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             var clientObjectManager = ClientObjectManager.Instance();
             if (charaSelectCharacterList != null && clientObjectManager != null)
             {
-                for (int i = 0; i < charaSelectCharacterList->CharacterMappingSpan.Length; i++)
+                for (int i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
                 {
-                    if (charaSelectCharacterList->CharacterMappingSpan[i].ContentId == 0)
+                    if (charaSelectCharacterList->CharacterMapping[i].ContentId == 0)
                     {
                         break;
                     }
-                    var contentId = charaSelectCharacterList->CharacterMappingSpan[i].ContentId;
-                    var clientObjectIndex = charaSelectCharacterList->CharacterMappingSpan[i].ClientObjectIndex;
-                    Services.Log.Debug($"{charaSelectCharacterList->CharacterMappingSpan[i].ContentId:X} to {charaSelectCharacterList->CharacterMappingSpan[i].ClientObjectIndex}");
+                    var contentId = charaSelectCharacterList->CharacterMapping[i].ContentId;
+                    var clientObjectIndex = charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex;
+                    Services.Log.Debug($"{charaSelectCharacterList->CharacterMapping[i].ContentId:X} to {charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex}");
                     var location = GetLocationForContentId(contentId);
                     var gameObject = clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
                     if (gameObject != null)
@@ -607,7 +608,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 {
                     return null;
                 }
-                var clientObjectIndex = charaSelectCharacterList->CharacterMappingSpan[agentLobby->HoveredCharacterIndex].ClientObjectIndex;
+                var clientObjectIndex = charaSelectCharacterList->CharacterMapping[agentLobby->HoveredCharacterIndex].ClientObjectIndex;
                 if (clientObjectIndex == -1)
                 {
                     Services.Log.Warning($"[getCurrentCharacter] clientObjectIndex -1 for {agentLobby->HoveredCharacterIndex}");
@@ -630,7 +631,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             var agentLobby = AgentLobby.Instance();
             if (character != null && agentLobby != null)
             {
-                var contentId = agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
+                var contentId = agentLobby->LobbyData.CharaSelectEntries[agentLobby->HoveredCharacterIndex].Value->ContentId;
                 if (lastContentId != contentId)
                 {
                     lastContentId = contentId;
@@ -731,7 +732,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Services.Log.Debug("Applying location model");
             if (character != null && agentLobby != null)
             {
-                var contentId = agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
+                var contentId = agentLobby->LobbyData.CharaSelectEntries[agentLobby->HoveredCharacterIndex].Value->ContentId;
                 if (preset.LastLocationMount)
                 {
                     locationModel.Mount = Services.LocationService.GetLocationModel((ulong)contentId).Mount;

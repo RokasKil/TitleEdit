@@ -21,6 +21,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
         [PluginService] public static IGameInteropProvider GameInteropProvider { get; set; } = null!;
         [PluginService] public static ITargetManager TargetManager { get; set; } = null!;
         [PluginService] public static IFramework Framework { get; set; } = null!;
+        [PluginService] public static IAddonEventManager AddonEventManager { get; set; } = null!;
         public static DalamudPluginInterface PluginInterface { get; set; } = null!;
         public static ConfigurationService ConfigurationService { get; set; } = null!;
         public static LayoutService LayoutService { get; set; } = null!;

@@ -39,11 +39,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     var playerState = PlayerState.Instance();
                     if (playerState != null)
                     {
-                        var span = new Span<byte>(playerState->OwnedMountsBitmask, MountBitmaskArraySize);
-                        if (!span.SequenceEqual(lastMountBytes))
+                        if (!playerState->OwnedMountsBitmask.SequenceEqual(lastMountBytes))
                         {
                             Services.Log.Debug("Mounts changed!");
-                            span.CopyTo(lastMountBytes);
+                            playerState->OwnedMountsBitmask.CopyTo(lastMountBytes);
                             RefreshMounts();
                         }
                     }
