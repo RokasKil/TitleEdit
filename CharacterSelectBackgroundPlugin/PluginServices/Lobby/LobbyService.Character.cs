@@ -3,18 +3,17 @@ using CharacterSelectBackgroundPlugin.Data.Lobby;
 using CharacterSelectBackgroundPlugin.Data.Persistence;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Hooking;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System.Collections.Generic;
 using System.Text;
+using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using World = Lumina.Excel.GeneratedSheets.World;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-
         private delegate ulong SelectCharacterDelegate(uint characterIndex, char p2);
         private delegate ulong SelectCharacter2Delegate(nint p1);
         private delegate nint CreateBattleCharacterDelegate(nint objectManager, uint index, bool assignCompanion);
@@ -26,6 +25,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         private Hook<CreateBattleCharacterDelegate> createBattleCharacterHook = null!;
         private Hook<SetCharSelectCurrentWorldDelegate> setCharSelectCurrentWorldHook = null!;
         private Hook<CharSelectWorldPreviewEventHandlerDelegate> charSelectWorldPreviewEventHandlerHook = null!;
+
+        private Character* CurrentCharacter => CharaSelectCharacterList.GetCurrentCharacter();
 
 
         private bool creatingCharSelectGameObjects = false;
@@ -53,28 +54,27 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         private void CharacterTick()
         {
-            var currentChar = CharaSelectCharacterList.GetCurrentCharacter();
-            if (lastContentId != 0 && currentChar == null)
+            if (lastContentId != 0 && CurrentCharacter == null)
             {
                 NothingSelected();
             }
-            // We do a slight polling cause it's simpler than figuring when exactly are mounts and stuff are good to draw
+            // We do polling cause it's simpler than figuring when exactly are mounts and stuff are good to draw
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
-                if (currentChar != null)
+                if (CurrentCharacter != null)
                 {
-                    if (currentChar->GameObject.RenderFlags != 0 && currentChar->GameObject.RenderFlags != 0x40 && currentChar->GameObject.IsReadyToDraw())
+                    if (CurrentCharacter->GameObject.RenderFlags != 0 && CurrentCharacter->GameObject.RenderFlags != 0x40 && CurrentCharacter->GameObject.IsReadyToDraw())
                     {
-                        Services.Log.Debug($"Drawing character {(nint)currentChar:X} {currentChar->GameObject.RenderFlags:X}");
-                        currentChar->GameObject.EnableDraw();
-                        if (currentChar->IsMounted() && currentChar->CompanionObject != null && currentChar->CompanionObject->Character.GameObject.IsReadyToDraw())
+                        Services.Log.Debug($"Drawing character {(nint)CurrentCharacter:X} {CurrentCharacter->GameObject.RenderFlags:X}");
+                        CurrentCharacter->GameObject.EnableDraw();
+                        if (CurrentCharacter->IsMounted() && CurrentCharacter->CompanionObject != null && CurrentCharacter->CompanionObject->Character.GameObject.IsReadyToDraw())
                         {
-                            Services.Log.Debug($"Drawing companion {(nint)currentChar->CompanionObject:X} {currentChar->CompanionObject->Character.GameObject.RenderFlags:X}");
-                            currentChar->CompanionObject->Character.GameObject.EnableDraw();
+                            Services.Log.Debug($"Drawing companion {(nint)CurrentCharacter->CompanionObject:X} {CurrentCharacter->CompanionObject->Character.GameObject.RenderFlags:X}");
+                            CurrentCharacter->CompanionObject->Character.GameObject.EnableDraw();
                         }
                     }
                     // Tell camera to follow the character
-                    CameraFollowCharacter(currentChar);
+                    CameraFollowCharacter(CurrentCharacter);
                 }
                 else
                 {
@@ -119,11 +119,44 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             }
             Services.CharactersService.SaveCharacters();
 
-            *CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter = GetCurrentCharacter();
+            *CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter = GetCurrentHoveredCharacter();
             Services.Log.Debug($"Set current char to {(nint)(*CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter):X}");
             UpdateCharacter(true);
+            RotateCharacter();
         }
-        public unsafe void NothingSelected()
+
+        private void RotateCharacter()
+        {
+            if (CurrentCharacter != null)
+            {
+                CurrentCharacter->GameObject.Rotate(locationModel.Rotation);
+            }
+        }
+
+        private void ResetCharacters()
+        {
+            var charaSelectCharacterList = CharaSelectCharacterList.Instance();
+            var clientObjectManager = ClientObjectManager.Instance();
+            if (charaSelectCharacterList != null && clientObjectManager != null)
+            {
+                for (int i = 0; i < charaSelectCharacterList->CharacterMappingSpan.Length; i++)
+                {
+                    if (charaSelectCharacterList->CharacterMappingSpan[i].ContentId == 0)
+                    {
+                        break;
+                    }
+                    var clientObjectIndex = charaSelectCharacterList->CharacterMappingSpan[i].ClientObjectIndex;
+                    var gameObject = clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
+                    if (gameObject != null)
+                    {
+                        gameObject->SetPosition(0, 0, 0);
+                        ((Character*)gameObject)->Mount.CreateAndSetupMount(0, 0, 0, 0, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        private void NothingSelected()
         {
             lastContentId = 0;
             var newLocationModel = GetNothingSelectedLocation();
@@ -133,6 +166,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                 resetScene = true;
             }
         }
+
         private void CharSelectWorldPreviewEventHandlerDetour(ulong p1, ulong p2, ulong p3, uint p4)
         {
             creatingCharSelectGameObjects = true;
@@ -166,7 +200,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             return result;
         }
 
-        private unsafe Character* GetCurrentCharacter()
+        private Character* GetCurrentHoveredCharacter()
         {
 
             var agentLobby = AgentLobby.Instance();
@@ -194,14 +228,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             return null;
         }
 
-        private unsafe void UpdateCharacter(bool forced = false)
+        private void UpdateCharacter(bool forced = false)
         {
-            var character = CharaSelectCharacterList.GetCurrentCharacter();
-
-            var agentLobby = AgentLobby.Instance();
-            if (character != null && agentLobby != null)
+            if (CurrentCharacter != null)
             {
-                var contentId = agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
+                var contentId = GetContentId();
                 if (lastContentId != contentId || forced)
                 {
                     lastContentId = contentId;
@@ -212,15 +243,25 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                         locationModel = newLocationModel;
                         resetScene = true;
                     }
-                    Services.Log.Debug($"Setting character postion {(nint)character:X}");
-                    character->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
-                    ((CharacterExpanded*)character)->MovementMode = locationModel.MovementMode;
-                    if (character->Mount.MountId != locationModel.Mount.MountId)
+                    Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
+                    CurrentCharacter->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
+                    ((CharacterExpanded*)CurrentCharacter)->MovementMode = locationModel.MovementMode;
+                    if (CurrentCharacter->Mount.MountId != locationModel.Mount.MountId)
                     {
-                        SetupMount(character, locationModel);
+                        SetupMount(CurrentCharacter, locationModel);
                     }
                 }
             }
+        }
+
+        private ulong GetContentId()
+        {
+            var agentLobby = AgentLobby.Instance();
+            if (agentLobby != null)
+            {
+                return agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
+            }
+            return 0;
         }
 
         private void SetupMount(Character* character, LocationModel location)

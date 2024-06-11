@@ -19,6 +19,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         private Hook<CharSelectSetWeatherDelegate> charSelectSetWeatherHook = null!;
 
+        private bool forceUpdateCharacter;
         private void HookLayout()
         {
             if (setTimeNative == null)
@@ -30,10 +31,16 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             charSelectSetWeatherHook = Hook<CharSelectSetWeatherDelegate>("0F B7 0D ?? ?? ?? ?? 8D 41", CharSelectSetWeatherDetour);
         }
 
-        private unsafe void CharSelectSetWeatherDetour()
+        private void CharSelectSetWeatherDetour()
         {
             charSelectSetWeatherHook.Original();
             SetLayoutInfo();
+            if (forceUpdateCharacter)
+            {
+                UpdateCharacter(true);
+                forceUpdateCharacter = false;
+                forceUpdateCharacter = false;
+            }
             Services.Log.Debug($"CharSelectSetWeatherDetour {EnvManager.Instance()->ActiveWeather}");
 
         }

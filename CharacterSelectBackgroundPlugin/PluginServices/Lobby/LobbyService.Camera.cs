@@ -4,15 +4,14 @@ using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Common.Math;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-        private unsafe delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
-        private unsafe delegate void CalculateCameraCurveLowAndHighPointDelegate(LobbyCameraExpanded* self, float value);
+        private delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
+        private delegate void CalculateCameraCurveLowAndHighPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void LobbySceneLoadedDelegate(ulong p1, int p2, float p3, ushort p4, uint p5, uint p6, uint p7);
 
         private Hook<SetCameraCurveMidPointDelegate> setCameraCurveMidPointHook = null!;
@@ -21,7 +20,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         private float recordedYaw = 0;
         private float recordedPitch = 0;
-        private float recordedDistance = 0;
+        private float recordedDistance = 3.3f;
         private bool rotationJustRecorded;
 
         private float cameraYOffset = 0;
@@ -105,14 +104,14 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         private void ModifyCamera()
         {
-            if (!cameraModified)
+            var camera = GetCamera();
+            if (camera != null)
             {
-                var camera = GetCamera();
-                if (camera != null)
+                camera->LobbyCamera.Camera.MaxDistance = 20;
+                if (!cameraModified)
                 {
                     camera->MidPoint.Position = 10;
                     camera->HighPoint.Position = 20;
-                    camera->LobbyCamera.Camera.MaxDistance = 20;
                     cameraModified = true;
                 }
             }
@@ -149,9 +148,9 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                     recordedPitch = camera->Pitch;
                     recordedDistance = camera->LobbyCamera.Camera.Distance;
                     rotationJustRecorded = true;
-                    if (CharaSelectCharacterList.GetCurrentCharacter() != null)
+                    if (CurrentCharacter != null)
                     {
-                        recordedYaw -= CharaSelectCharacterList.GetCurrentCharacter()->GameObject.Rotation;
+                        recordedYaw -= CurrentCharacter->GameObject.Rotation;
                     }
                     recordedYaw = Utils.NormalizeAngle(recordedYaw);
                     Services.Log.Debug($"Recorded rotation {recordedYaw} {recordedPitch} {recordedDistance}");
@@ -178,14 +177,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             }
             rotationJustRecorded = false;
             Services.Log.Debug($"Loaded rotation {recordedYaw} {recordedPitch} {recordedDistance}");
-            if (CharaSelectCharacterList.GetCurrentCharacter() != null)
+            if (camera != null)
             {
-                if (camera != null)
-                {
-                    camera->Yaw = Utils.NormalizeAngle(camera->Yaw + locationModel.Rotation);
-                }
-                CharaSelectCharacterList.GetCurrentCharacter()->GameObject.Rotate(locationModel.Rotation);
+                camera->Yaw = Utils.NormalizeAngle(camera->Yaw + locationModel.Rotation);
             }
+            RotateCharacter();
 
             Services.Log.Debug($"After load rotation {camera->Yaw} {camera->Pitch} {camera->LobbyCamera.Camera.Distance}");
         }
@@ -196,7 +192,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         {
             if (GetCameraFollowMode() == CameraFollowMode.ModelPosition)
             {
-                cameraYOffset = Services.BoneService.GetHeadOffset(CharaSelectCharacterList.GetCurrentCharacter());
+                cameraYOffset = Services.BoneService.GetHeadOffset(CurrentCharacter);
             }
             else
             {

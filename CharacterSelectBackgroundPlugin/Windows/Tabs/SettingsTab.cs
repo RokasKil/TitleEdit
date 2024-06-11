@@ -8,7 +8,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
 {
     internal class SettingsTab : ITab
     {
-        public string Title => "Tracking settings";
+        public string Title => "Settings";
 
         public void Draw()
         {
@@ -31,6 +31,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             SettingCheckbox($"Save mount##{Title}", ref Services.ConfigurationService.SaveMount);
             SettingCheckbox($"Save song##{Title}", ref Services.ConfigurationService.SaveBgm);
             SettingCheckbox($"Save Eorzea time##{Title}", ref Services.ConfigurationService.SaveTime);
+            ImGui.Separator();
 
             GuiUtils.Combo($"Camera follow mode##{Title}", Services.ConfigurationService.CameraFollowMode.ToString(), () =>
             {
@@ -42,6 +43,8 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                     }
                 }
             });
+            SettingCheckbox($"Add a button to character select screen that opens this window##{Title}", ref Services.ConfigurationService.DrawCharacterSelectButton);
+
         }
 
         private void SettingCheckbox(string label, ref bool value, bool save = true)

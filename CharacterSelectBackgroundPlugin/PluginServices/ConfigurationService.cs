@@ -10,6 +10,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices;
 public class ConfigurationService : IPluginConfiguration
 {
     public int Version { get; set; } = 0;
+
     public bool TrackPlayerLocation = true;
     public bool PeriodicSaving = true;
     public int SavePeriod = 10;
@@ -18,6 +19,7 @@ public class ConfigurationService : IPluginConfiguration
     public bool SaveMount = true;
     public bool SaveBgm = true;
     public bool SaveTime = true;
+    public bool DrawCharacterSelectButton = true;
     public CameraFollowMode CameraFollowMode = CameraFollowMode.ModelPosition;
     public DisplayTypeOption GlobalDisplayType = new()
     {

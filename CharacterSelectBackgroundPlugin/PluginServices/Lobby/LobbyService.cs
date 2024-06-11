@@ -52,8 +52,24 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             EnableHooks();
 
             Services.Framework.Update += Tick;
-            locationModel = GetNothingSelectedLocation();
+            if (CurrentCharacter != null)
+            {
+                locationModel = GetLocationForContentId(GetContentId());
+            }
+            else
+            {
+                locationModel = GetNothingSelectedLocation();
+            }
+            if (CurrentLobbyMap == GameLobbyType.CharaSelect)
+            {
+                resetScene = true;
+                // Forcing a character update on layout load to set positions and stuff
+                // Will be missing mount if there was no companion object created which is probably the case unless the plugin is being turned off and on again
+                // I will not be fixing that cause fuck it
+                forceUpdateCharacter = CurrentCharacter != null;
+            }
         }
+
 
         private void Tick(IFramework framework)
         {
@@ -129,6 +145,15 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         {
             base.Dispose();
             Services.Framework.Update -= Tick;
+            // Resetting the character select thingy
+            if (CurrentLobbyMap == GameLobbyType.CharaSelect)
+            {
+                //Techincally should be done from Agent Update but we can't have that here
+                CurrentLobbyMap = GameLobbyType.None;
+                ForcePlaySongIndex(LobbySong.CharacterSelect);
+                ClearCameraModifications();
+                ResetCharacters();
+            }
         }
     }
 }

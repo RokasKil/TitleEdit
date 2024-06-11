@@ -11,7 +11,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         private LocationModel locationModel;
 
-        public LocationModel GetLocationForContentId(ulong contentId)
+        private LocationModel GetLocationForContentId(ulong contentId)
         {
             var displayOverrideIdx = Services.ConfigurationService.DisplayTypeOverrides.FindIndex((entry) => entry.Key == contentId);
             DisplayTypeOption displayOption;
@@ -26,7 +26,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             }
             if (displayOption.Type == DisplayType.LastLocation)
             {
-                model = Services.LocationService.GetLocationModel(contentId);
+                if (!Services.LocationService.Locations.TryGetValue(contentId, out model))
+                {
+                    model = GetNothingSelectedLocation();
+                }
             }
             else if (displayOption.Type == DisplayType.AetherialSea)
             {
@@ -54,7 +57,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             return model;
         }
 
-        public LocationModel GetNothingSelectedLocation()
+        private LocationModel GetNothingSelectedLocation()
         {
             var displayOption = Services.ConfigurationService.NoCharacterDisplayType;
             LocationModel model;
@@ -82,26 +85,25 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         public void Apply(PresetModel preset)
         {
-            var character = CharaSelectCharacterList.GetCurrentCharacter();
             var agentLobby = AgentLobby.Instance();
             locationModel = preset.LocationModel;
             locationModel.CameraFollowMode = preset.CameraFollowMode;
             locationModel.Position = OffsetPosition(locationModel.Position);
             Services.Log.Debug("Applying location model");
-            if (character != null && agentLobby != null)
+            if (CurrentCharacter != null && agentLobby != null)
             {
                 var contentId = agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
                 if (preset.LastLocationMount)
                 {
                     locationModel.Mount = Services.LocationService.GetLocationModel(contentId).Mount;
                 }
-                Services.Log.Debug($"Setting character postion {(nint)character:X}");
-                character->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
-                ((CharacterExpanded*)character)->MovementMode = locationModel.MovementMode;
+                Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
+                CurrentCharacter->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
+                ((CharacterExpanded*)CurrentCharacter)->MovementMode = locationModel.MovementMode;
 
-                if (character->Mount.MountId != locationModel.Mount.MountId)
+                if (CurrentCharacter->Mount.MountId != locationModel.Mount.MountId)
                 {
-                    SetupMount(character, locationModel);
+                    SetupMount(CurrentCharacter, locationModel);
                 }
 
 

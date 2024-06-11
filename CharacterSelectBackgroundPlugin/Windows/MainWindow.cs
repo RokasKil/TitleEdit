@@ -9,12 +9,11 @@ namespace CharacterSelectBackgroundPlugin.Windows;
 
 public class MainWindow : Window, IDisposable
 {
-    private Plugin Plugin;
 
     // We give this window a hidden ID using ##
     // So that the user will see "My Amazing Window" as window title,
     // but for ImGui the ID is "My Amazing Window##With a hidden ID"
-    public MainWindow(Plugin plugin)
+    public MainWindow()
         : base("My Amazing Window##asdf", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         SizeConstraints = new WindowSizeConstraints
@@ -23,7 +22,6 @@ public class MainWindow : Window, IDisposable
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
         };
 
-        Plugin = plugin;
     }
 
     private float test1 = 0;
@@ -47,13 +45,6 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle(test1) / Math.PI * 180}");
             ImGui.SliderFloat($"Testing normalizer", ref test2, -720, 720);
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle((float)(test2 / 180 * Math.PI)) / Math.PI * 180}");
-        }
-        if (ImGui.Button("weather"))
-        {
-        }
-        if (ImGui.Button("Show Settings"))
-        {
-            Plugin.ToggleConfigUI();
         }
     }
 }

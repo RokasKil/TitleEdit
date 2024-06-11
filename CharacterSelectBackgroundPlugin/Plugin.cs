@@ -18,6 +18,7 @@ public sealed class Plugin : IDalamudPlugin
     public readonly WindowSystem WindowSystem = new("CharacterSelectBackgroundPlugin");
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
+    private ConfigButtonOverlay ConfigButtonOverlay { get; init; }
 
     public Plugin(
         [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -25,11 +26,12 @@ public sealed class Plugin : IDalamudPlugin
         [RequiredVersion("1.0")] ITextureProvider textureProvider)
     {
         PluginInterface = pluginInterface;
-        Services.Initialize(PluginInterface);
+        Services.Initialize(PluginInterface, this);
         CommandManager = commandManager;
 
-        ConfigWindow = new ConfigWindow(this);
-        MainWindow = new MainWindow(this);
+        ConfigWindow = new();
+        MainWindow = new();
+        ConfigButtonOverlay = new();
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
@@ -41,12 +43,10 @@ public sealed class Plugin : IDalamudPlugin
 
         PluginInterface.UiBuilder.Draw += DrawUI;
 
-        // This adds a button to the plugin installer entry of this plugin which allows
-        // to toggle the display status of the configuration ui
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
-
-        // Adds another button that is doing the same but for the main ui of the plugin
+#if DEBUG
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
+#endif
     }
 
     public void Dispose()
@@ -66,7 +66,11 @@ public sealed class Plugin : IDalamudPlugin
         ToggleConfigUI();
     }
 
-    private void DrawUI() => WindowSystem.Draw();
+    private void DrawUI()
+    {
+        ConfigButtonOverlay.Draw();
+        WindowSystem.Draw();
+    }
 
     public void ToggleConfigUI() => ConfigWindow.Toggle();
     public void ToggleMainUI() => MainWindow.Toggle();

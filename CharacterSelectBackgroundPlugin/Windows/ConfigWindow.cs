@@ -17,7 +17,7 @@ public class ConfigWindow : Window, IDisposable
         new AboutTab()
     };
 
-    public ConfigWindow(Plugin plugin) : base(
+    public ConfigWindow() : base(
         "Immersive Character Background Configuration", ImGuiWindowFlags.AlwaysAutoResize)
     {
         this.SizeConstraints = new WindowSizeConstraints

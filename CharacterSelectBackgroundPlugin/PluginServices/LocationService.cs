@@ -46,6 +46,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private readonly CancellationTokenSource cancellationToken = new();
         private DateTime lastSave = DateTime.Now;
         public string? TerritoryPath { get; private set; }
+        public IReadOnlyDictionary<ulong, LocationModel> Locations => locations;
         private ConcurrentDictionary<ulong, LocationModel> locations = [];
         private ulong lastContentId;
         private bool refreshLayout = true;
