@@ -1,5 +1,6 @@
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud;
+using Dalamud.Utility;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -55,7 +56,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 try
                 {
                     Services.Log.Debug($"Saving characters");
-                    File.WriteAllText(filePath, JsonConvert.SerializeObject(characters));
+                    Util.WriteAllTextSafe(filePath, JsonConvert.SerializeObject(characters));
                     changed = false;
                 }
                 catch (Exception e)

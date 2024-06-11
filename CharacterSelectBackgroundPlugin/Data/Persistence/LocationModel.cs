@@ -1,6 +1,7 @@
 using CharacterSelectBackgroundPlugin.Data.Character;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace CharacterSelectBackgroundPlugin.Data.Persistence
@@ -28,6 +29,48 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
 
         public LocationModel()
         {
+        }
+
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            if (obj?.GetType() == typeof(LocationModel))
+            {
+                var other = (LocationModel)obj;
+                return Equals(Version, other.Version) &&
+                    Equals(TerritoryPath, other.TerritoryPath) &&
+                    Equals(TerritoryTypeId, other.TerritoryTypeId) &&
+                    Equals(Position, other.Position) &&
+                    Equals(Rotation, other.Rotation) &&
+                    Equals(WeatherId, other.WeatherId) &&
+                    Equals(TimeOffset, other.TimeOffset) &&
+                    Equals(BgmId, other.BgmId) &&
+                    Equals(BgmPath, other.BgmPath) &&
+                    Equals(MovementMode, other.MovementMode) &&
+                    Equals(Active, other.Active) &&
+                    Equals(Inactive, other.Inactive) &&
+                    Equals(VfxTriggerIndexes, other.VfxTriggerIndexes) &&
+                    Equals(Festivals, other.Festivals);
+            }
+            return false;
+        }
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            hash.Add(Version);
+            hash.Add(TerritoryPath);
+            hash.Add(TerritoryTypeId);
+            hash.Add(Position);
+            hash.Add(Rotation);
+            hash.Add(WeatherId);
+            hash.Add(TimeOffset);
+            hash.Add(BgmId);
+            hash.Add(BgmPath);
+            hash.Add(MovementMode);
+            hash.Add(Active);
+            hash.Add(Inactive);
+            hash.Add(VfxTriggerIndexes);
+            hash.Add(Festivals);
+            return hash.ToHashCode();
         }
     }
 

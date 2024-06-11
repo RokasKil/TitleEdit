@@ -4,8 +4,8 @@ using CharacterSelectBackgroundPlugin.Data.Persistence;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
 using System;
@@ -88,7 +88,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     locationModel.TerritoryPath = TerritoryPath;
                     locationModel.Position = Services.ClientState.LocalPlayer.Position;
                     locationModel.Rotation = Services.ClientState.LocalPlayer.Rotation;
-                    locationModel.WeatherId = EnvManager.Instance()->ActiveWeather;
+                    locationModel.WeatherId = Services.WeatherService.WeatherId;
                     var character = ((CharacterExpanded*)Services.ClientState.LocalPlayer.Address);
                     locationModel.MovementMode = character->MovementMode;
                     if (Services.ConfigurationService.SaveMount)
@@ -235,7 +235,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             {
                 if (locations.TryGetValue(localContentId, out LocationModel locationModel))
                 {
-                    File.WriteAllText(
+
+                    Util.WriteAllTextSafe(
                         Path.Join(saveDirectory.FullName, $"{localContentId:X16}.json"),
                         JsonConvert.SerializeObject(locationModel)
                     );
@@ -321,11 +322,20 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         public void Validate(LocationModel locationModel)
         {
-            if (locationModel.Version != 1 || string.IsNullOrEmpty(locationModel.TerritoryPath))
+            if (locationModel.Version != 1)
             {
-                throw new("Location is not valid");
+                throw new("Location Version is not valid");
+            }
+            if (!Services.DataManager.FileExists($"bg/{locationModel.TerritoryPath}.lvb"))
+            {
+                throw new("Game scene file not found"); ;
+            }
+            if (!locationModel.BgmPath.IsNullOrEmpty() && !Services.DataManager.FileExists(locationModel.BgmPath))
+            {
+                throw new("BGM file not found"); ;
             }
         }
+
         public override void Dispose()
         {
             base.Dispose();

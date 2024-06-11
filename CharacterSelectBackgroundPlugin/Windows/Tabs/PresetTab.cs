@@ -304,7 +304,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                 }
                 var pos = Services.ClientState.LocalPlayer!.Position;
                 ImGui.PushFont(UiBuilder.MonoFont);
-                GuiUtils.HoverTooltip($"Current position: ({pos.X:F2}; {pos.Y:F2}; {pos.Z:F2}) ");
+                GuiUtils.HoverTooltip($"Current Position: ({pos.X:F2}; {pos.Y:F2}; {pos.Z:F2}) ");
                 ImGui.PopFont();
             }
 
@@ -315,7 +315,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
 
                 preset.LocationModel.Rotation = rotation / 180.0f * (float)Math.PI;
             }
-            ImGuiComponents.HelpMarker("CTRL+click to enter value manually");
+            ImGuiComponents.HelpMarker("CTRL+click to enter Value manually");
             if (Services.ClientState.LocalPlayer != null)
             {
                 ImGui.SameLine();
@@ -341,7 +341,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             if (Services.ClientState.LocalPlayer != null)
             {
                 ImGui.SameLine();
-                ImGui.SetCursorPosX(buttonPosX); // should in theory position it the same as it would normally
+                ImGui.SetCursorPosX(buttonPosX); // should in theory Position it the same as it would normally
                 unsafe
                 {
                     var character = (CharacterExpanded*)Services.ClientState.LocalPlayer.Address;
@@ -444,14 +444,14 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             }
 
             ImGui.SameLine();
-            ImGui.BeginDisabled(Services.LobbyService.CurrentLobbyMap != (short)GameLobbyType.CharaSelect);
+            ImGui.BeginDisabled(Services.LobbyService.CurrentLobbyMap != GameLobbyType.CharaSelect);
 
             if (ImGui.Button($"Apply##{Title}"))
             {
                 Services.LobbyService.Apply(preset);
             }
             ImGui.EndDisabled();
-            if (Services.LobbyService.CurrentLobbyMap != (short)GameLobbyType.CharaSelect)
+            if (Services.LobbyService.CurrentLobbyMap != GameLobbyType.CharaSelect)
             {
                 GuiUtils.HoverTooltip("Only works in character select", ImGuiHoveredFlags.AllowWhenDisabled);
             }

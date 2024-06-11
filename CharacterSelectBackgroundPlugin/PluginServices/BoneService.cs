@@ -13,11 +13,14 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
         }
 
+
+        // Could cache stuff here?
+        // but it doesn't take much to do these calculations every frame in character select screen
         public unsafe float GetHeadOffset(Character* character)
         {
             if (character == null) return 0;
             var drawObject = (CharacterBase*)character->GameObject.GetDrawObject();
-            if (drawObject == null) return 0;
+            if (drawObject == null || !drawObject->DrawObject.IsVisible) return 0;
             var skeleton = drawObject->Skeleton;
             if (skeleton == null) return 0;
 

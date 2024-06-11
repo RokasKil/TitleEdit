@@ -1,5 +1,6 @@
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
@@ -73,7 +74,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             try
             {
                 Services.Log.Debug($"Saving mounts");
-                File.WriteAllText(filePath, JsonConvert.SerializeObject(mounts));
+                Util.WriteAllTextSafe(filePath, JsonConvert.SerializeObject(mounts));
             }
             catch (Exception e)
             {

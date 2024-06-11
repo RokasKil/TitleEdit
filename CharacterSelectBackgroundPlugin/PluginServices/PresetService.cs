@@ -1,5 +1,6 @@
 using CharacterSelectBackgroundPlugin.Data.Persistence;
 using CharacterSelectBackgroundPlugin.Utility;
+using Dalamud.Utility;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -64,7 +65,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             try
             {
                 Services.Log.Debug($"Saving {preset.FileName}");
-                File.WriteAllText(
+                Util.WriteAllTextSafe(
                     Path.Join(saveDirectory.FullName, preset.FileName),
                     JsonConvert.SerializeObject(preset)
                 );
@@ -85,7 +86,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 try
                 {
                     Services.Log.Debug($"Exporting {preset.FileName} to {filePath}");
-                    File.WriteAllText(
+                    Util.WriteAllTextSafe(
                         filePath,
                         JsonConvert.SerializeObject(preset)
                     );

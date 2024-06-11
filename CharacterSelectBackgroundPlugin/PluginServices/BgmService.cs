@@ -2,6 +2,7 @@ using CharacterSelectBackgroundPlugin.Data.Bgm;
 using CharacterSelectBackgroundPlugin.Data.BGM;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
@@ -92,7 +93,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private void SaveLocalSheet(string text, string code)
         {
-            File.WriteAllText(Path.Combine(Services.PluginInterface.AssemblyLocation.DirectoryName!, string.Format(SheetFileName, code)), text);
+            Util.WriteAllTextSafe(Path.Combine(Services.PluginInterface.AssemblyLocation.DirectoryName!, string.Format(SheetFileName, code)), text);
         }
 
         private void LoadLangSheet(string sheetText, string code)

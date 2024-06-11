@@ -1,4 +1,5 @@
 using CharacterSelectBackgroundPlugin.PluginServices;
+using CharacterSelectBackgroundPlugin.PluginServices.Lobby;
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.IoC;

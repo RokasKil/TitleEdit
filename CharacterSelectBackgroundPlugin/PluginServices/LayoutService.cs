@@ -10,15 +10,15 @@ using System.Collections.Generic;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {
-    public unsafe class LayoutService : AbstractService
+    public class LayoutService : AbstractService
     {
 
         [Signature("48 89 5C 24 ?? 57 48 83 EC ?? 8B FA 48 8B D9 83 FA ?? 75")]
-        private readonly delegate* unmanaged<VfxLayoutInstance*, int, void> setVfxLayoutInstanceVfxTriggerIndex = null!;
-        public LayoutManagerExpanded* LayoutManager => (LayoutManagerExpanded*)LayoutWorld.Instance()->ActiveLayout;
-        public bool LayoutInitialized => LayoutManager->InitState == 7;
+        private readonly unsafe delegate* unmanaged<VfxLayoutInstance*, int, void> setVfxLayoutInstanceVfxTriggerIndexNative = null!;
+        public unsafe LayoutManagerExpanded* LayoutManager => (LayoutManagerExpanded*)LayoutWorld.Instance()->ActiveLayout;
+        public unsafe bool LayoutInitialized => LayoutManager->InitState == 7;
 
-        public delegate void LayoutInstanceSetActiveDelegate(ILayoutInstance* layout, bool active);
+        public unsafe delegate void LayoutInstanceSetActiveDelegate(ILayoutInstance* layout, bool active);
 
         public unsafe event LayoutInstanceSetActiveDelegate? OnLayoutInstanceSetActive;
         public event Action? OnLayoutChange;
@@ -28,6 +28,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         public LayoutService()
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
+            unsafe
+            {
+                if (setVfxLayoutInstanceVfxTriggerIndexNative == null)
+                {
+                    throw new Exception("Failed to find setVfxLayoutInstanceVfxTriggerIndexNative");
+                }
+            }
             Services.Framework.Update += Tick;
             Services.ClientState.Logout += OnLogout;
             Services.ClientState.TerritoryChanged += TerritoryChanged;
@@ -35,9 +42,9 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         }
 
-        private unsafe void Tick(IFramework framework)
+        private void Tick(IFramework framework)
         {
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.ClientState.IsLoggedIn)
             {
                 if (territoryChanged && LayoutInitialized)
                 {
@@ -45,8 +52,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     MakeSetActiveHooks();
                 }
             }
-
         }
+
         private void TerritoryChanged(ushort territoryId)
         {
             territoryChanged = true;
@@ -131,10 +138,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
         }
 
-        public void SetVfxLayoutInstanceVfxTriggerIndex(VfxLayoutInstance* instance, int index)
-        {
-            setVfxLayoutInstanceVfxTriggerIndex(instance, index);
-        }
+        public unsafe void SetVfxLayoutInstanceVfxTriggerIndex(VfxLayoutInstance* instance, int index) => setVfxLayoutInstanceVfxTriggerIndexNative(instance, index);
 
         public override void Dispose()
         {

@@ -175,25 +175,25 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
         //public partial Vector3* GetTranslationImpl();
 
         //[VirtualFunction(65)]
-        //public partial void SetTranslationImpl(Vector3* value);
+        //public partial void SetTranslationImpl(Vector3* Value);
 
         //[VirtualFunction(66)]
         //public partial Quaternion* GetRotationImpl();
 
         //[VirtualFunction(67)]
-        //public partial void SetRotationImpl(Quaternion* value);
+        //public partial void SetRotationImpl(Quaternion* Value);
 
         //[VirtualFunction(68)]
         //public partial Vector3* GetScaleImpl();
 
         //[VirtualFunction(69)]
-        //public partial void SetScaleImpl(Vector3* value);
+        //public partial void SetScaleImpl(Vector3* Value);
 
         //[VirtualFunction(70)]
         //public partial Transform* GetTransformImpl();
 
         //[VirtualFunction(71)]
-        //public partial void SetTransformImpl(Transform* value);
+        //public partial void SetTransformImpl(Transform* Value);
 
         //[VirtualFunction(72)]
         //public partial Vector4* GetBoundingSphereImpl(Vector4* result);

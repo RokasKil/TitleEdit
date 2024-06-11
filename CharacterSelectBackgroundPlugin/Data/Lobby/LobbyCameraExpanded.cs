@@ -14,11 +14,11 @@ namespace CharacterSelectBackgroundPlugin.Data.Lobby
         [FieldOffset(0x134)]
         public float Pitch;
         [FieldOffset(0x2D0)]
-        public CurvePoint lowPoint;
+        public CurvePoint LowPoint;
         [FieldOffset(0x2C0)]
-        public CurvePoint midPoint;
+        public CurvePoint MidPoint;
         [FieldOffset(0x2E0)]
-        public CurvePoint highPoint;
+        public CurvePoint HighPoint;
 
     }
 
@@ -26,9 +26,9 @@ namespace CharacterSelectBackgroundPlugin.Data.Lobby
     public unsafe struct CurvePoint
     {
         [FieldOffset(0x0)]
-        public float position;
+        public float Position;
         [FieldOffset(0x4)]
-        public float value;
+        public float Value;
 
     }
 

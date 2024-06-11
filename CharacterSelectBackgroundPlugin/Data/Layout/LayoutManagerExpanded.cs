@@ -52,7 +52,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
         [FieldOffset(0x230)] public StdVector<Pointer<LayoutLayer>> FestivalLayersToAdd;
         [FieldOffset(0x248)] public StdMap<InstanceType, Pointer<StdMap<ulong, Pointer<ILayoutInstance>>>> InstancesByType; // key in nested map is InstanceId << 32 | SubId
         [FieldOffset(0x258)] public StdMap<uint, Pointer<RefCountedString>> CrcToPath;
-        [FieldOffset(0x268)] public StdMap<AnalyticShapeDataKey, AnalyticShapeData> CrcToAnalyticShapeData; // note: value is aligned to 16 bytes, so key has tons of padding
+        [FieldOffset(0x268)] public StdMap<AnalyticShapeDataKey, AnalyticShapeData> CrcToAnalyticShapeData; // note: Value is aligned to 16 bytes, so key has tons of padding
         [FieldOffset(0x278)] public StdMap<uint, Pointer<Filter>> Filters;
         // 2A0: some map
         // 2B0: vector<LayoutU3*> streamingoriginupdatelisteners
