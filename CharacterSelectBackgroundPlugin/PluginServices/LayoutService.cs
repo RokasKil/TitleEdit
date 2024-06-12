@@ -10,6 +10,8 @@ using System.Collections.Generic;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {
+    // This needs rewriting/optimizing
+    // Embeded LayoutManager stuff will get thrown once I move to ApiX
     public class LayoutService : AbstractService
     {
 

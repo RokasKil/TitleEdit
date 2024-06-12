@@ -14,9 +14,9 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private readonly static Regex FileInvalidSymbolsRegex = new(@"[/\\:*?|""<>]");
 
         public IReadOnlyDictionary<string, PresetModel> Presets => presets;
-        private Dictionary<string, PresetModel> presets = new(StringComparer.InvariantCultureIgnoreCase);
+        private readonly Dictionary<string, PresetModel> presets = new(StringComparer.InvariantCultureIgnoreCase);
 
-        private DirectoryInfo saveDirectory;
+        private readonly DirectoryInfo saveDirectory;
         public PresetService()
         {
             saveDirectory = Services.PluginInterface.ConfigDirectory.CreateSubdirectory("presets");

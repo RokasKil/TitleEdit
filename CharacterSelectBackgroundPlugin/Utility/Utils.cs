@@ -1,13 +1,10 @@
 using System;
-using System.Numerics;
+using System.Linq;
 
 namespace CharacterSelectBackgroundPlugin.Utility
 {
     public static class Utils
     {
-
-        public static float[] ToArray(this Vector3 vector3) => [vector3.X, vector3.Y, vector3.Z];
-
         public static nint GetStaticAddressFromSigOrThrow(string signature, int offset = 0)
         {
             if (Services.SigScanner.TryGetStaticAddressFromSig(signature, out var result, offset))
@@ -29,6 +26,15 @@ namespace CharacterSelectBackgroundPlugin.Utility
 
             return value[..Math.Min(value.Length, maxLength)];
         }
+
+        public static string ToText(this Enum value)
+        {
+            return value.GetType()?
+                .GetField(value.ToString())?
+                .GetCustomAttributes(typeof(EnumTranslationAttribute), false)
+                .SingleOrDefault() is not EnumTranslationAttribute attribute ? value.ToString() : attribute.Translation;
+        }
+
         public static float NormalizeAngle(float angle)
         {
             var normalized = angle % (Math.PI * 2);

@@ -10,16 +10,15 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
     public unsafe partial class LobbyService : AbstractService
     {
 
-        private delegate int OnCreateSceneDelegate(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7);
+        private delegate int CreateSceneDelegate(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7);
         private delegate byte LobbyUpdateDelegate(GameLobbyType mapId, int time);
 
-        private readonly Hook<OnCreateSceneDelegate> createSceneHook;
+        private readonly Hook<CreateSceneDelegate> createSceneHook;
         private readonly Hook<LobbyUpdateDelegate> lobbyUpdateHook;
 
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.None;
         private GameLobbyType lastSceneType = GameLobbyType.None;
 
-        private string? lastBgmPath;
 
         private bool resetScene = false;
 
@@ -39,7 +38,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             lobbyCurrentMapAddress = (GameLobbyType*)Utils.GetStaticAddressFromSigOrThrow("0F B7 05 ?? ?? ?? ?? 49 8B CE");
 
             // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
-            createSceneHook = Hook<OnCreateSceneDelegate>("E8 ?? ?? ?? ?? 66 89 1D ?? ?? ?? ?? E9 ?? ?? ?? ??", OnCreateSceneDetour);
+            createSceneHook = Hook<CreateSceneDelegate>("E8 ?? ?? ?? ?? 66 89 1D ?? ?? ?? ?? E9 ?? ?? ?? ??", CreateSceneDetour);
 
             // Lobby manager update (I think) - we use this as a point to change the Value at lobbyCurrentMapAddress to reload the scene
             lobbyUpdateHook = Hook<LobbyUpdateDelegate>("E8 ?? ?? ?? ?? EB 1C 3B CF", LobbyUpdateDetour);
@@ -86,7 +85,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
 
 
-        private int OnCreateSceneDetour(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7)
+        private int CreateSceneDetour(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7)
         {
             try
             {
@@ -99,7 +98,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                     var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
                     if (!locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != locationModel.BgmPath || locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != LocationService.DefaultLocation.BgmPath)
                     {
-                        CurrentLobbyMusicIndex = 0;
                         ResetSongIndex();
                     }
                     return returnVal;

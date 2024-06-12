@@ -31,7 +31,7 @@ public class ConfigurationService : IPluginConfiguration
     };
 
     public List<KeyValuePair<ulong, DisplayTypeOption>> DisplayTypeOverrides = [];
-    // the below exist just to make saving less cumbersome
+
     [NonSerialized]
     private DalamudPluginInterface? pluginInterface;
 

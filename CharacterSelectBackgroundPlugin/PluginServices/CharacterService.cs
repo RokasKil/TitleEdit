@@ -75,7 +75,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
         }
 
-
         public override void Dispose()
         {
             base.Dispose();

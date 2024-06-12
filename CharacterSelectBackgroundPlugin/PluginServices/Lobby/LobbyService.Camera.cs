@@ -21,7 +21,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         private float recordedYaw = 0;
         private float recordedPitch = 0;
         private float recordedDistance = 3.3f;
-        private bool rotationJustRecorded;
+        private bool rotationJustRecorded = false;
 
         private float cameraYOffset = 0;
 
@@ -95,7 +95,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         private void ResetCameraLookAtOnExitCharacterSelect()
         {
             var camera = GetCamera();
-            rotationJustRecorded = false;
+            ResetCameraRecordedRotation();
             if (camera != null)
             {
                 camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = Vector3.Zero;
@@ -129,10 +129,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                     camera->LobbyCamera.Camera.MaxDistance = 5.5f;
                     cameraModified = false;
                 }
-                rotationJustRecorded = false;
-                recordedYaw = 0;
-                recordedPitch = 0;
-                recordedDistance = 3.3f;
+                ResetCameraRecordedRotation();
             }
         }
 
@@ -162,9 +159,18 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         {
             Services.Log.Debug($"[LobbySceneLoaded] {p1:X} {p2:X} {p3} {p4:X} {p5:X} {p6:X} {p7:X}");
             lobbySceneLoadedHook.Original(p1, p2, p3, p4, p5, p6, p7);
-            SetCameraRotation();
+            if (CurrentLobbyMap == GameLobbyType.CharaSelect)
+            {
+                SetCameraRotation();
+            }
         }
-
+        private void ResetCameraRecordedRotation()
+        {
+            rotationJustRecorded = false;
+            recordedYaw = 0;
+            recordedPitch = 0;
+            recordedDistance = 3.3f;
+        }
         private void SetCameraRotation()
         {
             var camera = GetCamera();

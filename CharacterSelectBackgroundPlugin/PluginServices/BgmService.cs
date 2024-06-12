@@ -15,13 +15,14 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 {
     //Taken from https://github.com/lmcintyre/OrchestrionPlugin/blob/main/Orchestrion/BgmSystem
     // and https://github.com/lmcintyre/TitleEditPlugin/blob/main/TitleEdit/BgmSheetManager.cs
+    // and slightly modified of course
     public class BgmService : AbstractService
     {
 
 
         private const string SheetPath = @"https://docs.google.com/spreadsheets/d/1qAkxPiXWF-EUHbIXdNcO-Ilo2AwLnqvdpW9tjKPitPY/gviz/tq?tqx=out:csv&sheet={0}";
         private const string SheetFileName = "xiv_bgm_{0}.csv";
-        private readonly HttpClient _client = new();
+        private readonly HttpClient client = new();
 
         private nint baseAddress;
         private const int SceneCount = 12;
@@ -83,7 +84,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private string GetRemoteSheet(string code)
         {
-            return _client.GetStringAsync(string.Format(SheetPath, code)).Result;
+            return client.GetStringAsync(string.Format(SheetPath, code)).Result;
         }
 
         private string GetLocalSheet(string code)

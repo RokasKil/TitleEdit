@@ -3,6 +3,7 @@ using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using ImGuiNET;
+using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -90,7 +91,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             }
             else if (value.Type == DisplayType.AetherialSea)
             {
-                display = "Vanilla aetherial sea";
+                display = "Aetherial sea";
             }
             else
             {
@@ -117,15 +118,20 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                     stylePopped = true;
                 }
 
-                if (showLastLocationOption && ImGui.Selectable($"Last location##{Title}##{label}##last location", value.Type == DisplayType.LastLocation))
+                if (showLastLocationOption)
                 {
-                    selectAction.Invoke(new()
+                    if (ImGui.Selectable($"Last location##{Title}##{label}##last location", value.Type == DisplayType.LastLocation))
                     {
-                        Type = DisplayType.LastLocation
-                    });
-                    Services.ConfigurationService.Save();
+                        selectAction.Invoke(new()
+                        {
+                            Type = DisplayType.LastLocation
+                        });
+                        Services.ConfigurationService.Save();
+                    }
+                    DrawDisplayTypeTooltip(DisplayType.LastLocation);
+
                 }
-                if (ImGui.Selectable($"Vanilla aetherial sea##{Title}##{label}##vanilla aetherial sea", value.Type == DisplayType.AetherialSea))
+                if (ImGui.Selectable($"Aetherial sea##{Title}##{label}##vanilla aetherial sea", value.Type == DisplayType.AetherialSea))
                 {
                     selectAction.Invoke(new()
                     {
@@ -133,6 +139,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                     });
                     Services.ConfigurationService.Save();
                 }
+                DrawDisplayTypeTooltip(DisplayType.AetherialSea);
                 ImGui.Separator();
 
 
@@ -147,16 +154,53 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                         });
                         Services.ConfigurationService.Save();
                     }
+                    DrawDisplayTypeTooltip(DisplayType.Preset, entry.Key);
                 }
             });
             if (invalid && !stylePopped)
             {
                 ImGui.PopStyleColor();
             }
-            if (invalid)
+            DrawDisplayTypeTooltip(value);
+        }
+
+        private void DrawDisplayTypeTooltip(DisplayTypeOption value) => DrawDisplayTypeTooltip(value.Type, value.PresetPath);
+
+        private void DrawDisplayTypeTooltip(DisplayType type, string? path = null)
+        {
+            GuiUtils.HoverTooltip(() =>
             {
-                GuiUtils.HoverTooltip("Saved preset does not exist");
-            }
+                ImGui.PushTextWrapPos(ImGui.GetFont().FontSize * 16);
+                switch (type)
+                {
+                    case DisplayType.AetherialSea:
+                        ImGui.TextWrapped("Regular unmodded character select scene");
+                        break;
+                    case DisplayType.LastLocation:
+                        ImGui.TextWrapped("Last recorded character location, if nothing was recorded will default to the Nothing selected option");
+                        break;
+                    case DisplayType.Preset:
+                        if (path != null && Services.PresetService.Presets.TryGetValue(path, out var preset))
+                        {
+                            var territory = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(preset.LocationModel.TerritoryTypeId);
+                            if (territory != null)
+                            {
+                                ImGui.TextWrapped($"Zone: {territory.RowId} - {territory.PlaceNameRegion.Value?.Name} > {territory.PlaceName.Value?.Name}");
+                            }
+                            else
+                            {
+                                ImGui.TextWrapped($"Zone: Unknown");
+                            }
+                            ImGui.TextWrapped($"Author: {preset.Author.Replace("%", "%%")}");
+                        }
+                        else
+                        {
+                            ImGui.TextWrapped("Selected preset does not exist or failed to load");
+                        }
+                        break;
+                }
+                ImGui.PopTextWrapPos();
+            });
         }
     }
 }

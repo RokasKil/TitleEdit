@@ -32,6 +32,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             set => Marshal.WriteInt32(*lobbyBgmBasePointerAddress, 0x20, (int)value);
         }
 
+        private string? lastBgmPath;
+
         private void HookSong()
         {
             if (setTimeNative == null)

@@ -12,6 +12,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,13 +26,14 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         public static readonly LocationModel DefaultLocation = new LocationModel
         {
             TerritoryPath = "ffxiv/zon_z1/chr/z1c1/level/z1c1",
-            Position = new(0.001f, 0.001f, 0.001f),
+            Position = Vector3.Zero,
             Rotation = 0,
             WeatherId = 2,
             TimeOffset = 0,
             BgmPath = "music/ffxiv/BGM_System_Chara.scd",
             Mount = new()
         };
+
         //Move this to a different service?
         public unsafe ushort TimeOffset
         {
@@ -156,7 +158,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
         }
 
-
         private void TerritoryChanged(ushort territoryId)
         {
             TerritoryPath = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType)?.Bg.ToString();
@@ -189,12 +190,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 if ((inActive || inInactive) && ((active && !inActive) || (!active && !inInactive)))
                 {
                     refreshLayout = true;
-
-                    Services.Log.Debug($"[LayoutSetActiveDetour] refreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayoutrefreshLayout");
+                    Services.Log.Debug($"[LayoutSetActiveDetour] refreshLayout");
                 }
             }
         }
-
 
         public unsafe void SetLayout(ref LocationModel locationModel)
         {
@@ -215,7 +214,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 if (instance.Value->Id.Type == InstanceType.Vfx)
                 {
                     var vfxInstance = (VfxLayoutInstance*)instance.Value;
-                    Services.Log.Debug($"{instance.Value->UUID} is vfx with triggerIndex {vfxInstance->VfxTriggerIndex}");
                     if (vfxInstance->VfxTriggerIndex != -1)
                     {
                         vfxTriggerIndexes[instance.Value->UUID] = vfxInstance->VfxTriggerIndex;
@@ -226,7 +224,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             locationModel.Inactive = inactive;
             locationModel.VfxTriggerIndexes = vfxTriggerIndexes;
         }
-
 
         public void Save(ulong localContentId)
         {
@@ -300,8 +297,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     }
                     catch (Exception e)
                     {
-                        Services.Log.Error(e.Message);
-                        Services.Log.Error(e.StackTrace ?? "Null Stacktrace");
+                        Services.Log.Error(e, e.Message);
                     }
                 }
                 else
@@ -329,11 +325,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             }
             if (!Services.DataManager.FileExists($"bg/{locationModel.TerritoryPath}.lvb"))
             {
-                throw new("Game scene file not found"); ;
+                throw new("Game scene file not found");
             }
             if (!locationModel.BgmPath.IsNullOrEmpty() && !Services.DataManager.FileExists(locationModel.BgmPath))
             {
-                throw new("BGM file not found"); ;
+                throw new("BGM file not found");
             }
         }
 

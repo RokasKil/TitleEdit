@@ -1,8 +1,10 @@
 {
     "Author": "Speedas",
     "Name": "Immersive Character Select",
-    "Punchline": "CharacterSelectBackgroundPlugin punchline",
-    "Description": "CharacterSelectBackgroundPlugin description",
+    "Punchline": "Allows you to customize the Character Select sceen and escape the aetherial sea void",
+    "Description": "Immersive Character Select allows you to switch out the default aetherial sea void background to (almost) anything.\nSupports recording your last visited location or premade presets, per character display setting and even displaying yourself on a mount.",
+    "LoadSync": true,
+    "CanUnloadAsync": false,
     "ApplicableVersion": "any",
     "Tags": [
         "UI"

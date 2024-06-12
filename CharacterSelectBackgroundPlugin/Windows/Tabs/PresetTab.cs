@@ -328,11 +328,11 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             }
 
             // Character MovementMode
-            GuiUtils.Combo($"Character state##{Title}", preset.LocationModel.MovementMode.ToString(), () =>
+            GuiUtils.Combo($"Character state##{Title}", preset.LocationModel.MovementMode.ToText(), () =>
             {
                 foreach (var mode in Enum.GetValues<MovementMode>())
                 {
-                    if (ImGui.Selectable($"{mode}##{Title}", preset.LocationModel.MovementMode == mode))
+                    if (ImGui.Selectable($"{mode.ToText()}##{Title}", preset.LocationModel.MovementMode == mode))
                     {
                         preset.LocationModel.MovementMode = mode;
                     }
@@ -375,7 +375,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                             preset.LastLocationMount = true;
                             ImGui.CloseCurrentPopup();
                         }
-                        GuiUtils.HoverTooltip("The mount that was summoned when the chracter logged off, can be unmounted");
+                        GuiUtils.HoverTooltip("The mount that was summoned when the character logged off, can be unmounted");
                     }
 
                     foreach (var entry in mounts)
@@ -414,11 +414,11 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             }
 
             //Setting overrides
-            GuiUtils.Combo($"Camera follow mode override##{Title}", preset.CameraFollowMode.ToString(), () =>
+            GuiUtils.Combo($"Camera follow mode override##{Title}", preset.CameraFollowMode.ToText(), () =>
             {
                 foreach (var mode in Enum.GetValues<CameraFollowMode>())
                 {
-                    if (ImGui.Selectable($"{mode}##{Title}", preset.CameraFollowMode == mode))
+                    if (ImGui.Selectable($"{mode.ToText()}##{Title}", preset.CameraFollowMode == mode))
                     {
                         preset.CameraFollowMode = mode;
                     }

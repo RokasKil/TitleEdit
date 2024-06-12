@@ -33,11 +33,11 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             SettingCheckbox($"Save Eorzea time##{Title}", ref Services.ConfigurationService.SaveTime);
             ImGui.Separator();
 
-            GuiUtils.Combo($"Camera follow mode##{Title}", Services.ConfigurationService.CameraFollowMode.ToString(), () =>
+            GuiUtils.Combo($"Camera follow mode##{Title}", Services.ConfigurationService.CameraFollowMode.ToText(), () =>
             {
                 foreach (var mode in Enum.GetValues<CameraFollowMode>().AsSpan(1))
                 {
-                    if (ImGui.Selectable($"{mode}##{Title}", Services.ConfigurationService.CameraFollowMode == mode))
+                    if (ImGui.Selectable($"{mode.ToText()}##{Title}", Services.ConfigurationService.CameraFollowMode == mode))
                     {
                         Services.ConfigurationService.CameraFollowMode = mode;
                     }

@@ -14,6 +14,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
 
         }
+
         public List<byte> GetWeathers(string territoryPath)
         {
             if (territoryPath == null)
@@ -49,6 +50,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 return [];
             }
         }
+
         public override void Dispose()
         {
             base.Dispose();
