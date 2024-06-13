@@ -21,7 +21,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         private float recordedYaw = 0;
         private float recordedPitch = 0;
         private float recordedDistance = 3.3f;
-        private bool rotationJustRecorded = false;
+        //default state is recorded so we don't record anything when entering character select
+        private bool rotationJustRecorded = true;
 
         private float cameraYOffset = 0;
 
@@ -166,7 +167,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         }
         private void ResetCameraRecordedRotation()
         {
-            rotationJustRecorded = false;
+            rotationJustRecorded = true;
             recordedYaw = 0;
             recordedPitch = 0;
             recordedDistance = 3.3f;
