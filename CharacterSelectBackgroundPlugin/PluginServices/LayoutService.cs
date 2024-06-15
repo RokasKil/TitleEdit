@@ -26,7 +26,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         public event Action? OnLayoutChange;
         private bool territoryChanged;
         public Dictionary<IntPtr, Hook<LayoutInstanceSetActiveDelegate>> ActiveHooks { get; set; } = [];
-
         public LayoutService()
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
@@ -88,9 +87,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 var setActiveAddress = *(IntPtr*)(pVTable + 0x1f8);
                 var setActiveAddressVF54 = *(IntPtr*)(pVTable + 0x1b0);
                 Services.Log.Debug($"{pVTable:X} - {setActiveAddress:X} - {setActiveAddressVF54:X}");
-                var hook = Services.GameInteropProvider.HookFromAddress<LayoutInstanceSetActiveDelegate>(setActiveAddress, (layout, active) => LayoutInstanceSetActiveDetour(pVTable, layout, active));
+                if (ActiveHooks.ContainsKey(setActiveAddress)) continue;
+                var hook = Services.GameInteropProvider.HookFromAddress<LayoutInstanceSetActiveDelegate>(setActiveAddress, (layout, active) => LayoutInstanceSetActiveDetour(setActiveAddress, layout, active));
+                ActiveHooks[setActiveAddress] = hook;
                 hook.Enable();
-                ActiveHooks[pVTable] = hook;
             }
         }
 
@@ -103,10 +103,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             ActiveHooks.Clear();
         }
 
-        private unsafe void LayoutInstanceSetActiveDetour(IntPtr pVTable, ILayoutInstance* layout, bool active)
+
+
+        private unsafe void LayoutInstanceSetActiveDetour(IntPtr funcAddress, ILayoutInstance* layout, bool active)
         {
-            OnLayoutInstanceSetActive?.Invoke(layout, active);
-            ActiveHooks[pVTable].Original(layout, active);
+            // SetActive might be outside of the main thread
+            Services.Framework.RunOnFrameworkThread(() => OnLayoutInstanceSetActive?.Invoke(layout, active));
+            ActiveHooks[funcAddress].Original(layout, active);
         }
 
 
