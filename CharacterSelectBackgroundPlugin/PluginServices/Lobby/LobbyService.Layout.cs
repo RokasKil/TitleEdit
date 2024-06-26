@@ -28,7 +28,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             }
             // Called when game does some lobby weather setting - we use it as an indicator to set scene details like weather, time and layout
             // Called on scene load and on displayed character switch
-            charSelectSetWeatherHook = Hook<CharSelectSetWeatherDelegate>("0F B7 0D ?? ?? ?? ?? 8D 41", CharSelectSetWeatherDetour);
+            charSelectSetWeatherHook = Hook<CharSelectSetWeatherDelegate>("48 83 EC ?? 0F B7 05", CharSelectSetWeatherDetour);
         }
 
         private void CharSelectSetWeatherDetour()

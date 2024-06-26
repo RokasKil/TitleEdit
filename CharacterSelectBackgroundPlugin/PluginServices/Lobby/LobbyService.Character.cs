@@ -34,22 +34,25 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         private void HookCharacter()
         {
+            /// I think the bit for selecting character got inlined... :(
             // Happends on character list hover - update character Position, mount create mount if needed, change the scene if needed
-            selectCharacterHook = Hook<SelectCharacterDelegate>("E8 ?? ?? ?? ?? 0F B6 D8 84 C0 75 ?? 49 8B CD", SelectCharacterDetour);
+            /// TODO: check if new sig works, I don't see any method calling this anymore
+            selectCharacterHook = Hook<SelectCharacterDelegate>("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 1D ?? ?? ?? ?? 0F B6 FA 83 F9", SelectCharacterDetour);
 
             // Happens on world list hover - update character Position, mount create mount if needed, change the scene if needed
-            selectCharacter2Hook = Hook<SelectCharacter2Delegate>("40 53 48 83 EC ?? 41 83 C8 ?? 4C 8D 15", SelectCharacter2Detour);
+            /// TODO: check if new sig works, I don't see any method calling this anymore
+            selectCharacter2Hook = Hook<SelectCharacter2Delegate>("40 53 48 83 EC ?? 33 D2 4C 8D 15", SelectCharacter2Detour);
 
             // Called when the game is making a new character - if set by other hooks we force the flag to include a companionObject so we can display a mount
-            createBattleCharacterHook = Hook<CreateBattleCharacterDelegate>("E8 ?? ?? ?? ?? 83 F8 ?? 74 ?? 8B D0", CreateBattleCharacterDetour);
+            createBattleCharacterHook = Hook<CreateBattleCharacterDelegate>("E8 ?? ?? ?? ?? 8B D0 41 89 44", CreateBattleCharacterDetour);
 
             // Called when you select a new world in character select or cancel selection so it reload the current
             // we use it make sure characters get created with a companion slots,
             // set the selected character cause SE doesn't do that (???) and initialize it
-            setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 49 8B CD 48 8B 7C 24", SetCharSelectCurrentWorldDetour);
+            setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 49 8B CD 4C 8B 74 24", SetCharSelectCurrentWorldDetour);
 
             // Happens on world list hover when loading a world - we use it make sure characters get created with a companion slots (maybe makes selectCharacter2Hook redundant)
-            charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 41 83 FE ?? 0F 8C", CharSelectWorldPreviewEventHandlerDetour);
+            charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? 49 8B CD E8 ?? ?? ?? ?? 41 0F B6 85", CharSelectWorldPreviewEventHandlerDetour);
         }
 
         private void CharacterTick()

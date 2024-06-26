@@ -8,6 +8,7 @@ namespace CharacterSelectBackgroundPlugin.Data.BGM
         HeavensWardTitle = 3,
         StormbloodTitle = 4,
         ShadowbringersTitle = 5,
-        EndwalkerTitle = 6
+        EndwalkerTitle = 6,
+        DawntrailTitle = 7
     }
 }

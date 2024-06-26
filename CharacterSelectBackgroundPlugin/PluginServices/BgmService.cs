@@ -61,7 +61,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         public BgmService()
         {
-            baseAddress = Utils.GetStaticAddressFromSigOrThrow("48 8B 05 ?? ?? ?? ?? 48 85 C0 74 37 83 78 08 04");
+            baseAddress = Utils.GetStaticAddressFromSigOrThrow("48 8B 15 ?? ?? ?? ?? 0F B6 42");
 
             Bgms = [];
             BgmPaths = Services.DataManager.GetExcelSheet<BGM>()!.ToDictionary(r => r.RowId, r => r.File.ToString());

@@ -36,12 +36,12 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         private void HookSong()
         {
-            if (setTimeNative == null)
+            if (pickSongNative == null)
             {
-                throw new Exception("Failed to find setTimeNative");
+                throw new Exception("Failed to find pickSongNative");
             }
             // Points to a Value that indicates the current lobby bgm Type that's playing, we maniplate this to force bgm change alongside playMusicHook
-            lobbyBgmBasePointerAddress = (nint*)Utils.GetStaticAddressFromSigOrThrow("48 8B 35 ?? ?? ?? ?? 88 46");
+            lobbyBgmBasePointerAddress = (nint*)Utils.GetStaticAddressFromSigOrThrow("66 0F 7F 05 ?? ?? ?? ?? 4C 89 35");
 
             // Called when lobby music needs to be changed - we force call the game to call it by resetting the CurrentLobbyMusicIndex pointer
             playMusicHook = Hook<PlayMusicDelegate>("E8 ?? ?? ?? ?? 48 89 47 18 89 5F 20", PlayMusicDetour);

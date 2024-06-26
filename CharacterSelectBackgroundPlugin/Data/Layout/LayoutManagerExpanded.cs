@@ -11,6 +11,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Layout
 {
     // Taken from https://github.com/aers/FFXIVClientStructs/pull/809
     // Will most likely be thrown out once I move to ApiX
+    /// TODO: check this bit
     [StructLayout(LayoutKind.Explicit, Size = 0xB90)]
     public unsafe struct LayoutManagerExpanded
     {

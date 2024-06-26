@@ -44,7 +44,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             calculateCameraCurveLowAndHighPointHook = Hook<CalculateCameraCurveLowAndHighPointDelegate>("F3 0F 10 81 ?? ?? ?? ?? F3 0F 11 89", CalculateCameraCurveLowAndHighPointDetour);
 
             // Some LobbySceneLoaded thingy, called once a new world level is loaded, we use it to restore camera Position
-            lobbySceneLoadedHook = Hook<LobbySceneLoadedDelegate>("E8 ?? ?? ?? ?? 41 0F B7 CC C6 05", LobbySceneLoadedDetour);
+            lobbySceneLoadedHook = Hook<LobbySceneLoadedDelegate>("E8 ?? ?? ?? ?? 41 0F B7 CE 40 88 2D", LobbySceneLoadedDetour);
         }
 
         private void CameraFollowCharacter(Character* currentChar)

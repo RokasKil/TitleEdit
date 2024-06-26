@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 namespace CharacterSelectBackgroundPlugin.Data.Bgm
 {
     // Taken from https://github.com/lmcintyre/OrchestrionPlugin/blob/main/Orchestrion/BgmSystem/BgmScene.cs
+    /// TODO: check this bit
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct BgmScene
     {

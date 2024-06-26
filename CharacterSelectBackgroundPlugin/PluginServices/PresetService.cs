@@ -97,7 +97,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     throw;
                 }
             }
-            throw new("Preset not found");
+            else
+            {
+                throw new("Preset not found");
+            }
         }
 
         public string ExportText(string presetFileName)
