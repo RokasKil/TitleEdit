@@ -2,8 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace CharacterSelectBackgroundPlugin.Data.Bgm
 {
-    // Taken from https://github.com/lmcintyre/OrchestrionPlugin/blob/main/Orchestrion/BgmSystem/BgmScene.cs
-    /// TODO: check this bit
+    // Taken from https://github.com/lmcintyre/OrchestrionPlugin/blob/main/Orchestrion/BGMSystem/BGMScene.cs
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct BgmScene
     {
@@ -14,9 +13,9 @@ namespace CharacterSelectBackgroundPlugin.Data.Bgm
         // songId3 is sometimes not updated at all, and I'm unsure of its use
         // zeroing out songId2 seems to be necessary to actually cancel playback without using
         // an invalid id (which is the only way to do it with just songId1)
-        public ushort BgmReference;       // Reference to sheet; Bgm, BgmSwitch, BgmSituation
-        public ushort BgmId;              // Actual Bgm that's playing. Game will manage this if it's a switch or situation
-        public ushort PreviousBgmId;      // Bgm that was playing before this one; I think it only changed if the previous Bgm 
+        public ushort BgmReference;       // Reference to sheet; BGM, BGMSwitch, BGMSituation
+        public ushort BgmId;              // Actual BGM that's playing. Game will manage this if it's a switch or situation
+        public ushort PreviousBgmId;      // BGM that was playing before this one; I think it only changed if the previous BGM 
         public byte TimerEnable;            // whether the timer automatically counts up
         private byte Padding2;
         public float Timer;                 // if enabled, seems to always count from 0 to 6
@@ -35,6 +34,8 @@ namespace CharacterSelectBackgroundPlugin.Data.Bgm
         private byte Unknown10;
         private byte Unknown11;
         private byte Unknown12;
+        private float Unknown13;
+        private uint Unknown14;
     }
 
 }

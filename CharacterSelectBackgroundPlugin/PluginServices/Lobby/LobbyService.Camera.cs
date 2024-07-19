@@ -146,10 +146,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                     recordedPitch = camera->Pitch;
                     recordedDistance = camera->LobbyCamera.Camera.Distance;
                     rotationJustRecorded = true;
-                    if (CurrentCharacter != null)
-                    {
-                        recordedYaw -= CurrentCharacter->GameObject.Rotation;
-                    }
+                    recordedYaw -= lastCharacterRotation;
                     recordedYaw = Utils.NormalizeAngle(recordedYaw);
                     Services.Log.Debug($"Recorded rotation {recordedYaw} {recordedPitch} {recordedDistance}");
                 }
@@ -165,6 +162,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                 SetCameraRotation();
             }
         }
+
         private void ResetCameraRecordedRotation()
         {
             rotationJustRecorded = true;
@@ -172,6 +170,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             recordedPitch = 0;
             recordedDistance = 3.3f;
         }
+
         private void SetCameraRotation()
         {
             var camera = GetCamera();

@@ -17,7 +17,8 @@ namespace CharacterSelectBackgroundPlugin.Utility
         [PluginService] public static IPluginLog Log { get; set; } = null!;
         [PluginService] public static IGameInteropProvider GameInteropProvider { get; set; } = null!;
         [PluginService] public static IFramework Framework { get; set; } = null!;
-        public static DalamudPluginInterface PluginInterface { get; set; } = null!;
+        [PluginService] public static ICommandManager CommandManager { get; set; } = null!;
+        public static IDalamudPluginInterface PluginInterface { get; set; } = null!;
         public static ConfigurationService ConfigurationService { get; set; } = null!;
         public static LayoutService LayoutService { get; set; } = null!;
         public static LobbyService LobbyService { get; set; } = null!;
@@ -30,7 +31,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
         public static BoneService BoneService { get; set; } = null!;
         public static Plugin Plugin { get; set; } = null!;
 
-        public static void Initialize(DalamudPluginInterface pluginInterface, Plugin plugin)
+        public static void Initialize(IDalamudPluginInterface pluginInterface, Plugin plugin)
         {
             pluginInterface.Create<Services>();
             Plugin = plugin;

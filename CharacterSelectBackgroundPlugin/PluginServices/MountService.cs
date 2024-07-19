@@ -13,7 +13,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
     public class MountService : AbstractService
     {
 
-        private const int MountBitmaskArraySize = (280 + 7) >> 3;
+        private const int MountBitmaskArraySize = 37;
         public IReadOnlySet<uint> Mounts => mounts;
         private HashSet<uint> mounts = [];
 
@@ -40,11 +40,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     var playerState = PlayerState.Instance();
                     if (playerState != null)
                     {
-                        var span = new Span<byte>(playerState->OwnedMountsBitmask, MountBitmaskArraySize);
-                        if (!span.SequenceEqual(lastMountBytes))
+                        if (!playerState->UnlockedMountsBitmask.SequenceEqual(lastMountBytes))
                         {
                             Services.Log.Debug("Mounts changed!");
-                            span.CopyTo(lastMountBytes);
+                            playerState->UnlockedMountsBitmask.CopyTo(lastMountBytes);
                             RefreshMounts();
                         }
                     }

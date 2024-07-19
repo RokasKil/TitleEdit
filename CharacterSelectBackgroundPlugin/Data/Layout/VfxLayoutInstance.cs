@@ -1,4 +1,5 @@
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using System.Runtime.InteropServices;
 
 namespace CharacterSelectBackgroundPlugin.Data.Layout

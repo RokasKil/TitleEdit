@@ -5,6 +5,7 @@ using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
@@ -16,21 +17,26 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
     {
         private delegate ulong SelectCharacterDelegate(uint characterIndex, char p2);
         private delegate ulong SelectCharacter2Delegate(nint p1);
+        private delegate void UpdateCharaSelectDisplayDelegate(IntPtr agentLobby, byte p2, byte p3);
         private delegate nint CreateBattleCharacterDelegate(nint objectManager, uint index, bool assignCompanion);
         private delegate void SetCharSelectCurrentWorldDelegate(ulong p1);
         private delegate void CharSelectWorldPreviewEventHandlerDelegate(ulong p1, ulong p2, ulong p3, uint p4);
 
         private Hook<SelectCharacterDelegate> selectCharacterHook = null!;
         private Hook<SelectCharacter2Delegate> selectCharacter2Hook = null!;
+        private Hook<UpdateCharaSelectDisplayDelegate> updateCharaSelectDisplayHook = null!;
         private Hook<CreateBattleCharacterDelegate> createBattleCharacterHook = null!;
         private Hook<SetCharSelectCurrentWorldDelegate> setCharSelectCurrentWorldHook = null!;
         private Hook<CharSelectWorldPreviewEventHandlerDelegate> charSelectWorldPreviewEventHandlerHook = null!;
 
-        private Character* CurrentCharacter => CharaSelectCharacterList.GetCurrentCharacter();
+        public Character* CurrentCharacter => CharaSelectCharacterList.GetCurrentCharacter();
 
 
         private bool creatingCharSelectGameObjects = false;
         private ulong lastContentId;
+
+        // Set every tick when CurrentCharacter is not null and reset when going from nothing selected to displaying a character (because we're restoring the angle specifically from camera)
+        private float lastCharacterRotation = 0;
 
         private void HookCharacter()
         {
@@ -42,6 +48,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             // Happens on world list hover - update character Position, mount create mount if needed, change the scene if needed
             /// TODO: check if new sig works, I don't see any method calling this anymore
             selectCharacter2Hook = Hook<SelectCharacter2Delegate>("40 53 48 83 EC ?? 33 D2 4C 8D 15", SelectCharacter2Detour);
+
+            updateCharaSelectDisplayHook = Hook<UpdateCharaSelectDisplayDelegate>("E8 ?? ?? ?? ?? 84 C0 74 ?? C6 86 ?? ?? ?? ?? ?? 48 8B 8C 24", UpdateCharaSelectDisplayDetour);
 
             // Called when the game is making a new character - if set by other hooks we force the flag to include a companionObject so we can display a mount
             createBattleCharacterHook = Hook<CreateBattleCharacterDelegate>("E8 ?? ?? ?? ?? 8B D0 41 89 44", CreateBattleCharacterDetour);
@@ -55,17 +63,35 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? 49 8B CD E8 ?? ?? ?? ?? 41 0F B6 85", CharSelectWorldPreviewEventHandlerDetour);
         }
 
+        private void UpdateCharaSelectDisplayDetour(nint agentLobby, byte p2, byte p3)
+        {
+            //Services.Log.Debug($"UpdateCharaSelectDisplayDetour {p2}, {p3}");
+            var preUpdateCharacter = CurrentCharacter;
+            updateCharaSelectDisplayHook.Original(agentLobby, p2, p3);
+            if (preUpdateCharacter != CurrentCharacter)
+            {
+                Services.Log.Debug($"CurrentChar changed {(IntPtr)preUpdateCharacter:X} - {(IntPtr)CurrentCharacter:X}");
+                if (lastContentId == 0)
+                {
+                    Services.Log.Debug($"Reseting last character rotation {lastCharacterRotation}");
+                    lastCharacterRotation = 0;
+                }
+                UpdateCharacter();
+            }
+        }
+
         private void CharacterTick()
         {
-            if (lastContentId != 0 && CurrentCharacter == null)
-            {
-                NothingSelected();
-            }
             // We do polling cause it's simpler than figuring when exactly are mounts and stuff are good to draw
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 if (CurrentCharacter != null)
                 {
+                    // Don't record rotation when loading next scene
+                    if (!rotationJustRecorded && !resetScene)
+                    {
+                        lastCharacterRotation = CurrentCharacter->Rotation;
+                    }
                     if (CurrentCharacter->GameObject.RenderFlags != 0 && CurrentCharacter->GameObject.RenderFlags != 0x40 && CurrentCharacter->GameObject.IsReadyToDraw())
                     {
                         Services.Log.Debug($"Drawing character {(nint)CurrentCharacter:X} {CurrentCharacter->GameObject.RenderFlags:X}");
@@ -94,7 +120,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             var agentLobby = AgentLobby.Instance();
             if (agentLobby != null)
             {
-                var characterSelects = agentLobby->LobbyData.CharaSelectEntries.Span;
+                var characterSelects = agentLobby->LobbyData.CharaSelectEntries.AsSpan();
                 foreach (var character in characterSelects)
                 {
                     if (character.Value->ContentId != 0)
@@ -102,7 +128,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                         var world = Services.DataManager.GetExcelSheet<World>()?.GetRow(character.Value->HomeWorldId);
                         if (world != null)
                         {
-                            result[character.Value->ContentId] = $"{Encoding.UTF8.GetString(character.Value->Name, 32).TrimEnd('\0')}@{world.Name}";
+                            result[character.Value->ContentId] = $"{Encoding.UTF8.GetString(character.Value->Name).TrimEnd('\0')}@{world.Name}";
                         }
                     }
                 }
@@ -123,6 +149,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             Services.CharactersService.SaveCharacters();
 
             *CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter = GetCurrentHoveredCharacter();
+
             Services.Log.Debug($"Set current char to {(nint)(*CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter):X}");
             UpdateCharacter(true);
             RotateCharacter();
@@ -132,23 +159,24 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         {
             if (CurrentCharacter != null)
             {
-                CurrentCharacter->GameObject.Rotate(locationModel.Rotation);
+                CurrentCharacter->GameObject.SetRotation(locationModel.Rotation);
             }
         }
 
+        // Used to reset state when unloading
         private void ResetCharacters()
         {
             var charaSelectCharacterList = CharaSelectCharacterList.Instance();
             var clientObjectManager = ClientObjectManager.Instance();
             if (charaSelectCharacterList != null && clientObjectManager != null)
             {
-                for (int i = 0; i < charaSelectCharacterList->CharacterMappingSpan.Length; i++)
+                for (int i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
                 {
-                    if (charaSelectCharacterList->CharacterMappingSpan[i].ContentId == 0)
+                    if (charaSelectCharacterList->CharacterMapping[i].ContentId == 0)
                     {
                         break;
                     }
-                    var clientObjectIndex = charaSelectCharacterList->CharacterMappingSpan[i].ClientObjectIndex;
+                    var clientObjectIndex = charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex;
                     var gameObject = clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
                     if (gameObject != null)
                     {
@@ -159,14 +187,17 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             }
         }
 
+
         private void NothingSelected()
         {
+            Services.Log.Debug("Nothing selected");
             lastContentId = 0;
             var newLocationModel = GetNothingSelectedLocation();
             if (!newLocationModel.Equals(locationModel))
             {
                 locationModel = GetNothingSelectedLocation();
                 resetScene = true;
+
             }
         }
 
@@ -203,6 +234,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             return result;
         }
 
+        //Get current hovered character by it's content id because the index is set to 100 when flipping through worlds
         private Character* GetCurrentHoveredCharacter()
         {
 
@@ -211,17 +243,17 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             var clientObjectManager = ClientObjectManager.Instance();
             if (agentLobby != null && charaSelectCharacterList != null && clientObjectManager != null)
             {
-                if (agentLobby->HoveredCharacterIndex == -1)
+                if (agentLobby->HoveredCharacterContentId == 0)
                 {
                     return null;
                 }
-                var clientObjectIndex = charaSelectCharacterList->CharacterMappingSpan[agentLobby->HoveredCharacterIndex].ClientObjectIndex;
-                if (clientObjectIndex == -1)
+                for (var i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
                 {
-                    Services.Log.Warning($"[getCurrentCharacter] clientObjectIndex -1 for {agentLobby->HoveredCharacterIndex}");
-                    return null;
+                    if (charaSelectCharacterList->CharacterMapping[i].ContentId == agentLobby->HoveredCharacterContentId)
+                    {
+                        return (Character*)clientObjectManager->GetObjectByIndex((ushort)charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
+                    }
                 }
-                return (Character*)clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
             }
             else
             {
@@ -255,6 +287,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                     }
                 }
             }
+            else
+            {
+                NothingSelected();
+            }
         }
 
         private ulong GetContentId()
@@ -262,7 +298,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             var agentLobby = AgentLobby.Instance();
             if (agentLobby != null)
             {
-                return agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
+                Services.Log.Debug($"Getting content id of {agentLobby->HoveredCharacterIndex} : {agentLobby->HoveredCharacterContentId:X} : {agentLobby->LobbyData.CharaSelectEntries.LongCount}");
+                return agentLobby->HoveredCharacterContentId;//agentLobby->LobbyData.CharaSelectEntries[agentLobby->HoveredCharacterIndex].Value->ContentId;
             }
             return 0;
         }

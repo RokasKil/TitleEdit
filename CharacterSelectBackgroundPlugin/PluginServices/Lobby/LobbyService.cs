@@ -12,12 +12,15 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         private delegate int CreateSceneDelegate(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7);
         private delegate byte LobbyUpdateDelegate(GameLobbyType mapId, int time);
+        private delegate void LoadLobbyScene(GameLobbyType mapId);
 
         private readonly Hook<CreateSceneDelegate> createSceneHook;
         private readonly Hook<LobbyUpdateDelegate> lobbyUpdateHook;
+        private readonly Hook<LoadLobbyScene> loadLobbySceneHook;
 
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.None;
         private GameLobbyType lastSceneType = GameLobbyType.None;
+        private GameLobbyType loadingLobbyType = GameLobbyType.None;
 
 
         private bool resetScene = false;
@@ -42,6 +45,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
             // Lobby manager update (I think) - we use this as a point to change the Value at lobbyCurrentMapAddress to reload the scene
             lobbyUpdateHook = Hook<LobbyUpdateDelegate>("40 56 57 41 56 48 81 EC ?? ?? ?? ?? 8B F9", LobbyUpdateDetour);
+
+            // Called when going from title to char select or reverse
+            // Important because in those scenarios the game first loads the level and only then sets CurrentLobbyMap value so we can't rely on that
+            loadLobbySceneHook = Hook<LoadLobbyScene>("E8 ?? ?? ?? ?? B0 ?? 88 86", LoadLobbySceneDetour);
 
             HookLayout();
             HookCharacter();
@@ -69,6 +76,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             }
         }
 
+        private void LoadLobbySceneDetour(GameLobbyType mapId)
+        {
+            Services.Log.Debug($"LoadLobbySceneDetour {mapId}");
+            ResetCameraLookAtOnExitCharacterSelect();
+            loadingLobbyType = mapId;
+            loadLobbySceneHook.Original(mapId);
+        }
 
         private void Tick(IFramework framework)
         {
@@ -89,8 +103,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         {
             try
             {
-                Services.Log.Debug($"Loading Scene {lastLobbyUpdateMapId}");
-                if (lastLobbyUpdateMapId == GameLobbyType.CharaSelect)
+                Services.Log.Debug($"Loading Scene {(loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType)}");
+                if ((loadingLobbyType == GameLobbyType.None && lastLobbyUpdateMapId == GameLobbyType.CharaSelect) || loadingLobbyType == GameLobbyType.CharaSelect)
                 {
                     ResetLastCameraLookAtValues();
                     territoryPath = locationModel.TerritoryPath;
@@ -106,6 +120,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                 {
                     // always reset camera when leaving character select
                     ResetCameraLookAtOnExitCharacterSelect();
+                    ResetSongIndex();
                     // making new char
                     if (lastLobbyUpdateMapId == GameLobbyType.Aetherial)
                     {
@@ -120,6 +135,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             finally
             {
                 lastSceneType = lastLobbyUpdateMapId;
+                loadingLobbyType = GameLobbyType.None;
             }
 
         }
@@ -131,9 +147,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
             if (resetScene)
             {
-                RecordCameraRotation();
-                resetScene = false;
-                CurrentLobbyMap = GameLobbyType.None;
+                if (mapId != GameLobbyType.Title)
+                {
+                    Services.Log.Debug("Resetting scene");
+                    RecordCameraRotation();
+                    CurrentLobbyMap = GameLobbyType.None;
+                    resetScene = false;
+                }
             }
 
             return lobbyUpdateHook.Original(mapId, time);
@@ -143,7 +163,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         {
             base.Dispose();
             Services.Framework.Update -= Tick;
-            // Resetting the character select thingy
+            // Resetting the character select thingy on unload
+            // If this thing causes any troubles we axe it and tell the users to not do it :)
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 //Techincally should be done from Agent Update but we can't have that here

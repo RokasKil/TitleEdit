@@ -33,9 +33,9 @@ public class ConfigurationService : IPluginConfiguration
     public List<KeyValuePair<ulong, DisplayTypeOption>> DisplayTypeOverrides = [];
 
     [NonSerialized]
-    private DalamudPluginInterface? pluginInterface;
+    private IDalamudPluginInterface? pluginInterface;
 
-    public void Initialize(DalamudPluginInterface pluginInterface)
+    public void Initialize(IDalamudPluginInterface pluginInterface)
     {
         this.pluginInterface = pluginInterface;
     }

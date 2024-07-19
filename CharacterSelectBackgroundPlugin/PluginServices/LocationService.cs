@@ -1,11 +1,13 @@
 using CharacterSelectBackgroundPlugin.Data.Character;
 using CharacterSelectBackgroundPlugin.Data.Layout;
 using CharacterSelectBackgroundPlugin.Data.Persistence;
+using CharacterSelectBackgroundPlugin.Extensions;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
 using System;
@@ -16,6 +18,7 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using static FFXIVClientStructs.FFXIV.Client.Game.Character.DrawDataContainer;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
 {
@@ -151,10 +154,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             if (character->Mount.MountId != 0)
             {
                 var mountCharacter = character->Mount.MountObject;
-                locationModel.Mount.BuddyModelTop = mountCharacter->DrawData.Head.Value;
-                locationModel.Mount.BuddyModelBody = mountCharacter->DrawData.Top.Value;
-                locationModel.Mount.BuddyModelLegs = mountCharacter->DrawData.Feet.Value;
-                locationModel.Mount.BuddyStain = mountCharacter->DrawData.Legs.Stain;
+                locationModel.Mount.BuddyModelTop = (uint)mountCharacter->DrawData.Equipment(EquipmentSlot.Head).Value;
+                locationModel.Mount.BuddyModelBody = (uint)mountCharacter->DrawData.Equipment(EquipmentSlot.Body).Value;
+                locationModel.Mount.BuddyModelLegs = (uint)mountCharacter->DrawData.Equipment(EquipmentSlot.Feet).Value;
+                locationModel.Mount.BuddyStain = mountCharacter->DrawData.Equipment(EquipmentSlot.Legs).Stain0;
             }
         }
 
@@ -185,8 +188,8 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             if (!refreshLayout && Services.ClientState.LocalPlayer != null && locations.TryGetValue(Services.ClientState.LocalContentId, out var locationModel))
             {
-                var inActive = locationModel.Active.Contains(layout->UUID);
-                var inInactive = locationModel.Inactive.Contains(layout->UUID);
+                var inActive = locationModel.Active.Contains(layout->UUID());
+                var inInactive = locationModel.Inactive.Contains(layout->UUID());
                 if ((inActive || inInactive) && ((active && !inActive) || (!active && !inInactive)))
                 {
                     refreshLayout = true;
@@ -203,20 +206,20 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             Dictionary<ulong, short> vfxTriggerIndexes = [];
             Services.LayoutService.ForEachInstance(instance =>
             {
-                if (instance.Value->isActive)
+                if (instance.Value->IsActive())
                 {
-                    active.Add(instance.Value->UUID);
+                    active.Add(instance.Value->UUID());
                 }
                 else
                 {
-                    inactive.Add(instance.Value->UUID);
+                    inactive.Add(instance.Value->UUID());
                 }
                 if (instance.Value->Id.Type == InstanceType.Vfx)
                 {
                     var vfxInstance = (VfxLayoutInstance*)instance.Value;
                     if (vfxInstance->VfxTriggerIndex != -1)
                     {
-                        vfxTriggerIndexes[instance.Value->UUID] = vfxInstance->VfxTriggerIndex;
+                        vfxTriggerIndexes[instance.Value->UUID()] = vfxInstance->VfxTriggerIndex;
                     }
                 }
             });

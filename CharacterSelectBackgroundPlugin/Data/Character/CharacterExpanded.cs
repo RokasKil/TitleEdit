@@ -6,7 +6,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Character
     public unsafe struct CharacterExpanded
     {
         [FieldOffset(0x0)] public FFXIVClientStructs.FFXIV.Client.Game.Character.Character Character;
-        [FieldOffset(0x60c)] public MovementMode MovementMode;
+        [FieldOffset(0x61c)] public MovementMode MovementMode;
     }
     public enum MovementMode : byte
     {

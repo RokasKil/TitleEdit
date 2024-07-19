@@ -1,9 +1,12 @@
 using CharacterSelectBackgroundPlugin.Data.Layout;
 using CharacterSelectBackgroundPlugin.Data.Lobby;
+using CharacterSelectBackgroundPlugin.Extensions;
 using CharacterSelectBackgroundPlugin.Utility;
 using Dalamud.Hooking;
 using Dalamud.Utility.Signatures;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using System;
 using System.Collections.Generic;
 
@@ -51,7 +54,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             {
                 fixed (uint* pFestivals = locationModel.Festivals)
                 {
-                    Services.LayoutService.LayoutManager->layoutManager.SetActiveFestivals(pFestivals);
+                    Services.LayoutService.LayoutManager->SetActiveFestivals((GameMain.Festival*)pFestivals);
                 }
                 EnvManager.Instance()->ActiveWeather = locationModel.WeatherId;
                 SetTime(locationModel.TimeOffset);
@@ -61,17 +64,17 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
                     List<ulong> unknownUUIDs = new();
                     Services.LayoutService.ForEachInstance(instance =>
                     {
-                        if (locationModel.Active.Contains(instance.Value->UUID))
+                        if (locationModel.Active.Contains(instance.Value->UUID()))
                         {
                             SetActive(instance.Value, true);
                         }
-                        else if (locationModel.Inactive.Contains(instance.Value->UUID))
+                        else if (locationModel.Inactive.Contains(instance.Value->UUID()))
                         {
                             SetActive(instance.Value, false);
                         }
                         else
                         {
-                            unknownUUIDs.Add(instance.Value->UUID);
+                            unknownUUIDs.Add(instance.Value->UUID());
                         }
                     });
                     if (unknownUUIDs.Count > 0)
@@ -91,7 +94,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             if (instance->Id.Type == InstanceType.Vfx)
             {
                 SetIndex((VfxLayoutInstance*)instance);
-                instance->SetActiveVF54(active);
+                instance->SetActiveVf54(active);
             }
             else
             {
@@ -101,7 +104,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
 
         private void SetIndex(VfxLayoutInstance* instance)
         {
-            if (locationModel.VfxTriggerIndexes.TryGetValue(instance->ILayoutInstance.UUID, out var index))
+            if (locationModel.VfxTriggerIndexes.TryGetValue(instance->ILayoutInstance.UUID(), out var index))
             {
                 Services.LayoutService.SetVfxLayoutInstanceVfxTriggerIndex(instance, index);
             }

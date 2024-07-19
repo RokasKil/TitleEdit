@@ -4,6 +4,7 @@ using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Group;
 using FFXIVClientStructs.Interop;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         [Signature("48 89 5C 24 ?? 57 48 83 EC ?? 8B FA 48 8B D9 83 FA ?? 75")]
         private readonly unsafe delegate* unmanaged<VfxLayoutInstance*, int, void> setVfxLayoutInstanceVfxTriggerIndexNative = null!;
-        public unsafe LayoutManagerExpanded* LayoutManager => (LayoutManagerExpanded*)LayoutWorld.Instance()->ActiveLayout;
+        public unsafe LayoutManager* LayoutManager => LayoutWorld.Instance()->ActiveLayout;
         public unsafe bool LayoutInitialized => LayoutManager->InitState == 7;
 
         public unsafe delegate void LayoutInstanceSetActiveDelegate(ILayoutInstance* layout, bool active);
@@ -70,7 +71,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         {
             ClearSetActiveHooks();
             var vTables = new HashSet<IntPtr>();
-            var layoutManger = (LayoutManagerExpanded*)(LayoutWorld.Instance()->ActiveLayout);
+            var layoutManger = LayoutWorld.Instance()->ActiveLayout;
 
             Services.Log.Debug($"[MakeSetActiveHooks] Got {(IntPtr)layoutManger:X} layoutmanager {layoutManger->InitState}");
             foreach (var entry in layoutManger->Layers)
@@ -78,7 +79,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 var layer = entry.Item2.Value;
                 foreach (var instanceEntry in layer->Instances)
                 {
-                    ForEachInstanceAndDescendants(instanceEntry.Item2, instance => vTables.Add((IntPtr)instance.Value->VTable));
+                    ForEachInstanceAndDescendants(instanceEntry.Item2, instance => vTables.Add(*(IntPtr*)instance.Value));
                 }
             }
             Services.Log.Debug($"[MakeSetActiveHooks] Got {vTables.Count} vTables");
@@ -118,7 +119,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             ForEachInstance(LayoutManager, action);
         }
 
-        public unsafe void ForEachInstance(LayoutManagerExpanded* manager, Action<Pointer<ILayoutInstance>> action)
+        public unsafe void ForEachInstance(LayoutManager* manager, Action<Pointer<ILayoutInstance>> action)
         {
             foreach (var entry in manager->Layers)
             {
@@ -133,10 +134,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         public unsafe void ForEachInstanceAndDescendants(ILayoutInstance* instance, Action<Pointer<ILayoutInstance>> action)
         {
             action(instance);
-            if (instance->Id.Type == InstanceType.Prefab || instance->Id.Type == InstanceType.Prefab2)
+            if (instance->Id.Type == InstanceType.SharedGroup)
             {
-                var prefabInstance = (PrefabLayoutInstance*)instance;
-                foreach (var instanceData in prefabInstance->Instances.Instances.Span)
+                var prefabInstance = (SharedGroupLayoutInstance*)instance;
+                foreach (var instanceData in prefabInstance->Instances.Instances.AsSpan())
                 {
                     ForEachInstanceAndDescendants(instanceData.Value->Instance, action);
                 }
