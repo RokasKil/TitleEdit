@@ -18,7 +18,15 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         public CharactersService()
         {
             filePath = Path.Join(Services.PluginInterface.ConfigDirectory.CreateSubdirectory("data").FullName, "characters.json");
+        }
+
+        public override void LoadData()
+        {
             LoadCharacters();
+        }
+
+        public override void Init()
+        {
             if (Services.ClientState.LocalPlayer != null)
             {
                 PutCharacter(Services.ClientState.LocalContentId, $"{Services.ClientState.LocalPlayer.Name}@{Services.ClientState.LocalPlayer.HomeWorld.GetWithLanguage(ClientLanguage.English)!.Name}");

@@ -6,13 +6,21 @@ using System.Numerics;
 
 namespace CharacterSelectBackgroundPlugin.Data.Persistence
 {
+    // Could seperate these into title screen and character select but I kinda want to allow users to easily convert between the two maybe (also am lazy)
     public struct LocationModel
     {
-        public int Version = 1;
+        public int Version = 2;
+        public LocationType LocationType = LocationType.CharacterSelect;
+        public TitleScreenLogo TitleScreenLogo = TitleScreenLogo.Dawntrail;
         public string TerritoryPath = "";
         public ushort TerritoryTypeId;
         public Vector3 Position;
+        public Vector3 CameraPosition;
         public float Rotation;
+        public float Yaw; // side
+        public float Roll; // roll
+        public float Pitch; // up/down
+        public float Pov = 1;
         public byte WeatherId;
         public ushort TimeOffset;
         public uint BgmId = 0;
@@ -37,10 +45,16 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
             {
                 var other = (LocationModel)obj;
                 return Equals(Version, other.Version) &&
+                    Equals(LocationType, other.LocationType) &&
+                    Equals(TitleScreenLogo, other.TitleScreenLogo) &&
                     Equals(TerritoryPath, other.TerritoryPath) &&
                     Equals(TerritoryTypeId, other.TerritoryTypeId) &&
                     Equals(Position, other.Position) &&
+                    Equals(CameraPosition, other.CameraPosition) &&
                     Equals(Rotation, other.Rotation) &&
+                    Equals(Yaw, other.Yaw) &&
+                    Equals(Roll, other.Roll) &&
+                    Equals(Pitch, other.Pitch) &&
                     Equals(WeatherId, other.WeatherId) &&
                     Equals(TimeOffset, other.TimeOffset) &&
                     Equals(BgmId, other.BgmId) &&
@@ -53,14 +67,21 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
             }
             return false;
         }
+
         public override int GetHashCode()
         {
             var hash = new HashCode();
             hash.Add(Version);
+            hash.Add(LocationType);
+            hash.Add(TitleScreenLogo);
             hash.Add(TerritoryPath);
             hash.Add(TerritoryTypeId);
             hash.Add(Position);
+            hash.Add(CameraPosition);
             hash.Add(Rotation);
+            hash.Add(Yaw);
+            hash.Add(Roll);
+            hash.Add(Pitch);
             hash.Add(WeatherId);
             hash.Add(TimeOffset);
             hash.Add(BgmId);
@@ -86,4 +107,5 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
         {
         }
     }
+
 }

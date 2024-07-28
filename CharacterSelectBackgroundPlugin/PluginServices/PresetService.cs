@@ -17,11 +17,17 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private readonly Dictionary<string, PresetModel> presets = new(StringComparer.InvariantCultureIgnoreCase);
 
         private readonly DirectoryInfo saveDirectory;
+
         public PresetService()
         {
             saveDirectory = Services.PluginInterface.ConfigDirectory.CreateSubdirectory("presets");
+        }
+
+        public override void LoadData()
+        {
             LoadSavedPresets();
         }
+
         private void LoadSavedPresets()
         {
             foreach (var file in saveDirectory.EnumerateFiles())
@@ -165,10 +171,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private PresetModel LoadText(string textData)
         {
             var preset = JsonConvert.DeserializeObject<PresetModel>(textData);
-            if (preset.Version != 1 || string.IsNullOrEmpty(preset.Name))
+            if (string.IsNullOrEmpty(preset.Name))
             {
                 throw new("Invalid preset");
             }
+            preset = Services.MigrationService.Migrate(preset);
             Services.LocationService.Validate(preset.LocationModel);
             return preset;
         }

@@ -17,7 +17,9 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
-        Services.Initialize(pluginInterface, this);
+        Services.ConstructServices(pluginInterface, this);
+        Services.LoadServiceData();
+        Services.InitServices();
 
         ConfigWindow = new();
         MainWindow = new();

@@ -65,7 +65,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
             Bgms = [];
             BgmPaths = Services.DataManager.GetExcelSheet<BGM>()!.ToDictionary(r => r.RowId, r => r.File.ToString());
+        }
 
+        public override void LoadData()
+        {
             try
             {
                 Services.Log.Information("[SongList] Checking for updated bgm sheets");
@@ -76,9 +79,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 Services.Log.Error(e, "[SongList] Failed to update bgm sheet; using previous version");
                 LoadLangSheet(GetLocalSheet("en"), "en");
             }
+        }
 
+        public override void Init()
+        {
             Services.Framework.Update += Tick;
-
         }
 
 

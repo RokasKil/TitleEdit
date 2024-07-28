@@ -22,12 +22,20 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         public MountService()
         {
             filePath = Path.Join(Services.PluginInterface.ConfigDirectory.CreateSubdirectory("data").FullName, "mounts.json");
+        }
+
+        public override void LoadData()
+        {
             LoadMounts();
             mounts.Add(0);
             if (Services.ClientState.LocalPlayer != null)
             {
                 RefreshMounts();
             }
+        }
+
+        public override void Init()
+        {
             Services.Framework.Update += Tick;
         }
 

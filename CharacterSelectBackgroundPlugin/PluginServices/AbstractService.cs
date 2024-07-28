@@ -8,6 +8,11 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 {
     public abstract class AbstractService : IDisposable
     {
+
+        public virtual void LoadData() { }
+
+        public virtual void Init() { }
+
         private readonly List<HookWrapper> hooks = [];
 
         protected Hook<T> Hook<T>(string signature, T detour, HookBackend backend = HookBackend.Automatic) where T : Delegate

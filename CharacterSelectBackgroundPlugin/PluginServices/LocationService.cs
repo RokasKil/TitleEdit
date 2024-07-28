@@ -61,10 +61,21 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         private DirectoryInfo saveDirectory;
 
+        public HashSet<ulong> Active = [];
+        public HashSet<ulong> Inactive = [];
+        public Dictionary<ulong, short> VfxTriggerIndexes = [];
         public LocationService()
         {
             saveDirectory = Services.PluginInterface.ConfigDirectory.CreateSubdirectory("characters");
+        }
+
+        public override void LoadData()
+        {
             LoadSavedLocations();
+        }
+
+        public override void Init()
+        {
             Services.Framework.Update += Tick;
             Services.ClientState.Logout += Logout;
             Services.ClientState.TerritoryChanged += TerritoryChanged;
@@ -73,10 +84,25 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             unsafe
             {
                 Services.LayoutService.OnLayoutInstanceSetActive += LayoutInstanceSetActive;
+                Services.LayoutService.OnVfxLayoutInstanceSetVfxTriggerIndex += VfxLayoutInstanceSetVfxTriggerIndex;
             }
             TerritoryChanged(Services.ClientState.TerritoryType);
             BgmChanged(Services.BgmService.CurrentSongId);
             Task.Run(SaveTask, cancellationToken.Token);
+        }
+
+        private unsafe void VfxLayoutInstanceSetVfxTriggerIndex(VfxLayoutInstance* instance, int index)
+        {
+
+            Services.Log.Debug($"[VfxLayoutInstanceSetVfxTriggerIndex] {instance->ILayoutInstance.UUID():X} {index}");
+            if (instance->VfxTriggerIndex != -1)
+            {
+                VfxTriggerIndexes[instance->ILayoutInstance.UUID()] = (short)index;
+            }
+            else
+            {
+                VfxTriggerIndexes.Remove(instance->ILayoutInstance.UUID());
+            }
         }
 
         private unsafe void Tick(IFramework framework)
@@ -86,7 +112,6 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             if (Services.ClientState.LocalPlayer != null)
             {
                 lastContentId = Services.ClientState.LocalContentId;
-
                 if (TerritoryPath != null)
                 {
                     var locationModel = locations.ContainsKey(lastContentId) ? locations[lastContentId] : new();
@@ -124,7 +149,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
                         if (Services.LayoutService.LayoutInitialized)
                         {
-                            if (refreshLayout)
+                            if (refreshLayout || true)
                             {
                                 SetLayout(ref locationModel);
                             }
@@ -164,6 +189,9 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private void TerritoryChanged(ushort territoryId)
         {
             TerritoryPath = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType)?.Bg.ToString();
+            Active = [];
+            Inactive = [];
+            VfxTriggerIndexes = [];
             Services.Log.Debug($"TerritoryChanged: {TerritoryPath}");
         }
 
@@ -175,6 +203,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private void LayoutChanged()
         {
             refreshLayout = true;
+            Active = [];
         }
 
         private void BgmChanged(uint songId)
@@ -183,7 +212,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             bgmPath = Services.BgmService.BgmPaths[bgmId];
             Services.Log.Debug($"BgmChanged {songId} {bgmPath}");
         }
-
+        //Hook on whatever deletes stuff (and maybe adds) so we can get rid of the constant refreshing cause in solution 9 it might cause lag spikes
         private unsafe void LayoutInstanceSetActive(ILayoutInstance* layout, bool active)
         {
             if (!refreshLayout && Services.ClientState.LocalPlayer != null && locations.TryGetValue(Services.ClientState.LocalContentId, out var locationModel))
@@ -195,6 +224,24 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                     refreshLayout = true;
                     Services.Log.Debug($"[LayoutSetActiveDetour] refreshLayout");
                 }
+            }
+            if (refreshLayout && Active.Count == 0)
+            {
+                return;
+            }
+            var inActive2 = Active.Contains(layout->UUID());
+            var inInactive2 = Inactive.Contains(layout->UUID());
+            if (active && !inActive2)
+            {
+                Active.Add(layout->UUID());
+                Inactive.Remove(layout->UUID());
+                Services.Log.Debug($"[LayoutSetActiveDetour] Activating {layout->UUID()}");
+            }
+            else if (!active && !inInactive2)
+            {
+                Active.Remove(layout->UUID());
+                Inactive.Add(layout->UUID());
+                Services.Log.Debug($"[LayoutSetActiveDetour] Deactivating {layout->UUID()}");
             }
         }
 
@@ -226,6 +273,12 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
             locationModel.Active = active;
             locationModel.Inactive = inactive;
             locationModel.VfxTriggerIndexes = vfxTriggerIndexes;
+            if (Active.Count == 0)
+            {
+                Active = active;
+                Inactive = inactive;
+                VfxTriggerIndexes = vfxTriggerIndexes;
+            }
         }
 
         public void Save(ulong localContentId)
@@ -295,6 +348,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                         location.Inactive ??= [];
                         location.VfxTriggerIndexes ??= [];
                         location.Festivals ??= [0, 0, 0, 0];
+                        location = Services.MigrationService.Migrate(location);
                         Validate(location);
                         locations[contentId] = location;
                     }
@@ -322,7 +376,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
 
         public void Validate(LocationModel locationModel)
         {
-            if (locationModel.Version != 1)
+            if (locationModel.Version != 2)
             {
                 throw new("Location Version is not valid");
             }

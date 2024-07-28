@@ -92,7 +92,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             Services.Log.Debug("Applying location model");
             if (CurrentCharacter != null && agentLobby != null)
             {
-                var contentId = agentLobby->LobbyData.CharaSelectEntries.Get((ulong)agentLobby->HoveredCharacterIndex).Value->ContentId;
+                var contentId = agentLobby->LobbyData.CharaSelectEntries[agentLobby->HoveredCharacterIndex].Value->ContentId;
                 if (preset.LastLocationMount)
                 {
                     locationModel.Mount = Services.LocationService.GetLocationModel(contentId).Mount;

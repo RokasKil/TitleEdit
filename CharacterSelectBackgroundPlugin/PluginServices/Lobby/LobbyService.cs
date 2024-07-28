@@ -54,7 +54,10 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             HookCharacter();
             HookCamera();
             HookSong();
+        }
 
+        public override void Init()
+        {
             EnableHooks();
 
             Services.Framework.Update += Tick;

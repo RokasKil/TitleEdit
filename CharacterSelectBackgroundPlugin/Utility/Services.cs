@@ -29,27 +29,72 @@ namespace CharacterSelectBackgroundPlugin.Utility
         public static CharactersService CharactersService { get; set; } = null!;
         public static MountService MountService { get; set; } = null!;
         public static BoneService BoneService { get; set; } = null!;
+        public static MigrationService MigrationService { get; set; } = null!;
         public static Plugin Plugin { get; set; } = null!;
 
-        public static void Initialize(IDalamudPluginInterface pluginInterface, Plugin plugin)
+        public static void ConstructServices(IDalamudPluginInterface pluginInterface, Plugin plugin)
         {
             pluginInterface.Create<Services>();
             Plugin = plugin;
             PluginInterface = pluginInterface;
             ConfigurationService = pluginInterface.GetPluginConfig() as ConfigurationService ?? new();
             ConfigurationService.Initialize(pluginInterface);
-            //Rework this into a 2 stage initalization cause some stuff depends on each other 
             try
             {
                 LayoutService = new();
-                BgmService = new();
+                LobbyService = new();
                 LocationService = new();
+                BgmService = new();
                 WeatherService = new();
                 PresetService = new();
+                CharactersService = new();
                 MountService = new();
                 BoneService = new();
-                LobbyService = new();
-                CharactersService = new();
+                MigrationService = new();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+        }
+
+        public static void LoadServiceData()
+        {
+            try
+            {
+                LayoutService.LoadData();
+                LobbyService.LoadData();
+                LocationService.LoadData();
+                BgmService.LoadData();
+                WeatherService.LoadData();
+                PresetService.LoadData();
+                CharactersService.LoadData();
+                MountService.LoadData();
+                BoneService.LoadData();
+                MigrationService.LoadData();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+        }
+
+        public static void InitServices()
+        {
+            try
+            {
+                LayoutService.Init();
+                LobbyService.Init();
+                LocationService.Init();
+                BgmService.Init();
+                WeatherService.Init();
+                PresetService.Init();
+                CharactersService.Init();
+                MountService.Init();
+                BoneService.Init();
+                MigrationService.Init();
             }
             catch
             {
