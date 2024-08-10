@@ -1,3 +1,4 @@
+using CharacterSelectBackgroundPlugin.Data.Camera;
 using CharacterSelectBackgroundPlugin.Data.Lobby;
 using CharacterSelectBackgroundPlugin.Data.Persistence;
 using CharacterSelectBackgroundPlugin.Utility;
@@ -223,6 +224,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             var cameraManager = FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager.Instance();
             return cameraManager != null ? (LobbyCameraExpanded*)cameraManager->LobbCamera : null;
         }
+
+        //yaw = -0.429
+        //pitch = 0.460
+        //xzLen = math.cos(pitch)
+        //x = -xzLen * math.sin(-yaw)
+        //y = math.sin(pitch)
+        //z = xzLen * math.cos(yaw)
 
     }
 }

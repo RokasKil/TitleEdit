@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace CharacterSelectBackgroundPlugin.PluginServices
@@ -14,6 +15,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
         private readonly static Regex FileInvalidSymbolsRegex = new(@"[/\\:*?|""<>]");
 
         public IReadOnlyDictionary<string, PresetModel> Presets => presets;
+
+        public IEnumerable<KeyValuePair<string, PresetModel>> CharacterSelectPresetEnumerator => Presets.Where(preset => preset.Value.LocationModel.LocationType == LocationType.CharacterSelect);
+
+        public IEnumerable<KeyValuePair<string, PresetModel>> TitleScreenPresetEnumerator => Presets.Where(preset => preset.Value.LocationModel.LocationType == LocationType.TitleScreen);
+
+        public IEnumerable<KeyValuePair<string, PresetModel>> EditablePresetEnumerator => Presets.Where(preset => !preset.Key.StartsWith("?"));
+
         private readonly Dictionary<string, PresetModel> presets = new(StringComparer.InvariantCultureIgnoreCase);
 
         private readonly DirectoryInfo saveDirectory;
@@ -188,6 +196,15 @@ namespace CharacterSelectBackgroundPlugin.PluginServices
                 presets.Remove(presetFileName);
             }
             return;
+        }
+
+        public bool TryGetPreset(string presetFileName, out PresetModel preset, LocationType? type = null)
+        {
+            if (presets.TryGetValue(presetFileName, out preset) && (type == null || preset.LocationModel.LocationType == type))
+            {
+                return true;
+            }
+            return false;
         }
 
         public override void Dispose()

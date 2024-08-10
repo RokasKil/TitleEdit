@@ -4,6 +4,8 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
 {
     public enum TitleScreenLogo
     {
+        [EnumTranslation("None")]
+        None,
         [EnumTranslation("Unspecified")]
         Unspecified,
         [EnumTranslation("A Realm Reborn")]

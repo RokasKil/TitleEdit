@@ -10,7 +10,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
     public struct LocationModel
     {
         public int Version = 2;
-        public LocationType LocationType = LocationType.CharacterSelect;
+        public LocationType LocationType = LocationType.TitleScreen;
         public TitleScreenLogo TitleScreenLogo = TitleScreenLogo.Dawntrail;
         public string TerritoryPath = "";
         public ushort TerritoryTypeId;
@@ -20,7 +20,7 @@ namespace CharacterSelectBackgroundPlugin.Data.Persistence
         public float Yaw; // side
         public float Roll; // roll
         public float Pitch; // up/down
-        public float Pov = 1;
+        public float Fov = 1;
         public byte WeatherId;
         public ushort TimeOffset;
         public uint BgmId = 0;

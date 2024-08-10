@@ -14,11 +14,12 @@ public class ConfigWindow : Window, IDisposable
         new DisplayTypeTab(),
         new SettingsTab(),
         new PresetTab(),
+        new GroupTab(),
         new AboutTab()
     };
 
     public ConfigWindow() : base(
-        "Immersive Character Background Configuration", ImGuiWindowFlags.AlwaysAutoResize)
+        "TitleEdit Configuration", ImGuiWindowFlags.AlwaysAutoResize)
     {
         this.SizeConstraints = new WindowSizeConstraints
         {

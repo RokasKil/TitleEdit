@@ -1,7 +1,8 @@
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using System.Runtime.InteropServices;
 
-namespace CharacterSelectBackgroundPlugin.Data.Lobby
+namespace CharacterSelectBackgroundPlugin.Data.Camera
 {
     [StructLayout(LayoutKind.Explicit, Size = 0x300)]
     public unsafe struct LobbyCameraExpanded
@@ -10,9 +11,13 @@ namespace CharacterSelectBackgroundPlugin.Data.Lobby
         public LobbyCamera LobbyCamera;
         //Yaw and Pitch is part of Client::Game::Camera
         [FieldOffset(0x130)]
+        public Vector3 Orientation;
+        [FieldOffset(0x130)]
         public float Yaw;
         [FieldOffset(0x134)]
         public float Pitch;
+        [FieldOffset(0x138)]
+        public float Roll;
         [FieldOffset(0x2D0)]
         public CurvePoint LowPoint;
         [FieldOffset(0x2C0)]

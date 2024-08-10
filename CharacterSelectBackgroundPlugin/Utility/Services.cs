@@ -4,6 +4,7 @@ using Dalamud.Game;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using System.Collections.Generic;
 
 namespace CharacterSelectBackgroundPlugin.Utility
 {
@@ -30,7 +31,10 @@ namespace CharacterSelectBackgroundPlugin.Utility
         public static MountService MountService { get; set; } = null!;
         public static BoneService BoneService { get; set; } = null!;
         public static MigrationService MigrationService { get; set; } = null!;
+        public static CameraService CameraService { get; set; } = null!;
         public static Plugin Plugin { get; set; } = null!;
+
+        private static List<AbstractService> ServiceList = [];
 
         public static void ConstructServices(IDalamudPluginInterface pluginInterface, Plugin plugin)
         {
@@ -41,16 +45,17 @@ namespace CharacterSelectBackgroundPlugin.Utility
             ConfigurationService.Initialize(pluginInterface);
             try
             {
-                LayoutService = new();
-                LobbyService = new();
-                LocationService = new();
-                BgmService = new();
-                WeatherService = new();
-                PresetService = new();
-                CharactersService = new();
-                MountService = new();
-                BoneService = new();
-                MigrationService = new();
+                ServiceList.Add(LayoutService = new());
+                ServiceList.Add(LobbyService = new());
+                ServiceList.Add(LocationService = new());
+                ServiceList.Add(BgmService = new());
+                ServiceList.Add(WeatherService = new());
+                ServiceList.Add(PresetService = new());
+                ServiceList.Add(CharactersService = new());
+                ServiceList.Add(MountService = new());
+                ServiceList.Add(BoneService = new());
+                ServiceList.Add(MigrationService = new());
+                ServiceList.Add(CameraService = new());
             }
             catch
             {
@@ -63,16 +68,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
         {
             try
             {
-                LayoutService.LoadData();
-                LobbyService.LoadData();
-                LocationService.LoadData();
-                BgmService.LoadData();
-                WeatherService.LoadData();
-                PresetService.LoadData();
-                CharactersService.LoadData();
-                MountService.LoadData();
-                BoneService.LoadData();
-                MigrationService.LoadData();
+                ServiceList.ForEach(service => service.LoadData());
             }
             catch
             {
@@ -85,16 +81,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
         {
             try
             {
-                LayoutService.Init();
-                LobbyService.Init();
-                LocationService.Init();
-                BgmService.Init();
-                WeatherService.Init();
-                PresetService.Init();
-                CharactersService.Init();
-                MountService.Init();
-                BoneService.Init();
-                MigrationService.Init();
+                ServiceList.ForEach(service => service.Init());
             }
             catch
             {
@@ -105,15 +92,7 @@ namespace CharacterSelectBackgroundPlugin.Utility
 
         public static void Dispose()
         {
-            LayoutService?.Dispose();
-            BgmService?.Dispose();
-            LocationService?.Dispose();
-            WeatherService?.Dispose();
-            PresetService?.Dispose();
-            MountService?.Dispose();
-            BoneService?.Dispose();
-            LobbyService?.Dispose();
-            CharactersService?.Dispose();
+            ServiceList.ForEach(service => service.Dispose());
         }
     }
 }

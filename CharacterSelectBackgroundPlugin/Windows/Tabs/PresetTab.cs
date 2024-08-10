@@ -27,9 +27,6 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
         private readonly Dictionary<uint, string> mounts;
         private readonly Dictionary<byte, string> weathers;
 
-        private string mountSearchValue = "";
-        private string bgmSearchValue = "";
-
         private FileDialogManager fileDialogManager = new();
 
         private bool modal;
@@ -76,28 +73,51 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             DrawPresetActions();
         }
 
+        private string GetPresetEntryName(PresetModel preset)
+        {
+            var prefix = preset.LocationModel.LocationType switch
+            {
+                LocationType.CharacterSelect => "C",
+                LocationType.TitleScreen => "T",
+                _ => "?"
+            };
+            return $"[{prefix}] {preset.Name}";
+        }
+
         private void DrawPresetListControls()
         {
-            var currentPresetName = makingNewPreset ? "Unsaved preset" : Services.PresetService.Presets.GetValueOrDefault(currentPreset).Name;
+            string currentPresetName;
             if (makingNewPreset)
             {
+                currentPresetName = "Unsaved preset";
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.8f, 0, 1));
             }
+            else if (currentPreset == "")
+            {
+                currentPresetName = "";
+            }
+            else
+            {
+                currentPresetName = GetPresetEntryName(Services.PresetService.Presets.GetValueOrDefault(currentPreset));
+            }
             bool stylePopped = false;
-            GuiUtils.Combo($"##{Title}##presetCombo", currentPresetName, () =>
+
+            GuiUtils.FilterCombo($"##{Title}##presetCombo", currentPresetName, () =>
             {
                 if (makingNewPreset)
                 {
                     ImGui.PopStyleColor();
                     stylePopped = true;
                 }
-                foreach (var entry in Services.PresetService.Presets)
+                foreach (var entry in Services.PresetService.EditablePresetEnumerator)
                 {
-                    if (ImGui.Selectable($"{entry.Value.Name}##{Title}##{entry.Key}", entry.Key == currentPreset))
+                    if (GuiUtils.FilterSelectable($"{GetPresetEntryName(entry.Value)}##{Title}##{entry.Key}", entry.Key == currentPreset))
                     {
                         SelectPreset(entry.Key);
+                        return true;
                     }
                 }
+                return false;
             });
             if (makingNewPreset && !stylePopped)
             {
@@ -156,6 +176,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                 fileDialogManager.OpenFileDialog($"Import preset##{Title}", ".json", ImportPreset, 1, null, true);
             }
         }
+
         private void DrawPresetControls()
         {
             var buttonPosX = ImGui.GetWindowContentRegionMin().X + (ImGui.CalcTextSize("Character state")).X + (16 * ImGui.GetFontSize()) + ImGui.GetStyle().ItemInnerSpacing.X + ImGui.GetStyle().ItemSpacing.X;
@@ -165,6 +186,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             // Preset metadata
             ImGui.InputText($"Name##{Title}", ref preset.Name, 256);
             ImGui.InputText($"Author##{Title}", ref preset.Author, 256);
+            GuiUtils.Combo($"Preset Type##{Title}", ref preset.LocationModel.LocationType);
 
             // World stuff
             // Zone
@@ -244,33 +266,23 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
 
             // Song
             var bgmId = Services.BgmService.Bgms.ContainsKey(preset.LocationModel.BgmId) ? preset.LocationModel.BgmId : 0;
-            GuiUtils.Combo($"Song##{Title}", Services.BgmService.Bgms[bgmId].DisplayName, (justOpened) =>
+            GuiUtils.FilterCombo($"Song##{Title}", Services.BgmService.Bgms[bgmId].DisplayName, () =>
             {
-                if (justOpened)
+
+                foreach (var entry in Services.BgmService.Bgms)
                 {
-                    ImGui.SetKeyboardFocusHere();
-                    bgmSearchValue = "";
-                }
-                ImGui.InputText($"Search##{Title}##BGM", ref bgmSearchValue, 256);
-                ImGui.Separator();
-                if (ImGui.BeginChild($"Song##{Title}##Child", new Vector2(-1, 200), false, ImGuiWindowFlags.AlwaysAutoResize))
-                {
-                    foreach (var entry in Services.BgmService.Bgms)
+                    if (GuiUtils.FilterSelectable($"{entry.Value.DisplayName}##{Title}##{entry.Key}", entry.Key == bgmId))
                     {
-                        if (entry.Value.DisplayName.Contains(bgmSearchValue, StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (ImGui.Selectable($"{entry.Value.DisplayName}##{Title}##{entry.Key}", entry.Key == bgmId))
-                            {
-                                preset.LocationModel.BgmId = entry.Key;
-                                preset.LocationModel.BgmPath = entry.Value.FilePath;
-                                ImGui.CloseCurrentPopup();
-                            }
-                            DrawBgmTooltip(entry.Value);
-                        }
+                        preset.LocationModel.BgmId = entry.Key;
+                        preset.LocationModel.BgmPath = entry.Value.FilePath;
+                        return true;
                     }
-                    ImGui.EndChild();
+                    DrawBgmTooltip(entry.Value);
+
                 }
-            }, ImGuiComboFlags.HeightLargest);
+                return false;
+
+            });
             DrawBgmTooltip(Services.BgmService.Bgms[bgmId]);
             if (Services.ClientState.LocalPlayer != null)
             {
@@ -292,97 +304,72 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             }
 
             //Character stuff
-            //Position
-            ImGui.InputFloat3("Position", ref preset.LocationModel.Position);
-            if (Services.ClientState.LocalPlayer != null)
+            if (preset.LocationModel.LocationType == LocationType.CharacterSelect)
             {
-                ImGui.SameLine();
-                ImGui.SetCursorPosX(buttonPosX);
-                if (ImGui.Button($"Apply current##{Title}##Position"))
+                //Position
+                ImGui.InputFloat3("Position", ref preset.LocationModel.Position);
+                if (Services.ClientState.LocalPlayer != null)
                 {
-                    preset.LocationModel.Position = Services.ClientState.LocalPlayer!.Position;
-                }
-                var pos = Services.ClientState.LocalPlayer!.Position;
-                ImGui.PushFont(UiBuilder.MonoFont);
-                GuiUtils.HoverTooltip($"Current Position: ({pos.X:F2}; {pos.Y:F2}; {pos.Z:F2}) ");
-                ImGui.PopFont();
-            }
-
-            // Rotation
-            var rotation = preset.LocationModel.Rotation / (float)Math.PI * 180.0f;
-            if (ImGui.SliderFloat("Rotation", ref rotation, -180, 180, "%.2f", ImGuiSliderFlags.AlwaysClamp))
-            {
-
-                preset.LocationModel.Rotation = rotation / 180.0f * (float)Math.PI;
-            }
-            ImGuiComponents.HelpMarker("CTRL+click to enter Value manually");
-            if (Services.ClientState.LocalPlayer != null)
-            {
-                ImGui.SameLine();
-                ImGui.SetCursorPosX(buttonPosX);
-                if (ImGui.Button($"Apply current##{Title}##Rotation"))
-                {
-                    preset.LocationModel.Rotation = Services.ClientState.LocalPlayer!.Rotation;
-                }
-                GuiUtils.HoverTooltip($"Current rotation: {Services.ClientState.LocalPlayer!.Rotation / (float)Math.PI * 180.0f:F2}");
-            }
-
-            // Character MovementMode
-            GuiUtils.Combo($"Character state##{Title}", preset.LocationModel.MovementMode.ToText(), () =>
-            {
-                foreach (var mode in Enum.GetValues<MovementMode>())
-                {
-                    if (ImGui.Selectable($"{mode.ToText()}##{Title}", preset.LocationModel.MovementMode == mode))
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(buttonPosX);
+                    if (ImGui.Button($"Apply current##{Title}##Position"))
                     {
-                        preset.LocationModel.MovementMode = mode;
+                        preset.LocationModel.Position = Services.ClientState.LocalPlayer!.Position;
                     }
+                    var pos = Services.ClientState.LocalPlayer!.Position;
+                    GuiUtils.HoverTooltip($"Current Position: ({pos.X:F2}; {pos.Y:F2}; {pos.Z:F2})");
                 }
-            });
-            if (Services.ClientState.LocalPlayer != null)
-            {
-                ImGui.SameLine();
-                ImGui.SetCursorPosX(buttonPosX); // should in theory Position it the same as it would normally
-                unsafe
-                {
-                    var character = (CharacterExpanded*)Services.ClientState.LocalPlayer.Address;
-                    if (ImGui.Button($"Apply current##{Title}##moveType"))
-                    {
-                        preset.LocationModel.MovementMode = character->MovementMode;
-                    }
-                    GuiUtils.HoverTooltip($"Current mode: {character->MovementMode}");
-                }
-            }
 
-            // Mount
-            var mountId = mounts.ContainsKey(preset.LocationModel.Mount.MountId) ? preset.LocationModel.Mount.MountId : 0;
-            var mountLabel = preset.LastLocationMount ? "Last used mount" : mounts[mountId];
-            GuiUtils.Combo($"Mount##{Title}", mountLabel, (justOpened) =>
-            {
-                if (justOpened)
+                // Rotation
+                GuiUtils.AngleSlider($"Rotation##{Title}", ref preset.LocationModel.Rotation);
+                ImGuiComponents.HelpMarker("CTRL+click to enter Value manually");
+                if (Services.ClientState.LocalPlayer != null)
                 {
-                    ImGui.SetKeyboardFocusHere();
-                    mountSearchValue = "";
-                }
-                ImGui.InputText($"Search##{Title}##Mount", ref mountSearchValue, 256);
-                ImGui.Separator();
-                if (ImGui.BeginChild($"Mount##{Title}##Child", new Vector2(-1, 200)))
-                {
-                    if ("Last used mount".Contains(mountSearchValue, StringComparison.OrdinalIgnoreCase))
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(buttonPosX);
+                    if (ImGui.Button($"Apply current##{Title}##Rotation"))
                     {
-                        if (ImGui.Selectable($"Last used mount##{Title}", preset.LastLocationMount))
+                        preset.LocationModel.Rotation = Services.ClientState.LocalPlayer!.Rotation;
+                    }
+                    GuiUtils.HoverTooltip($"Current rotation: {Services.ClientState.LocalPlayer!.Rotation / (float)Math.PI * 180.0f:F2}");
+                }
+
+                // Character MovementMode
+                GuiUtils.Combo($"Character state##{Title}", ref preset.LocationModel.MovementMode);
+                if (Services.ClientState.LocalPlayer != null)
+                {
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(buttonPosX); // should in theory Position it the same as it would normally
+                    unsafe
+                    {
+                        var character = (CharacterExpanded*)Services.ClientState.LocalPlayer.Address;
+                        if (ImGui.Button($"Apply current##{Title}##moveType"))
                         {
-                            preset.LocationModel.Mount = new();
-                            preset.LastLocationMount = true;
-                            ImGui.CloseCurrentPopup();
+                            preset.LocationModel.MovementMode = character->MovementMode;
                         }
-                        GuiUtils.HoverTooltip("The mount that was summoned when the character logged off, can be unmounted");
+                        GuiUtils.HoverTooltip($"Current mode: {character->MovementMode}");
                     }
+                }
+
+                // Mount
+                var mountId = mounts.ContainsKey(preset.LocationModel.Mount.MountId) ? preset.LocationModel.Mount.MountId : 0;
+                var mountLabel = preset.LastLocationMount ? "Last used mount" : mounts[mountId];
+                GuiUtils.FilterCombo($"Mount##{Title}", mountLabel, () =>
+                {
+
+                    if (GuiUtils.FilterSelectable($"Last used mount##{Title}", preset.LastLocationMount))
+                    {
+                        preset.LocationModel.Mount = new();
+                        preset.LastLocationMount = true;
+                        return true;
+                    }
+                    GuiUtils.HoverTooltip("The mount that was summoned when the character logged off, can be unmounted");
 
                     foreach (var entry in mounts)
                     {
-                        if (Services.MountService.Mounts.Contains(entry.Key) && entry.Value.Contains(mountSearchValue, StringComparison.OrdinalIgnoreCase))
+                        if (Services.MountService.Mounts.Contains(entry.Key))
                         {
-                            if (ImGui.Selectable($"{entry.Value}##{Title}##{entry.Key}", !preset.LastLocationMount && entry.Key == mountId))
+                            if (GuiUtils.FilterSelectable($"{entry.Value}##{Title}##{entry.Key}", !preset.LastLocationMount && entry.Key == mountId))
                             {
                                 preset.LocationModel.Mount = new()
                                 {
@@ -390,40 +377,71 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
                                 };
                                 // TODO: fetch chocobo data if chocobo was selected
                                 preset.LastLocationMount = false;
-                                ImGui.CloseCurrentPopup();
+                                return true;
                             }
                         }
                     }
-                    ImGui.EndChild();
-                }
-            }, ImGuiComboFlags.HeightLargest);
-            ImGuiComponents.HelpMarker("You can only select mounts you have unlocked across all of your characters\nTry logging into each character if you think any are missing");
-            if (Services.ClientState.LocalPlayer != null)
-            {
-                ImGui.SameLine();
-                ImGui.SetCursorPosX(buttonPosX);
-                unsafe
+                    return false;
+                });
+                ImGuiComponents.HelpMarker("You can only select mounts you have unlocked across all of your characters\nTry logging into each character if you think any are missing");
+                if (Services.ClientState.LocalPlayer != null)
                 {
-                    var character = (CharacterExpanded*)Services.ClientState.LocalPlayer.Address;
-                    if (ImGui.Button($"Apply current##{Title}##Mount"))
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(buttonPosX);
+                    unsafe
                     {
-                        Services.LocationService.SetMount(ref preset.LocationModel, &character->Character);
+                        var character = (CharacterExpanded*)Services.ClientState.LocalPlayer.Address;
+                        if (ImGui.Button($"Apply current##{Title}##Mount"))
+                        {
+                            Services.LocationService.SetMount(ref preset.LocationModel, &character->Character);
+                        }
+                        GuiUtils.HoverTooltip($"Current mount: {mounts[character->Character.Mount.MountId]}" + (character->Character.Mount.MountId == 1 ? "\nThis will also save your chocobo's gear and color" : ""));
                     }
-                    GuiUtils.HoverTooltip($"Current mount: {mounts[character->Character.Mount.MountId]}" + (character->Character.Mount.MountId == 1 ? "\nThis will also save your chocobo's gear and color" : ""));
                 }
-            }
 
-            //Setting overrides
-            GuiUtils.Combo($"Camera follow mode override##{Title}", preset.CameraFollowMode.ToText(), () =>
+                //Setting overrides
+                GuiUtils.Combo($"Camera follow mode override##{Title}", ref preset.CameraFollowMode);
+            }
+            else if (preset.LocationModel.LocationType == LocationType.TitleScreen)
             {
-                foreach (var mode in Enum.GetValues<CameraFollowMode>())
+                ImGui.InputFloat3("Camera Position", ref preset.LocationModel.CameraPosition);
+                if (Services.ClientState.LocalPlayer != null)
                 {
-                    if (ImGui.Selectable($"{mode.ToText()}##{Title}", preset.CameraFollowMode == mode))
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(buttonPosX);
+                    unsafe
                     {
-                        preset.CameraFollowMode = mode;
+                        if (ImGui.Button($"Apply current##{Title}##Camera Position"))
+                        {
+                            preset.LocationModel.CameraPosition = Services.CameraService.CurrentCamera->Camera.SceneCamera.Position;
+                        }
+                        var pos = Services.CameraService.CurrentCamera->Camera.SceneCamera.Position;
+                        GuiUtils.HoverTooltip($"Current camera Position: ({pos.X:F2}; {pos.Y:F2}; {pos.Z:F2}) ");
                     }
                 }
-            });
+
+                GuiUtils.AngleSlider($"Yaw##{Title}", ref preset.LocationModel.Yaw);
+                GuiUtils.AngleSlider($"Pitch##{Title}", ref preset.LocationModel.Pitch);
+                GuiUtils.AngleSlider($"Roll##{Title}", ref preset.LocationModel.Roll);
+                if (Services.ClientState.LocalPlayer != null)
+                {
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(buttonPosX);
+                    unsafe
+                    {
+                        if (ImGui.Button($"Apply current##{Title}##Camera Orientation"))
+                        {
+                            preset.LocationModel.Yaw = Services.CameraService.CurrentCamera->Yaw;
+                            preset.LocationModel.Pitch = Services.CameraService.CurrentCamera->Pitch;
+                            preset.LocationModel.Roll = Services.CameraService.CurrentCamera->Roll;
+                        }
+                        var orientation = Services.CameraService.CurrentCamera->Orientation;
+                        GuiUtils.HoverTooltip($"Current camera Orientation: ({orientation.X:F2}; {orientation.Y:F2}; {orientation.Z:F2}) ");
+                    }
+                }
+                ImGui.SliderFloat($"FOV##{Title}", ref preset.LocationModel.Fov, 0.01f, 3f);
+                GuiUtils.Combo($"Logo##{Title}", ref preset.LocationModel.TitleScreenLogo);
+            }
             ImGui.TextUnformatted($"Preset file: {preset.FileName}");
         }
 
@@ -542,6 +560,7 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             currentPreset = "";
             preset = new();
             preset.Author = Services.ClientState.LocalPlayer!.Name.ToString();
+            preset.LocationModel.LocationType = LocationType.TitleScreen;
             LoadCurrentTerritory();
             preset.LocationModel.WeatherId = Services.WeatherService.WeatherId;
             preset.LocationModel.TimeOffset = Services.LocationService.TimeOffset;
@@ -549,11 +568,18 @@ namespace CharacterSelectBackgroundPlugin.Windows.Tabs
             preset.LocationModel.BgmPath = Services.DataManager.GetExcelSheet<BGM>()!.GetRow((uint)Services.BgmService.CurrentSongId)?.File.ToString();
             preset.LocationModel.Position = Services.ClientState.LocalPlayer!.Position;
             preset.LocationModel.Rotation = Services.ClientState.LocalPlayer!.Rotation;
+            preset.LocationModel.Fov = 1;
+            preset.LocationModel.TitleScreenLogo = TitleScreenLogo.Dawntrail;
             unsafe
             {
                 var character = (CharacterExpanded*)Services.ClientState.LocalPlayer!.Address;
                 preset.LocationModel.MovementMode = character->MovementMode;
                 Services.LocationService.SetMount(ref preset.LocationModel, &character->Character);
+
+                preset.LocationModel.CameraPosition = Services.CameraService.CurrentCamera->Camera.SceneCamera.Position;
+                preset.LocationModel.Yaw = Services.CameraService.CurrentCamera->Yaw;
+                preset.LocationModel.Pitch = Services.CameraService.CurrentCamera->Pitch;
+                preset.LocationModel.Roll = Services.CameraService.CurrentCamera->Roll;
             }
         }
 

@@ -14,7 +14,7 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         private LocationModel GetLocationForContentId(ulong contentId)
         {
             var displayOverrideIdx = Services.ConfigurationService.DisplayTypeOverrides.FindIndex((entry) => entry.Key == contentId);
-            DisplayTypeOption displayOption;
+            CharacterDisplayTypeOption displayOption;
             LocationModel model;
             if (displayOverrideIdx != -1)
             {
@@ -24,20 +24,20 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
             {
                 displayOption = Services.ConfigurationService.GlobalDisplayType;
             }
-            if (displayOption.Type == DisplayType.LastLocation)
+            if (displayOption.Type == CharacterDisplayType.LastLocation)
             {
                 if (!Services.LocationService.Locations.TryGetValue(contentId, out model))
                 {
                     model = GetNothingSelectedLocation();
                 }
             }
-            else if (displayOption.Type == DisplayType.AetherialSea)
+            else if (displayOption.Type == CharacterDisplayType.AetherialSea)
             {
                 model = LocationService.DefaultLocation;
             }
             else
             {
-                if (displayOption.PresetPath != null && Services.PresetService.Presets.TryGetValue(displayOption.PresetPath, out var preset))
+                if (displayOption.PresetPath != null && Services.PresetService.TryGetPreset(displayOption.PresetPath, out var preset, LocationType.CharacterSelect))
                 {
                     model = preset.LocationModel;
                     if (preset.LastLocationMount)
@@ -61,13 +61,13 @@ namespace CharacterSelectBackgroundPlugin.PluginServices.Lobby
         {
             var displayOption = Services.ConfigurationService.NoCharacterDisplayType;
             LocationModel model;
-            if (displayOption.Type == DisplayType.AetherialSea || displayOption.Type == DisplayType.LastLocation)
+            if (displayOption.Type == CharacterDisplayType.AetherialSea || displayOption.Type == CharacterDisplayType.LastLocation)
             {
                 model = LocationService.DefaultLocation;
             }
             else
             {
-                if (displayOption.PresetPath != null && Services.PresetService.Presets.TryGetValue(displayOption.PresetPath, out var preset))
+                if (displayOption.PresetPath != null && Services.PresetService.TryGetPreset(displayOption.PresetPath, out var preset, LocationType.CharacterSelect))
                 {
                     model = preset.LocationModel;
                     locationModel.CameraFollowMode = preset.CameraFollowMode;

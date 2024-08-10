@@ -21,16 +21,25 @@ public class ConfigurationService : IPluginConfiguration
     public bool SaveTime = true;
     public bool DrawCharacterSelectButton = true;
     public CameraFollowMode CameraFollowMode = CameraFollowMode.ModelPosition;
-    public DisplayTypeOption GlobalDisplayType = new()
+    public CharacterDisplayTypeOption GlobalDisplayType = new()
     {
-        Type = DisplayType.LastLocation
+        Type = CharacterDisplayType.LastLocation
     };
-    public DisplayTypeOption NoCharacterDisplayType = new()
+    public CharacterDisplayTypeOption NoCharacterDisplayType = new()
     {
-        Type = DisplayType.AetherialSea
+        Type = CharacterDisplayType.AetherialSea
+    };
+    public List<KeyValuePair<ulong, CharacterDisplayTypeOption>> DisplayTypeOverrides = [];
+
+    public TitleDisplayTypeOption TitleDisplayTypeOption = new()
+    {
+        Type = TitleDisplayType.Preset,
+        PresetPath = "?/Dawntrail.json"
     };
 
-    public List<KeyValuePair<ulong, DisplayTypeOption>> DisplayTypeOverrides = [];
+    public TitleScreenLogo TitleScreenLogo = TitleScreenLogo.Dawntrail;
+    public bool OverridePresetTitleScreenLogo = false;
+
 
     [NonSerialized]
     private IDalamudPluginInterface? pluginInterface;
