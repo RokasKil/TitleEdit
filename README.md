@@ -1,4 +1,4 @@
-# CharacterSelectBackgroundPlugin
+# TitleEdit
 
 Plugin replacing the default character select aether level with world levels by recording where your character logged out and using that
 
