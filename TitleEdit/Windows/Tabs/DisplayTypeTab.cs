@@ -1,7 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -10,14 +10,15 @@ using TitleEdit.Utility;
 
 namespace TitleEdit.Windows.Tabs
 {
-    internal class DisplayTypeTab : ITab
+    internal class DisplayTypeTab : AbstractTab
     {
-        public string Title => "Display";
+        public override string Title => "Display";
 
         private ulong currentContentId = 0;
 
-        public void Draw()
+        public override void Draw()
         {
+            base.Draw();
             ImGui.TextUnformatted("Title screen");
             DrawSelectPresetCombo("Title screen setting", Services.ConfigurationService.TitleDisplayTypeOption, (result) => Services.ConfigurationService.TitleDisplayTypeOption = result);
             GuiUtils.Combo("Default title screen logo", ref Services.ConfigurationService.TitleScreenLogo, filter: (entry) => entry != TitleScreenLogo.Unspecified);
@@ -32,9 +33,15 @@ namespace TitleEdit.Windows.Tabs
             ImGui.Separator();
             ImGui.TextUnformatted("Character overrides");
             var usedIds = new HashSet<ulong>(Services.ConfigurationService.DisplayTypeOverrides.Count);
-            if (Services.ConfigurationService.DisplayTypeOverrides.Count > 0)
+            var tableHeight = MathF.Max(1f, MathF.Min(8f, Services.ConfigurationService.DisplayTypeOverrides.Count) * (ImGui.CalcTextSize(" ").Y + ImGui.GetStyle().CellPadding.Y * 2 + ImGui.GetStyle().FramePadding.Y * 2));
+
+            using (ImRaii.Table($"Display Type Overrides##{Title}", 4, ImGuiTableFlags.ScrollY, new(0, tableHeight)))
             {
-                ImGui.BeginTable($"Display Type Overrides##{Title}", 3);
+                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed);
+                //Empty column for setting scroll bar spacing
+                ImGui.TableSetupColumn("scrollbar_spacing", ImGuiTableColumnFlags.WidthFixed, ImGui.GetStyle().ScrollbarSize);
                 for (int i = 0; i < Services.ConfigurationService.DisplayTypeOverrides.Count; i++)
                 {
                     var entry = Services.ConfigurationService.DisplayTypeOverrides[i];
@@ -53,10 +60,10 @@ namespace TitleEdit.Windows.Tabs
                         Services.ConfigurationService.Save();
                         i--;
                     }
+                    ImGui.TableNextColumn();
                 }
-                ImGui.EndTable();
-
             }
+
             var characterLabel = Services.CharactersService.Characters.TryGetValue(currentContentId, out var characterName) ? characterName : "";
             GuiUtils.FilterCombo("##Character override", characterLabel, () =>
             {
@@ -93,7 +100,7 @@ namespace TitleEdit.Windows.Tabs
 
         private void DrawSelectPresetCombo(string label, CharacterDisplayTypeOption value, Action<CharacterDisplayTypeOption> selectAction, bool showLastLocationOption = true)
         {
-            string display = "???";
+            string display;
             bool invalid = false;
             if (value.Type == CharacterDisplayType.LastLocation)
             {
@@ -103,14 +110,36 @@ namespace TitleEdit.Windows.Tabs
             {
                 if (value.PresetPath != null && Services.PresetService.TryGetPreset(value.PresetPath, out var preset, LocationType.CharacterSelect))
                 {
+
                     display = preset.Name;
                 }
                 else
                 {
                     display = "Invalid preset";
                     invalid = true;
+
                 }
             }
+            else if (value.Type == CharacterDisplayType.Random)
+            {
+                if (value.PresetPath != null && Services.GroupService.TryGetGroup(value.PresetPath, out var group, LocationType.CharacterSelect))
+                {
+                    display = $"[G] {group.Name}";
+                }
+                else
+                {
+                    {
+                        display = "Invalid group";
+                        invalid = true;
+                    }
+                }
+            }
+            else
+            {
+                display = "Something went wrong";
+                invalid = true;
+            }
+
             if (invalid)
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.8f, 0, 1));
@@ -128,7 +157,7 @@ namespace TitleEdit.Windows.Tabs
                         Services.ConfigurationService.Save();
                         return true;
                     }
-                    DrawDisplayTypeTooltip(CharacterDisplayType.LastLocation);
+                    GuiUtils.DrawDisplayTypeTooltip(CharacterDisplayType.LastLocation);
 
                 }
                 GuiUtils.FilterSeperator();
@@ -146,24 +175,62 @@ namespace TitleEdit.Windows.Tabs
                         Services.ConfigurationService.Save();
                         return true;
                     }
-                    DrawDisplayTypeTooltip(CharacterDisplayType.Preset, entry.Key);
+                    GuiUtils.DrawDisplayTypeTooltip(CharacterDisplayType.Preset, entry.Key);
+                }
+                foreach (var entry in Services.GroupService.CharacterSelectPresetEnumerator)
+                {
+                    if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == CharacterDisplayType.Random && entry.Key == value.PresetPath))
+                    {
+                        selectAction.Invoke(new()
+                        {
+                            Type = CharacterDisplayType.Random,
+                            PresetPath = entry.Key
+                        });
+                        Services.ConfigurationService.Save();
+                        return true;
+                    }
+                    GuiUtils.DrawDisplayTypeTooltip(CharacterDisplayType.Random, entry.Key);
                 }
                 return false;
             }, popStyleColor: invalid);
-            DrawDisplayTypeTooltip(value);
+            GuiUtils.DrawDisplayTypeTooltip(value);
         }
 
         private void DrawSelectPresetCombo(string label, TitleDisplayTypeOption value, Action<TitleDisplayTypeOption> selectAction)
         {
             string display;
             bool invalid = false;
-            if (value.PresetPath != null && Services.PresetService.TryGetPreset(value.PresetPath, out var preset, LocationType.TitleScreen))
+            if (value.Type == TitleDisplayType.Preset)
             {
-                display = preset.Name;
+                if (value.PresetPath != null && Services.PresetService.TryGetPreset(value.PresetPath, out var preset, LocationType.TitleScreen))
+                {
+
+                    display = preset.Name;
+                }
+                else
+                {
+                    display = "Invalid preset";
+                    invalid = true;
+
+                }
+            }
+            else if (value.Type == TitleDisplayType.Random)
+            {
+                if (value.PresetPath != null && Services.GroupService.TryGetGroup(value.PresetPath, out var group, LocationType.TitleScreen))
+                {
+                    display = $"[G] {group.Name}";
+                }
+                else
+                {
+                    {
+                        display = "Invalid group";
+                        invalid = true;
+                    }
+                }
             }
             else
             {
-                display = "Invalid preset";
+                display = "Something went wrong";
                 invalid = true;
             }
 
@@ -185,90 +252,26 @@ namespace TitleEdit.Windows.Tabs
                         Services.ConfigurationService.Save();
                         return true;
                     }
-                    DrawDisplayTypeTooltip(TitleDisplayType.Preset, entry.Key);
+                    GuiUtils.DrawDisplayTypeTooltip(TitleDisplayType.Preset, entry.Key);
 
+                }
+                foreach (var entry in Services.GroupService.TitleScreenPresetEnumerator)
+                {
+                    if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == TitleDisplayType.Random && entry.Key == value.PresetPath))
+                    {
+                        selectAction.Invoke(new()
+                        {
+                            Type = TitleDisplayType.Random,
+                            PresetPath = entry.Key
+                        });
+                        Services.ConfigurationService.Save();
+                        return true;
+                    }
+                    GuiUtils.DrawDisplayTypeTooltip(TitleDisplayType.Random, entry.Key);
                 }
                 return false;
             }, popStyleColor: invalid);
-            DrawDisplayTypeTooltip(value);
-        }
-
-        private void DrawDisplayTypeTooltip(CharacterDisplayTypeOption value) => DrawDisplayTypeTooltip(value.Type, value.PresetPath);
-
-        private void DrawDisplayTypeTooltip(CharacterDisplayType type, string? path = null)
-        {
-            DrawTooltip(() =>
-            {
-                switch (type)
-                {
-                    case CharacterDisplayType.LastLocation:
-                        ImGui.TextWrapped("Last recorded character location, if nothing was recorded will default to the Nothing selected option");
-                        break;
-                    case CharacterDisplayType.Preset:
-                        DrawDisplayTypeTooltipPresetInfo(path, LocationType.CharacterSelect);
-                        break;
-                    case CharacterDisplayType.Random:
-                        ImGui.TextWrapped("Random");
-                        break;
-                }
-            });
-        }
-
-        private void DrawDisplayTypeTooltip(TitleDisplayTypeOption value) => DrawDisplayTypeTooltip(value.Type, value.PresetPath);
-
-        private void DrawDisplayTypeTooltip(TitleDisplayType type, string? path = null)
-        {
-            DrawTooltip(() =>
-            {
-                switch (type)
-                {
-                    case TitleDisplayType.Preset:
-                        DrawDisplayTypeTooltipPresetInfo(path, LocationType.TitleScreen);
-                        break;
-                    case TitleDisplayType.Random:
-                        ImGui.TextWrapped("Random");
-                        break;
-                }
-            });
-        }
-
-        private void DrawTooltip(System.Action contentAction)
-        {
-            GuiUtils.HoverTooltip(() =>
-            {
-                ImGui.PushTextWrapPos(ImGui.GetFont().FontSize * 16);
-                contentAction.Invoke();
-                ImGui.PopTextWrapPos();
-            });
-        }
-
-
-        private void DrawDisplayTypeTooltipPresetInfo(string? path = null, LocationType? type = null)
-        {
-            if (path != null && Services.PresetService.TryGetPreset(path, out var preset, type))
-            {
-                if (preset.Tooltip != null)
-                {
-                    ImGui.TextWrapped(preset.Tooltip);
-                }
-                else
-                {
-                    var territory = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(preset.LocationModel.TerritoryTypeId);
-                    if (territory != null)
-                    {
-                        ImGui.TextWrapped($"Zone: {territory.RowId} - {territory.PlaceNameRegion.Value?.Name} > {territory.PlaceName.Value?.Name}");
-                    }
-                    else
-                    {
-                        ImGui.TextWrapped($"Zone: Unknown");
-                    }
-                    ImGui.TextWrapped($"Author: {preset.Author.Replace("%", "%%")}");
-                }
-            }
-            else
-            {
-                ImGui.TextWrapped("Selected preset does not exist or failed to load");
-            }
+            GuiUtils.DrawDisplayTypeTooltip(value);
         }
     }
 }

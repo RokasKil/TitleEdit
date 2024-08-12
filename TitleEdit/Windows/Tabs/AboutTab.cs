@@ -2,13 +2,13 @@ using ImGuiNET;
 
 namespace TitleEdit.Windows.Tabs
 {
-    internal class AboutTab : ITab
+    internal class AboutTab : AbstractTab
     {
-        public string Title => "About";
+        public override string Title => "About";
 
-        public unsafe void Draw()
+        public override void Draw()
         {
-
+            base.Draw();
             ImGui.PushTextWrapPos(ImGui.GetFontSize() * 28);
             ImGui.TextWrapped("This is a testing release, while it hasn't caused any crashes in my personal testing, expect to see some issues.");
             ImGui.TextWrapped("If you encounter any issues that are not listed in the Known Issues or have information about them that you feel " +

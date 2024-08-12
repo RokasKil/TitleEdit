@@ -64,6 +64,7 @@ namespace TitleEdit.PluginServices
 
         public string Save(PresetModel preset)
         {
+            Validate(preset);
             if (string.IsNullOrEmpty(preset.FileName))
             {
                 var namePart = FileInvalidSymbolsRegex.Replace(preset.Name, "").Truncate(50);
@@ -179,12 +180,26 @@ namespace TitleEdit.PluginServices
         private PresetModel LoadText(string textData)
         {
             var preset = Services.MigrationService.MigratePreset(textData);
-            if (!preset.HasValue || string.IsNullOrEmpty(preset.Value.Name) || preset.Value.Version != 2)
+            Validate(preset);
+            return preset!.Value;
+        }
+
+        public void Validate(PresetModel? presetOpt)
+        {
+            if (!presetOpt.HasValue)
             {
                 throw new("Invalid preset");
             }
-            Services.LocationService.Validate(preset.Value.LocationModel);
-            return preset.Value;
+            var preset = presetOpt.Value;
+            if (preset.Version != PresetModel.CurrentVersion)
+            {
+                throw new($"Preset Version is not valid {preset.Version}");
+            }
+            if (string.IsNullOrEmpty(preset.Name))
+            {
+                throw new("Preset doesn't have a name");
+            }
+            Services.LocationService.Validate(preset.LocationModel);
         }
 
         public void Delete(string presetFileName)

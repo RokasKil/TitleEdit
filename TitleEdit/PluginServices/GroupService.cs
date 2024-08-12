@@ -63,6 +63,7 @@ namespace TitleEdit.PluginServices
 
         public string Save(GroupModel group)
         {
+            Validate(group);
             if (string.IsNullOrEmpty(group.FileName))
             {
                 var namePart = FileInvalidSymbolsRegex.Replace(group.Name, "").Truncate(50);
@@ -106,11 +107,33 @@ namespace TitleEdit.PluginServices
         private GroupModel LoadText(string textData)
         {
             var group = Services.MigrationService.MigrateGroup(textData);
-            if (string.IsNullOrEmpty(group.Name) || group.Version != 1)
+            Validate(group);
+            return group;
+        }
+
+        public void Validate(GroupModel? groupOpt)
+        {
+            if (!groupOpt.HasValue)
             {
                 throw new("Invalid group");
             }
-            return group;
+            var group = groupOpt.Value;
+            if (group.Version != GroupModel.CurrentVersion)
+            {
+                throw new($"Group Version is not valid ({group.Version})");
+            }
+            if (group.PresetFileNames.Any(string.IsNullOrEmpty))
+            {
+                throw new($"Group has empty items");
+            }
+            if (group.PresetFileNames.Count == 0)
+            {
+                throw new($"Group must have at least one item");
+            }
+            if (string.IsNullOrEmpty(group.Name))
+            {
+                throw new("Group doesn't have a name");
+            }
         }
 
         public void Delete(string groupFileName)

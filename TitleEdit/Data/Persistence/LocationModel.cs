@@ -10,7 +10,9 @@ namespace TitleEdit.Data.Persistence
     // Could seperate these into title screen and character select but I kinda want to allow users to easily convert between the two maybe (also am lazy)
     public struct LocationModel
     {
-        public int Version = 2;
+        public readonly static int CurrentVersion = 2;
+
+        public int Version = CurrentVersion;
         public LocationType LocationType = LocationType.TitleScreen;
         public TitleScreenLogo TitleScreenLogo = TitleScreenLogo.Dawntrail;
         public string TerritoryPath = ""; // TODO: Why am I even saving both

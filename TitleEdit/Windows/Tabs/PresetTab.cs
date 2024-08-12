@@ -1,8 +1,3 @@
-using TitleEdit.Data.BGM;
-using TitleEdit.Data.Character;
-using TitleEdit.Data.Lobby;
-using TitleEdit.Data.Persistence;
-using TitleEdit.Utility;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
@@ -12,13 +7,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Action = System.Action;
+using TitleEdit.Data.BGM;
+using TitleEdit.Data.Character;
+using TitleEdit.Data.Lobby;
+using TitleEdit.Data.Persistence;
+using TitleEdit.Utility;
 
 namespace TitleEdit.Windows.Tabs
 {
-    internal class PresetTab : ITab
+    internal class PresetTab : AbstractTab
     {
-        public string Title => "Presets";
+        public override string Title => "Presets";
 
         private PresetModel preset = new();
         private string currentPreset = "";
@@ -29,11 +28,6 @@ namespace TitleEdit.Windows.Tabs
 
         private FileDialogManager fileDialogManager = new();
 
-        private bool modal;
-        private string modalTitle = "";
-        private Action? modalContent = null;
-
-        private Exception? lastException = null;
         public PresetTab()
         {
             mounts = Services.DataManager.GetExcelSheet<Mount>()!.ToDictionary(mount => mount.RowId, mount =>
@@ -55,18 +49,10 @@ namespace TitleEdit.Windows.Tabs
             weathers = Services.DataManager.GetExcelSheet<Weather>()!.ToDictionary(weather => (byte)weather.RowId, weather => $"{weather.RowId} - {(!string.IsNullOrEmpty(weather.Name) ? weather.Name : "Unknown")}");
         }
 
-        public void Draw()
+        public override void Draw()
         {
+            base.Draw();
             fileDialogManager.Draw();
-            if (modal)
-            {
-                ImGui.OpenPopup($"{modalTitle}##{Title}");
-                if (ImGui.BeginPopupModal($"{modalTitle}##{Title}", ref modal, ImGuiWindowFlags.NoNav | ImGuiWindowFlags.AlwaysAutoResize))
-                {
-                    modalContent?.Invoke();
-                    ImGui.EndPopup();
-                }
-            }
             DrawPresetListControls();
             ImGui.Separator();
             DrawPresetControls();
@@ -116,6 +102,7 @@ namespace TitleEdit.Windows.Tabs
                         SelectPreset(entry.Key);
                         return true;
                     }
+                    GuiUtils.DrawPresetTooltip(entry.Key);
                 }
                 return false;
             });
@@ -443,10 +430,12 @@ namespace TitleEdit.Windows.Tabs
                 GuiUtils.Combo($"Logo##{Title}", ref preset.LocationModel.TitleScreenLogo);
             }
             ImGui.TextUnformatted($"Preset file: {preset.FileName}");
+            ImGui.EndDisabled();
         }
 
         public void DrawPresetActions()
         {
+            ImGui.BeginDisabled(!makingNewPreset && currentPreset == "");
             if (ImGui.Button($"Save##{Title}"))
             {
                 try
@@ -612,19 +601,14 @@ namespace TitleEdit.Windows.Tabs
             });
         }
 
-        private void SetupDeleteConfirmation()
-        {
-            modal = true;
-            modalTitle = "Delete a preset";
-            modalContent = DrawDeleteConfirmation;
-        }
+        private void SetupDeleteConfirmation() => SetupModal("Delete a preset", DrawDeleteConfirmation);
 
         private void DrawDeleteConfirmation()
         {
             ImGui.TextUnformatted("Are you sure you want to delete the preset, this is unrecoverable.");
             if (ImGui.Button("Yes"))
             {
-                modal = false;
+                CloseModal();
                 try
                 {
                     Services.PresetService.Delete(currentPreset!);
@@ -636,37 +620,16 @@ namespace TitleEdit.Windows.Tabs
                 }
             }
             ImGui.SameLine();
-            if (ImGui.Button("No")) modal = false;
+            if (ImGui.Button("No")) CloseModal();
         }
 
-        private void SetupImportSuccess()
-        {
-            modal = true;
-            modalTitle = "Success";
-            modalContent = DrawImportSuccess;
-        }
+        private void SetupImportSuccess() => SetupModal("Success", DrawImportSuccess);
 
         private void DrawImportSuccess()
         {
             ImGui.TextUnformatted($"Imported \"{preset.Name}\" successfully");
-            if (ImGui.Button("Ok")) modal = false;
+            if (ImGui.Button("Ok")) CloseModal();
         }
-
-        private void SetupError(Exception ex)
-        {
-            lastException = ex;
-            modal = true;
-            modalTitle = "Error";
-            modalContent = DrawError;
-        }
-
-        private void DrawError()
-        {
-            ImGui.TextUnformatted("Error encountered: ");
-            ImGui.TextUnformatted($"{lastException?.Message}");
-            if (ImGui.Button("Ok")) modal = false;
-        }
-
     }
 
 }

@@ -47,6 +47,7 @@ namespace TitleEdit.PluginServices.Migration
         private void MigrateAetherialSeaDisplayType(ref CharacterDisplayTypeOption option) => option = MigrateAetherialSeaDisplayType(option);
         private CharacterDisplayTypeOption MigrateAetherialSeaDisplayType(CharacterDisplayTypeOption option)
         {
+#pragma warning disable CS0612 // Type or member is obsolete
             if (option.Type == CharacterDisplayType.AetherialSea)
             {
                 option = new()
@@ -55,6 +56,7 @@ namespace TitleEdit.PluginServices.Migration
                     PresetPath = "?/AetherialSea.json"
                 };
             }
+#pragma warning restore CS0612 // Type or member is obsolete
             return option;
         }
 
@@ -67,7 +69,8 @@ namespace TitleEdit.PluginServices.Migration
                 {
                     Services.ConfigurationService.TitleDisplayTypeOption = new()
                     {
-                        Type = TitleDisplayType.Random
+                        Type = TitleDisplayType.Random,
+                        PresetPath = "?/RandomTitleScreen.json"
                     };
                 }
                 else if (oldConfig.SelectedTitleFileName == "Random (custom)" && oldConfig.TitleList != null)
@@ -80,13 +83,18 @@ namespace TitleEdit.PluginServices.Migration
                         PresetFileNames = oldConfig.TitleList.Select((presetName) =>
                         {
                             bool included = IncludedPresets.Contains(presetName) || presetName.StartsWith("TE_");
-                            return $"{(included ? "?/" : "")}{presetName}.json";
-                        }).Where((presetPath) => Services.PresetService.TryGetPreset(presetPath, out _, LocationType.TitleScreen))
-                        .ToList()
+                            return (string?)$"{(included ? "?/" : "")}{presetName}.json";
+                        }).Where((presetPath) => Services.PresetService.TryGetPreset(presetPath!, out _, LocationType.TitleScreen))
+                        .ToList(),
+                        FileName = "random_custom.jsom"
                     };
                     if (groupModel.PresetFileNames.Count > 0)
                     {
-                        Services.GroupService.Save(groupModel);
+                        Services.ConfigurationService.TitleDisplayTypeOption = new()
+                        {
+                            Type = TitleDisplayType.Random,
+                            PresetPath = Services.GroupService.Save(groupModel)
+                        };
                         Services.Log.Info("Transfered old Random (custom) settings");
                     }
                     else

@@ -1,8 +1,8 @@
-using TitleEdit.Windows.Tabs;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using System;
 using System.Numerics;
+using TitleEdit.Windows.Tabs;
 
 namespace TitleEdit.Windows;
 
@@ -19,7 +19,7 @@ public class ConfigWindow : Window, IDisposable
     };
 
     public ConfigWindow() : base(
-        "TitleEdit Configuration", ImGuiWindowFlags.AlwaysAutoResize)
+        "Title Edit Configuration", ImGuiWindowFlags.AlwaysAutoResize)
     {
         this.SizeConstraints = new WindowSizeConstraints
         {
@@ -35,7 +35,7 @@ public class ConfigWindow : Window, IDisposable
 
     public override void Draw()
     {
-        if (ImGui.BeginTabBar("###Config Tabs"))
+        if (ImGui.BeginTabBar($"##{WindowName}##Config Tabs"))
         {
             foreach (var tab in tabs)
             {

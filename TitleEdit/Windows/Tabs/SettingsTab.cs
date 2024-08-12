@@ -1,17 +1,18 @@
-using TitleEdit.Data.Persistence;
-using TitleEdit.Utility;
 using Dalamud.Interface.Components;
 using ImGuiNET;
 using System;
+using TitleEdit.Data.Persistence;
+using TitleEdit.Utility;
 
 namespace TitleEdit.Windows.Tabs
 {
-    internal class SettingsTab : ITab
+    internal class SettingsTab : AbstractTab
     {
-        public string Title => "Settings";
+        public override string Title => "Settings";
 
-        public void Draw()
+        public override void Draw()
         {
+            base.Draw();
             SettingCheckbox($"Track player location##{Title}", ref Services.ConfigurationService.TrackPlayerLocation);
             ImGuiComponents.HelpMarker("Continously track player location to show your character at the location you logged off");
             SettingCheckbox($"Save periodically##{Title}", ref Services.ConfigurationService.PeriodicSaving);

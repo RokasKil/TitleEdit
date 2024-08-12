@@ -9,6 +9,7 @@ namespace TitleEdit;
 public sealed class Plugin : IDalamudPlugin
 {
     private const string CommandName = "/titleedit";
+    private const string CommandNameAlias = "/te";
 
     public readonly WindowSystem WindowSystem = new("TitleEdit");
     private ConfigWindow ConfigWindow { get; init; }
@@ -35,7 +36,11 @@ public sealed class Plugin : IDalamudPlugin
 
         Services.CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Open Immersive Character Select configuration"
+            HelpMessage = "Open Title Edit configuration"
+        });
+        Services.CommandManager.AddHandler(CommandNameAlias, new CommandInfo(OnCommand)
+        {
+            ShowInHelp = false
         });
 
         Services.PluginInterface.UiBuilder.Draw += DrawUI;
@@ -54,6 +59,7 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow.Dispose();
 
         Services.CommandManager.RemoveHandler(CommandName);
+        Services.CommandManager.RemoveHandler(CommandNameAlias);
         Services.Dispose();
     }
 

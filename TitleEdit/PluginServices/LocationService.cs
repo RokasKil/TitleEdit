@@ -381,9 +381,9 @@ namespace TitleEdit.PluginServices
 
         public void Validate(LocationModel locationModel)
         {
-            if (locationModel.Version != 2)
+            if (locationModel.Version != LocationModel.CurrentVersion)
             {
-                throw new("Location Version is not valid");
+                throw new($"Location Version is not valid {LocationModel.CurrentVersion}");
             }
             if (!Services.DataManager.FileExists($"bg/{locationModel.TerritoryPath}.lvb"))
             {

@@ -1,7 +1,10 @@
 using ImGuiNET;
+using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using TitleEdit.Data.Persistence;
+using Action = System.Action;
 
 namespace TitleEdit.Utility
 {
@@ -145,6 +148,111 @@ namespace TitleEdit.Utility
         public static float GuiScale(float f)
         {
             return f * ImGui.GetIO().FontGlobalScale;
+        }
+
+        public static void DrawDisplayTypeTooltip(CharacterDisplayTypeOption value) => DrawDisplayTypeTooltip(value.Type, value.PresetPath);
+
+        public static void DrawDisplayTypeTooltip(CharacterDisplayType type, string? path = null)
+        {
+            DrawDisplayTypeTooltip(() =>
+            {
+                switch (type)
+                {
+                    case CharacterDisplayType.LastLocation:
+                        ImGui.TextWrapped("Last recorded character location, if nothing was recorded will default to the Nothing selected option");
+                        break;
+                    case CharacterDisplayType.Preset:
+                        DrawDisplayTypeTooltipPresetInfo(path, LocationType.CharacterSelect);
+                        break;
+                    case CharacterDisplayType.Random:
+                        DrawDisplayTypeTooltipGroupInfo(path, LocationType.CharacterSelect);
+                        break;
+                }
+            });
+        }
+
+        public static void DrawDisplayTypeTooltip(TitleDisplayTypeOption value) => DrawDisplayTypeTooltip(value.Type, value.PresetPath);
+
+        public static void DrawDisplayTypeTooltip(TitleDisplayType type, string? path = null)
+        {
+            DrawDisplayTypeTooltip(() =>
+            {
+                switch (type)
+                {
+                    case TitleDisplayType.Preset:
+                        DrawDisplayTypeTooltipPresetInfo(path, LocationType.TitleScreen);
+                        break;
+                    case TitleDisplayType.Random:
+                        DrawDisplayTypeTooltipGroupInfo(path, LocationType.TitleScreen);
+                        break;
+                }
+            });
+        }
+
+        public static void DrawPresetTooltip(string? path, LocationType? type = null) => DrawDisplayTypeTooltip(() => DrawDisplayTypeTooltipPresetInfo(path, type));
+        public static void DrawGroupTooltip(string? path, LocationType? type = null) => DrawDisplayTypeTooltip(() => DrawDisplayTypeTooltipGroupInfo(path, type));
+
+        private static void DrawDisplayTypeTooltip(Action contentAction)
+        {
+            HoverTooltip(() =>
+            {
+                ImGui.PushTextWrapPos(ImGui.GetFont().FontSize * 16);
+                contentAction.Invoke();
+                ImGui.PopTextWrapPos();
+            });
+        }
+
+
+        private static void DrawDisplayTypeTooltipPresetInfo(string? path = null, LocationType? type = null)
+        {
+            if (path != null && Services.PresetService.TryGetPreset(path, out var preset, type))
+            {
+                ImGui.TextWrapped($"{preset.LocationModel.LocationType.ToText()} preset");
+                if (preset.Tooltip != null)
+                {
+                    ImGui.TextWrapped(preset.Tooltip.Replace("%", "%%"));
+                }
+                else
+                {
+                    var territory = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(preset.LocationModel.TerritoryTypeId);
+                    if (territory != null)
+                    {
+                        ImGui.TextWrapped($"Zone: {territory.RowId} - {territory.PlaceNameRegion.Value?.Name} > {territory.PlaceName.Value?.Name}");
+                    }
+                    else
+                    {
+                        ImGui.TextWrapped($"Zone: Unknown");
+                    }
+                    if (!string.IsNullOrEmpty(preset.Author))
+                    {
+                        ImGui.TextWrapped($"Author: {preset.Author.Replace("%", "%%")}");
+                    }
+                }
+            }
+            else
+            {
+                ImGui.TextWrapped("Selected preset does not exist or failed to load");
+            }
+        }
+
+        private static void DrawDisplayTypeTooltipGroupInfo(string? path = null, LocationType? type = null)
+        {
+            if (path != null && Services.GroupService.TryGetGroup(path, out var group, type))
+            {
+                ImGui.TextWrapped($"{group.LocationType.ToText()} group");
+                if (group.Tooltip != null)
+                {
+                    ImGui.TextWrapped(group.Tooltip.Replace("%", "%%"));
+                }
+                else
+                {
+                    ImGui.TextWrapped($"Contains {group.PresetFileNames.Count} preset{(group.PresetFileNames.Count > 1 ? "s" : "")}");
+                }
+            }
+            else
+            {
+                ImGui.TextWrapped("Selected group does not exist or failed to load");
+            }
         }
     }
 }

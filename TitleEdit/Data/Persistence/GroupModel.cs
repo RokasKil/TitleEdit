@@ -5,12 +5,16 @@ namespace TitleEdit.Data.Persistence
 {
     public struct GroupModel
     {
-        public int? Version = 1;
+        public readonly static int CurrentVersion = 1;
+
+        public int? Version = CurrentVersion;
         public string Name = "";
         public LocationType LocationType = LocationType.TitleScreen;
-        public List<string> PresetFileNames = [];
+        public List<string?> PresetFileNames = [];
         [NonSerialized]
         public string FileName = "";
+        [NonSerialized]
+        public string? Tooltip = null;
 
         public GroupModel()
         {
