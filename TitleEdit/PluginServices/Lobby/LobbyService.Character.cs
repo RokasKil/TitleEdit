@@ -102,13 +102,6 @@ namespace TitleEdit.PluginServices.Lobby
                             CurrentCharacter->CompanionObject->Character.GameObject.EnableDraw();
                         }
                     }
-                    // Tell camera to follow the character
-                    CameraFollowCharacter(CurrentCharacter);
-                }
-                else
-                {
-                    // Tell camera to look at last recorded position
-                    CameraLookAtLastPosition();
                 }
             }
         }
@@ -156,7 +149,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (CurrentCharacter != null)
             {
-                CurrentCharacter->GameObject.SetRotation(chracterSelectLocationModel.Rotation);
+                CurrentCharacter->GameObject.SetRotation(characterSelectLocationModel.Rotation);
             }
         }
 
@@ -190,9 +183,9 @@ namespace TitleEdit.PluginServices.Lobby
             Services.Log.Debug("Nothing selected");
             lastContentId = 0;
             var newLocationModel = GetNothingSelectedLocation();
-            if (!newLocationModel.Equals(chracterSelectLocationModel))
+            if (!newLocationModel.Equals(characterSelectLocationModel))
             {
-                chracterSelectLocationModel = GetNothingSelectedLocation();
+                characterSelectLocationModel = GetNothingSelectedLocation();
                 resetScene = true;
 
             }
@@ -261,17 +254,17 @@ namespace TitleEdit.PluginServices.Lobby
                     lastContentId = contentId;
 
                     var newLocationModel = GetLocationForContentId(contentId);
-                    if (!newLocationModel.Equals(chracterSelectLocationModel))
+                    if (!newLocationModel.Equals(characterSelectLocationModel))
                     {
-                        chracterSelectLocationModel = newLocationModel;
+                        characterSelectLocationModel = newLocationModel;
                         resetScene = true;
                     }
                     Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
-                    CurrentCharacter->GameObject.SetPosition(chracterSelectLocationModel.Position.X, chracterSelectLocationModel.Position.Y, chracterSelectLocationModel.Position.Z);
-                    ((CharacterExpanded*)CurrentCharacter)->MovementMode = chracterSelectLocationModel.MovementMode;
-                    if (CurrentCharacter->Mount.MountId != chracterSelectLocationModel.Mount.MountId)
+                    CurrentCharacter->GameObject.SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
+                    ((CharacterExpanded*)CurrentCharacter)->MovementMode = characterSelectLocationModel.MovementMode;
+                    if (CurrentCharacter->Mount.MountId != characterSelectLocationModel.Mount.MountId)
                     {
-                        SetupMount(CurrentCharacter, chracterSelectLocationModel);
+                        SetupMount(CurrentCharacter, characterSelectLocationModel);
                     }
                 }
             }
@@ -290,11 +283,11 @@ namespace TitleEdit.PluginServices.Lobby
         private void SetupMount(Character* character, LocationModel location)
         {
             character->Mount.CreateAndSetupMount(
-                (short)chracterSelectLocationModel.Mount.MountId,
-                chracterSelectLocationModel.Mount.BuddyModelTop,
-                chracterSelectLocationModel.Mount.BuddyModelBody,
-                chracterSelectLocationModel.Mount.BuddyModelLegs,
-                chracterSelectLocationModel.Mount.BuddyStain,
+                (short)characterSelectLocationModel.Mount.MountId,
+                characterSelectLocationModel.Mount.BuddyModelTop,
+                characterSelectLocationModel.Mount.BuddyModelBody,
+                characterSelectLocationModel.Mount.BuddyModelLegs,
+                characterSelectLocationModel.Mount.BuddyStain,
                 0, 0);
         }
     }

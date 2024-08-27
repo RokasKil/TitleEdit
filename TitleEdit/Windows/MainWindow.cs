@@ -1,10 +1,10 @@
-using TitleEdit.Utility;
 using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using ImGuiNET;
 using System;
 using System.Linq;
 using System.Numerics;
+using TitleEdit.Utility;
 
 namespace TitleEdit.Windows;
 
@@ -50,6 +50,11 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle(test1) / Math.PI * 180}");
             ImGui.SliderFloat($"Testing normalizer", ref test2, -720, 720);
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle((float)(test2 / 180 * Math.PI)) / Math.PI * 180}");
+            if (ImGui.Button("Remigrate title screens"))
+            {
+
+                Services.MigrationService.MigrateTitleScreenV2Presets();
+            }
         }
     }
 }

@@ -76,7 +76,7 @@ namespace TitleEdit.PluginServices.Migration
                 preset.LocationModel.TerritoryTypeId = (ushort)Services.LocationService.TerritoryPathsReverse.GetValueOrDefault(oldPreset.TerritoryPath);
                 preset.LocationModel.Position = oldPreset.CameraPos.Value;
                 preset.LocationModel.CameraPosition = oldPreset.CameraPos.Value;
-                (preset.LocationModel.Yaw, preset.LocationModel.Pitch) = Utils.GetAnglesFromVector(oldPreset.CameraPos.Value - oldPreset.FixOnPos.Value);
+                (preset.LocationModel.Yaw, preset.LocationModel.Pitch) = Utils.GetAnglesFromVector(oldPreset.FixOnPos.Value - oldPreset.CameraPos.Value);
                 preset.LocationModel.Roll = 0;
                 preset.LocationModel.Fov = oldPreset.FovY.Value;
                 preset.LocationModel.WeatherId = oldPreset.WeatherId.Value;

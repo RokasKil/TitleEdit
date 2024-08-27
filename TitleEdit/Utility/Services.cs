@@ -21,6 +21,7 @@ namespace TitleEdit.Utility
         [PluginService] public static IGameInteropProvider GameInteropProvider { get; set; } = null!;
         [PluginService] public static IFramework Framework { get; set; } = null!;
         [PluginService] public static ICommandManager CommandManager { get; set; } = null!;
+        [PluginService] public static IAddonLifecycle AddonLifecycle { get; set; } = null!;
         public static IDalamudPluginInterface PluginInterface { get; set; } = null!;
         public static ConfigurationService ConfigurationService { get; set; } = null!;
         public static LayoutService LayoutService { get; set; } = null!;

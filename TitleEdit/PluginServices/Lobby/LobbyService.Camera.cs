@@ -19,6 +19,8 @@ namespace TitleEdit.PluginServices.Lobby
         private Hook<CalculateCameraCurveLowAndHighPointDelegate> calculateCameraCurveLowAndHighPointHook = null!;
         private Hook<LobbySceneLoadedDelegate> lobbySceneLoadedHook = null!;
 
+        private LobbyCameraExpanded* LobbyCamera => (LobbyCameraExpanded*)(FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager.Instance()->LobbCamera);
+
         private float recordedYaw = 0;
         private float recordedPitch = 0;
         private float recordedDistance = 3.3f;
@@ -48,89 +50,121 @@ namespace TitleEdit.PluginServices.Lobby
             lobbySceneLoadedHook = Hook<LobbySceneLoadedDelegate>("E8 ?? ?? ?? ?? 41 0F B7 CE 40 88 2D", LobbySceneLoadedDetour);
         }
 
-        private void CameraFollowCharacter(Character* currentChar)
+        //TODO: FIGURE OUT THE NOISE ISSUE WHEN TITLE AND CHARACTER SELECT SCREEN BOTH USE THE SAME LEVEL
+        private void CameraTick()
         {
-            var camera = GetCamera();
-            if (camera != null)
+            if (LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector == new Vector3(0, 0, 0))
             {
-
-                var drawObject = (CharacterBase*)currentChar->GameObject.GetDrawObject();
-                var cameraFollowMode = GetCameraFollowMode();
-                Vector3 lookAt;
-                if (drawObject != null && drawObject->DrawObject.IsVisible && cameraFollowMode == CameraFollowMode.ModelPosition)
+                Services.Log.Debug("CAMERA lookat 0 EEEEEEEEE");
+            }
+            if (CurrentLobbyMap == GameLobbyType.CharaSelect)
+            {
+                if (CurrentCharacter != null)
                 {
-                    lookAt = drawObject->Skeleton->Transform.Position;
+                    // Tell camera to follow the character
+                    CameraFollowCharacter(CurrentCharacter);
                 }
                 else
                 {
-                    lookAt = currentChar->GameObject.Position;
+                    // Tell camera to look at last recorded position
+                    CameraLookAtLastPosition();
                 }
-                lookAt.Y = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
-                camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(lookAt);
-                lastLowPoint = camera->LowPoint.Value;
-                lastMidPoint = camera->MidPoint.Value;
-                lastHighPoint = camera->HighPoint.Value;
-                lastLookAt = camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector;
             }
+            else if (CurrentLobbyMap == GameLobbyType.Title)
+            {
+                if (titleScreenLocationModel.TitleScreenOverride == null)
+                {
+                    CameraSetTitleScreenPosition();
+                }
+            }
+            else
+            {
+
+                if (LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector == new Vector3(0, 0, 0))
+                {
+                    Services.Log.Debug("CAMERA lookat 0 AAAAAAAAA");
+                }
+            }
+            if (LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector == new Vector3(0, 0, 0))
+            {
+                Services.Log.Debug("CAMERA lookat 0 BBBBBB");
+            }
+        }
+
+        private void CameraFollowCharacter(Character* currentChar)
+        {
+
+            var drawObject = (CharacterBase*)currentChar->GameObject.GetDrawObject();
+            var cameraFollowMode = GetCameraFollowMode();
+            Vector3 lookAt;
+            if (drawObject != null && drawObject->DrawObject.IsVisible && cameraFollowMode == CameraFollowMode.ModelPosition)
+            {
+                lookAt = drawObject->Skeleton->Transform.Position;
+            }
+            else
+            {
+                lookAt = currentChar->GameObject.Position;
+            }
+            lookAt.Y = LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(lookAt);
+            lastLowPoint = LobbyCamera->LowPoint.Value;
+            lastMidPoint = LobbyCamera->MidPoint.Value;
+            lastHighPoint = LobbyCamera->HighPoint.Value;
+            lastLookAt = LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector;
+
         }
 
         private void ResetLastCameraLookAtValues()
         {
-            lastLowPoint = 1.4350828f + chracterSelectLocationModel.Position.Y;
-            lastMidPoint = 0.85870504f + chracterSelectLocationModel.Position.Y;
-            lastHighPoint = 0.6742642f + chracterSelectLocationModel.Position.Y;
-            lastLookAt = chracterSelectLocationModel.Position;
+            lastLowPoint = 1.4350828f + characterSelectLocationModel.Position.Y;
+            lastMidPoint = 0.85870504f + characterSelectLocationModel.Position.Y;
+            lastHighPoint = 0.6742642f + characterSelectLocationModel.Position.Y;
+            lastLookAt = characterSelectLocationModel.Position;
         }
 
         private void CameraLookAtLastPosition()
         {
-            var camera = GetCamera();
-            if (camera != null)
-            {
-                camera->LowPoint.Value = lastLowPoint;
-                camera->MidPoint.Value = lastMidPoint;
-                camera->HighPoint.Value = lastHighPoint;
-                camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = new(lastLookAt.X, camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y, lastLookAt.Z);
-            }
+            LobbyCamera->LowPoint.Value = lastLowPoint;
+            LobbyCamera->MidPoint.Value = lastMidPoint;
+            LobbyCamera->HighPoint.Value = lastHighPoint;
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = new(lastLookAt.X, LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y, lastLookAt.Z);
+        }
+
+        private void CameraSetTitleScreenPosition()
+        {
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.Position = titleScreenLocationModel.CameraPosition;
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(titleScreenLocationModel.CameraPosition + Utils.GetVectorFromAngles(titleScreenLocationModel.Yaw, titleScreenLocationModel.Pitch));
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.RenderCamera->FoV = titleScreenLocationModel.Fov;
         }
 
         private void ResetCameraLookAtOnExitCharacterSelect()
         {
-            var camera = GetCamera();
             ResetCameraRecordedRotation();
-            if (camera != null)
-            {
-                camera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = Vector3.Zero;
-            }
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = Vector3.Zero;
+
         }
 
         private void ModifyCamera()
         {
-            var camera = GetCamera();
-            if (camera != null)
+            LobbyCamera->LobbyCamera.Camera.MaxDistance = 20;
+            if (!cameraModified)
             {
-                camera->LobbyCamera.Camera.MaxDistance = 20;
-                if (!cameraModified)
-                {
-                    camera->MidPoint.Position = 10;
-                    camera->HighPoint.Position = 20;
-                    cameraModified = true;
-                }
+                LobbyCamera->MidPoint.Position = 10;
+                LobbyCamera->HighPoint.Position = 20;
+                cameraModified = true;
             }
+
         }
 
         private void ClearCameraModifications()
         {
             if (cameraModified)
             {
-                var camera = GetCamera();
-                if (camera != null)
-                {
-                    camera->MidPoint.Position = 3.3f;
-                    camera->HighPoint.Position = 5.5f;
-                    camera->LobbyCamera.Camera.MaxDistance = 5.5f;
-                    cameraModified = false;
-                }
+                LobbyCamera->MidPoint.Position = 3.3f;
+                LobbyCamera->HighPoint.Position = 5.5f;
+                LobbyCamera->LobbyCamera.Camera.MaxDistance = 5.5f;
+                cameraModified = false;
+
                 ResetCameraRecordedRotation();
             }
         }
@@ -140,17 +174,13 @@ namespace TitleEdit.PluginServices.Lobby
             // Prevent overwriting camera location when going through characters rapidly (switching while a scene is still loading)
             if (!rotationJustRecorded)
             {
-                var camera = GetCamera();
-                if (camera != null)
-                {
-                    recordedYaw = camera->Yaw;
-                    recordedPitch = camera->Pitch;
-                    recordedDistance = camera->LobbyCamera.Camera.Distance;
-                    rotationJustRecorded = true;
-                    recordedYaw -= lastCharacterRotation;
-                    recordedYaw = Utils.NormalizeAngle(recordedYaw);
-                    Services.Log.Debug($"Recorded rotation {recordedYaw} {recordedPitch} {recordedDistance}");
-                }
+                recordedYaw = LobbyCamera->Yaw;
+                recordedPitch = LobbyCamera->Pitch;
+                recordedDistance = LobbyCamera->LobbyCamera.Camera.Distance;
+                rotationJustRecorded = true;
+                recordedYaw -= lastCharacterRotation;
+                recordedYaw = Utils.NormalizeAngle(recordedYaw);
+                Services.Log.Debug($"Recorded rotation {recordedYaw} {recordedPitch} {recordedDistance}");
             }
         }
 
@@ -174,23 +204,19 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void SetCameraRotation()
         {
-            var camera = GetCamera();
-            if (camera != null)
-            {
-                camera->Yaw = Utils.NormalizeAngle(recordedYaw);
-                camera->Pitch = recordedPitch;
-                camera->LobbyCamera.Camera.Distance = recordedDistance;
-                camera->LobbyCamera.Camera.InterpDistance = recordedDistance;
-            }
+            LobbyCamera->Yaw = Utils.NormalizeAngle(recordedYaw);
+            LobbyCamera->Pitch = recordedPitch;
+            LobbyCamera->LobbyCamera.Camera.Distance = recordedDistance;
+            LobbyCamera->LobbyCamera.Camera.InterpDistance = recordedDistance;
+
             rotationJustRecorded = false;
             Services.Log.Debug($"Loaded rotation {recordedYaw} {recordedPitch} {recordedDistance}");
-            if (camera != null)
-            {
-                camera->Yaw = Utils.NormalizeAngle(camera->Yaw + chracterSelectLocationModel.Rotation);
-            }
+
+            LobbyCamera->Yaw = Utils.NormalizeAngle(LobbyCamera->Yaw + characterSelectLocationModel.Rotation);
+
             RotateCharacter();
 
-            Services.Log.Debug($"After load rotation {camera->Yaw} {camera->Pitch} {camera->LobbyCamera.Camera.Distance}");
+            Services.Log.Debug($"After load rotation {LobbyCamera->Yaw} {LobbyCamera->Pitch} {LobbyCamera->LobbyCamera.Camera.Distance}");
         }
 
 
@@ -215,14 +241,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private CameraFollowMode GetCameraFollowMode()
         {
-            return chracterSelectLocationModel.CameraFollowMode == CameraFollowMode.Inherit ? Services.ConfigurationService.CameraFollowMode : chracterSelectLocationModel.CameraFollowMode; ;
-        }
-
-        //Can probably cache this?
-        private LobbyCameraExpanded* GetCamera()
-        {
-            var cameraManager = FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager.Instance();
-            return cameraManager != null ? (LobbyCameraExpanded*)cameraManager->LobbCamera : null;
+            return characterSelectLocationModel.CameraFollowMode == CameraFollowMode.Inherit ? Services.ConfigurationService.CameraFollowMode : characterSelectLocationModel.CameraFollowMode; ;
         }
 
         //yaw = -0.429

@@ -51,7 +51,7 @@ namespace TitleEdit.Utility
         public static Vector3 GetVectorFromAngles(float yaw, float pitch)
         {
             var xzLen = MathF.Cos(pitch);
-            return new(xzLen * MathF.Sin(-yaw), MathF.Sin(pitch), xzLen * MathF.Cos(yaw));
+            return new(xzLen * MathF.Sin(yaw), MathF.Sin(pitch), xzLen * MathF.Cos(yaw));
         }
 
         public static (float yaw, float pitch) GetAnglesFromVector(Vector3 vector)

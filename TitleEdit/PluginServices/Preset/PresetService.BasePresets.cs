@@ -21,6 +21,66 @@ namespace TitleEdit.PluginServices.Preset
                 }
             });
 
+            AddPreset(new()
+            {
+                Name = "Heavensward",
+                Tooltip = "Vanilla Heavensward title screen",
+                FileName = "?/Heavensward.json",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.TitleScreen,
+                    TitleScreenOverride = TitleScreenExpansion.Heavensward
+                }
+            });
+
+            AddPreset(new()
+            {
+                Name = "Stormblood",
+                Tooltip = "Vanilla Stormblood title screen",
+                FileName = "?/Stormblood.json",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.TitleScreen,
+                    TitleScreenOverride = TitleScreenExpansion.Stormblood
+                }
+            });
+
+            AddPreset(new()
+            {
+                Name = "Shadowbringers",
+                Tooltip = "Vanilla Shadowbringers title screen",
+                FileName = "?/Shadowbringers.json",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.TitleScreen,
+                    TitleScreenOverride = TitleScreenExpansion.Shadowbringers
+                }
+            });
+
+            AddPreset(new()
+            {
+                Name = "Endwalker",
+                Tooltip = "Vanilla Endwalker title screen",
+                FileName = "?/Endwalker.json",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.TitleScreen,
+                    TitleScreenOverride = TitleScreenExpansion.Endwalker
+                }
+            });
+
+            AddPreset(new()
+            {
+                Name = "Dawntrail",
+                Tooltip = "Vanilla Dawntrail title screen",
+                FileName = "?/Dawntrail.json",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.TitleScreen,
+                    TitleScreenOverride = TitleScreenExpansion.Dawntrail
+                }
+            });
+
             // Character select
             AddPreset(new()
             {

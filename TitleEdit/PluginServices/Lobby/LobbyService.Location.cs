@@ -10,7 +10,7 @@ namespace TitleEdit.PluginServices.Lobby
     public unsafe partial class LobbyService
     {
 
-        private LocationModel chracterSelectLocationModel;
+        private LocationModel characterSelectLocationModel;
 
         private LocationModel titleScreenLocationModel;
 
@@ -100,24 +100,24 @@ namespace TitleEdit.PluginServices.Lobby
         // TODO: Rework
         public void Apply(PresetModel preset)
         {
-            chracterSelectLocationModel = preset.LocationModel;
-            chracterSelectLocationModel.CameraFollowMode = preset.CameraFollowMode;
-            chracterSelectLocationModel.Position = OffsetPosition(chracterSelectLocationModel.Position);
+            characterSelectLocationModel = preset.LocationModel;
+            characterSelectLocationModel.CameraFollowMode = preset.CameraFollowMode;
+            characterSelectLocationModel.Position = OffsetPosition(characterSelectLocationModel.Position);
             Services.Log.Debug("Applying location model");
             if (CurrentCharacter != null)
             {
                 var contentId = AgentLobby->LobbyData.CharaSelectEntries[AgentLobby->HoveredCharacterIndex].Value->ContentId;
                 if (preset.LastLocationMount)
                 {
-                    chracterSelectLocationModel.Mount = Services.LocationService.GetLocationModel(contentId).Mount;
+                    characterSelectLocationModel.Mount = Services.LocationService.GetLocationModel(contentId).Mount;
                 }
                 Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
-                CurrentCharacter->GameObject.SetPosition(chracterSelectLocationModel.Position.X, chracterSelectLocationModel.Position.Y, chracterSelectLocationModel.Position.Z);
-                ((CharacterExpanded*)CurrentCharacter)->MovementMode = chracterSelectLocationModel.MovementMode;
+                CurrentCharacter->GameObject.SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
+                ((CharacterExpanded*)CurrentCharacter)->MovementMode = characterSelectLocationModel.MovementMode;
 
-                if (CurrentCharacter->Mount.MountId != chracterSelectLocationModel.Mount.MountId)
+                if (CurrentCharacter->Mount.MountId != characterSelectLocationModel.Mount.MountId)
                 {
-                    SetupMount(CurrentCharacter, chracterSelectLocationModel);
+                    SetupMount(CurrentCharacter, characterSelectLocationModel);
                 }
 
 
@@ -154,7 +154,7 @@ namespace TitleEdit.PluginServices.Lobby
             if (presetPath != null && Services.PresetService.TryGetPreset(presetPath, out var preset, type))
             {
                 model = preset.LocationModel;
-                chracterSelectLocationModel.CameraFollowMode = preset.CameraFollowMode;
+                characterSelectLocationModel.CameraFollowMode = preset.CameraFollowMode;
             }
             else
             {

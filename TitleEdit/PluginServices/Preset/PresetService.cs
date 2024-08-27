@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
@@ -126,7 +127,7 @@ namespace TitleEdit.PluginServices.Preset
                 try
                 {
                     Services.Log.Debug($"Exporting {preset.FileName}");
-                    return JsonConvert.SerializeObject(preset);
+                    return "TE3" + Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(preset)));
                 }
                 catch (Exception e)
                 {
@@ -157,6 +158,10 @@ namespace TitleEdit.PluginServices.Preset
             PresetModel preset;
             try
             {
+                if (textData.StartsWith("TE2") || textData.StartsWith("TE3"))
+                {
+                    textData = Encoding.UTF8.GetString(Convert.FromBase64String(textData[3..]));
+                }
                 preset = LoadText(textData);
             }
             catch (Exception e)

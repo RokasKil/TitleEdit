@@ -23,16 +23,22 @@ namespace TitleEdit.PluginServices.Lobby
         private readonly Hook<LoadLobbyScene> loadLobbySceneHook;
         private readonly Hook<UpdateLobbyUiStage> updateLobbyUiStageHook;
 
+        // Probably some lobby instance
+        private nint lobbyStructAddress;
+
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.None;
         private GameLobbyType lastSceneType = GameLobbyType.None;
         private GameLobbyType loadingLobbyType = GameLobbyType.None;
+
 
 
         private bool resetScene = false;
 
         private readonly GameLobbyType* lobbyCurrentMapAddress;
 
-        private byte lastLobbyUiStage = 0;
+        private LobbyUiStage lastLobbyUiStage = 0;
+
+        private LobbyUiStage LobbyUiStage => (LobbyUiStage)AgentLobby->LobbyUIStage;
 
         public GameLobbyType CurrentLobbyMap
         {
@@ -43,6 +49,10 @@ namespace TitleEdit.PluginServices.Lobby
         public LobbyService()
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
+
+
+            // Points to a struct with a value that indicates the current lobby bgm and current title screen type (among other things)
+            lobbyStructAddress = Utils.GetStaticAddressFromSigOrThrow("66 0F 7F 05 ?? ?? ?? ?? 4C 89 35");
 
             // Points to a Value that says what Type of lobby map is being displayer
             lobbyCurrentMapAddress = (GameLobbyType*)Utils.GetStaticAddressFromSigOrThrow("0F B7 05 ?? ?? ?? ?? 48 8B CE");
@@ -63,6 +73,7 @@ namespace TitleEdit.PluginServices.Lobby
             HookCharacter();
             HookCamera();
             HookSong();
+            HookTitle();
         }
 
         public override void Init()
@@ -72,12 +83,13 @@ namespace TitleEdit.PluginServices.Lobby
             Services.Framework.Update += Tick;
             if (CurrentCharacter != null)
             {
-                chracterSelectLocationModel = GetLocationForContentId(GetContentId());
+                characterSelectLocationModel = GetLocationForContentId(GetContentId());
             }
             else
             {
-                chracterSelectLocationModel = GetNothingSelectedLocation();
+                characterSelectLocationModel = GetNothingSelectedLocation();
             }
+            titleScreenLocationModel = GetTitleLocation();
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 resetScene = true;
@@ -99,6 +111,7 @@ namespace TitleEdit.PluginServices.Lobby
         private void Tick(IFramework framework)
         {
             CharacterTick();
+            CameraTick();
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 ModifyCamera();
@@ -115,22 +128,31 @@ namespace TitleEdit.PluginServices.Lobby
         {
             try
             {
-                Services.Log.Debug($"Loading Scene {(loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType)}");
-                if ((loadingLobbyType == GameLobbyType.None && lastLobbyUpdateMapId == GameLobbyType.CharaSelect) || loadingLobbyType == GameLobbyType.CharaSelect)
+                var lobbyType = loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType;
+                Services.Log.Debug($"Loading Scene {lobbyType}");
+                if (lobbyType == GameLobbyType.CharaSelect)
                 {
                     ResetLastCameraLookAtValues();
-                    territoryPath = chracterSelectLocationModel.TerritoryPath;
+                    territoryPath = characterSelectLocationModel.TerritoryPath;
                     Services.Log.Debug($"Loading char select screen: {territoryPath}");
                     var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
-                    if ((!chracterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != chracterSelectLocationModel.BgmPath) ||
+                    if ((!characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != characterSelectLocationModel.BgmPath) ||
                         // TODO: check if this is fine
-                        (chracterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel.BgmPath))
+                        (characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel.BgmPath))
                     {
                         ResetSongIndex();
                     }
                     return returnVal;
                 }
-                else if (lastSceneType == GameLobbyType.CharaSelect)
+                else if (lobbyType == GameLobbyType.Title && titleScreenLocationModel.TitleScreenOverride == null)
+                {
+                    territoryPath = titleScreenLocationModel.TerritoryPath;
+                    Services.Log.Debug($"Loading title screen: {territoryPath}");
+                    var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
+                    return returnVal;
+                }
+
+                if (lastSceneType == GameLobbyType.CharaSelect)
                 {
                     // always reset camera when leaving character select
                     ResetCameraLookAtOnExitCharacterSelect();
@@ -183,16 +205,21 @@ namespace TitleEdit.PluginServices.Lobby
         private void HandleLobbyUiStage()
         {
 
-            if (lastLobbyUiStage != AgentLobby->LobbyUIStage)
+            if (lastLobbyUiStage != LobbyUiStage)
             {
-                Services.Log.Debug($"LobbyUiStage updated {lastLobbyUiStage} to {AgentLobby->LobbyUIStage}, {CurrentLobbyMap}, {lastSceneType}, {loadingLobbyType}");
-                lastLobbyUiStage = AgentLobby->LobbyUIStage;
+                Services.Log.Debug($"LobbyUiStage updated {lastLobbyUiStage} to {LobbyUiStage}, {CurrentLobbyMap}, {lastSceneType}, {loadingLobbyType}");
+                lastLobbyUiStage = LobbyUiStage;
+                if (LobbyUiStage == LobbyUiStage.EnteringTitleScreen || LobbyUiStage == LobbyUiStage.LoadingSplashScreen)
+                {
+                    EnteringTitleScreen();
+                }
             }
         }
 
         public override void Dispose()
         {
             base.Dispose();
+            DisposeTitle();
             Services.Framework.Update -= Tick;
             // Resetting the character select thingy on unload
             // If this thing causes any troubles we axe it and tell the users to not do it :)
