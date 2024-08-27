@@ -1,21 +1,28 @@
+using FFXIVClientStructs.FFXIV.Common.Math;
+using System;
+using System.Linq;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using FFXIVClientStructs.FFXIV.Common.Math;
 
 namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
 
-        private LocationModel locationModel;
+        private LocationModel chracterSelectLocationModel;
+
+        private LocationModel titleScreenLocationModel;
+
+        private Random random = new();
 
         private LocationModel GetLocationForContentId(ulong contentId)
         {
             var displayOverrideIdx = Services.ConfigurationService.DisplayTypeOverrides.FindIndex((entry) => entry.Key == contentId);
+
             CharacterDisplayTypeOption displayOption;
             LocationModel model;
+
             if (displayOverrideIdx != -1)
             {
                 displayOption = Services.ConfigurationService.DisplayTypeOverrides[displayOverrideIdx].Value;
@@ -24,6 +31,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 displayOption = Services.ConfigurationService.GlobalDisplayType;
             }
+
             if (displayOption.Type == CharacterDisplayType.LastLocation)
             {
                 if (!Services.LocationService.Locations.TryGetValue(contentId, out model))
@@ -31,26 +39,17 @@ namespace TitleEdit.PluginServices.Lobby
                     model = GetNothingSelectedLocation();
                 }
             }
-            else if (displayOption.Type == CharacterDisplayType.AetherialSea)
+            else if (displayOption.Type == CharacterDisplayType.Preset)
             {
-                model = LocationService.DefaultLocation;
+                model = GetPresetLocationModel(displayOption.PresetPath, LocationType.CharacterSelect);
+            }
+            else if (displayOption.Type == CharacterDisplayType.Random)
+            {
+                model = GetGroupLocationModel(displayOption.PresetPath, LocationType.CharacterSelect);
             }
             else
             {
-                if (displayOption.PresetPath != null && Services.PresetService.TryGetPreset(displayOption.PresetPath, out var preset, LocationType.CharacterSelect))
-                {
-                    model = preset.LocationModel;
-                    if (preset.LastLocationMount)
-                    {
-                        locationModel.Mount = Services.LocationService.GetLocationModel(contentId).Mount;
-                    }
-                    locationModel.CameraFollowMode = preset.CameraFollowMode;
-                }
-                else
-                {
-                    Services.Log.Error($"Preset \"{displayOption.PresetPath}\" not found");
-                    model = LocationService.DefaultLocation;
-                }
+                model = Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel;
             }
 
             model.Position = OffsetPosition(model.Position);
@@ -61,54 +60,108 @@ namespace TitleEdit.PluginServices.Lobby
         {
             var displayOption = Services.ConfigurationService.NoCharacterDisplayType;
             LocationModel model;
-            if (displayOption.Type == CharacterDisplayType.AetherialSea || displayOption.Type == CharacterDisplayType.LastLocation)
+            if (displayOption.Type == CharacterDisplayType.Preset)
             {
-                model = LocationService.DefaultLocation;
+                model = GetPresetLocationModel(displayOption.PresetPath, LocationType.CharacterSelect);
+            }
+            else if (displayOption.Type == CharacterDisplayType.Random)
+            {
+                model = GetGroupLocationModel(displayOption.PresetPath, LocationType.CharacterSelect);
             }
             else
             {
-                if (displayOption.PresetPath != null && Services.PresetService.TryGetPreset(displayOption.PresetPath, out var preset, LocationType.CharacterSelect))
-                {
-                    model = preset.LocationModel;
-                    locationModel.CameraFollowMode = preset.CameraFollowMode;
-                }
-                else
-                {
-                    Services.Log.Error($"Preset \"{displayOption.PresetPath}\" not found");
-                    model = LocationService.DefaultLocation;
-                }
+                model = Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel;
             }
             model.Position = OffsetPosition(model.Position);
             return model;
         }
 
+        private LocationModel GetTitleLocation()
+        {
+            var displayOption = Services.ConfigurationService.TitleDisplayTypeOption;
+            LocationModel model;
+            if (displayOption.Type == TitleDisplayType.Preset)
+            {
+                model = GetPresetLocationModel(displayOption.PresetPath, LocationType.TitleScreen);
+            }
+            else if (displayOption.Type == TitleDisplayType.Random)
+            {
+                model = GetGroupLocationModel(displayOption.PresetPath, LocationType.TitleScreen);
+            }
+            else
+            {
+                model = Services.PresetService.GetDefaultPreset(LocationType.TitleScreen).LocationModel;
+            }
+            // TODO: is this needed
+            model.CameraPosition = OffsetPosition(model.CameraPosition);
+            return model;
+        }
 
+        // TODO: Rework
         public void Apply(PresetModel preset)
         {
-            var agentLobby = AgentLobby.Instance();
-            locationModel = preset.LocationModel;
-            locationModel.CameraFollowMode = preset.CameraFollowMode;
-            locationModel.Position = OffsetPosition(locationModel.Position);
+            chracterSelectLocationModel = preset.LocationModel;
+            chracterSelectLocationModel.CameraFollowMode = preset.CameraFollowMode;
+            chracterSelectLocationModel.Position = OffsetPosition(chracterSelectLocationModel.Position);
             Services.Log.Debug("Applying location model");
-            if (CurrentCharacter != null && agentLobby != null)
+            if (CurrentCharacter != null)
             {
-                var contentId = agentLobby->LobbyData.CharaSelectEntries[agentLobby->HoveredCharacterIndex].Value->ContentId;
+                var contentId = AgentLobby->LobbyData.CharaSelectEntries[AgentLobby->HoveredCharacterIndex].Value->ContentId;
                 if (preset.LastLocationMount)
                 {
-                    locationModel.Mount = Services.LocationService.GetLocationModel(contentId).Mount;
+                    chracterSelectLocationModel.Mount = Services.LocationService.GetLocationModel(contentId).Mount;
                 }
                 Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
-                CurrentCharacter->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
-                ((CharacterExpanded*)CurrentCharacter)->MovementMode = locationModel.MovementMode;
+                CurrentCharacter->GameObject.SetPosition(chracterSelectLocationModel.Position.X, chracterSelectLocationModel.Position.Y, chracterSelectLocationModel.Position.Z);
+                ((CharacterExpanded*)CurrentCharacter)->MovementMode = chracterSelectLocationModel.MovementMode;
 
-                if (CurrentCharacter->Mount.MountId != locationModel.Mount.MountId)
+                if (CurrentCharacter->Mount.MountId != chracterSelectLocationModel.Mount.MountId)
                 {
-                    SetupMount(CurrentCharacter, locationModel);
+                    SetupMount(CurrentCharacter, chracterSelectLocationModel);
                 }
 
 
             }
             resetScene = true;
+        }
+
+        private LocationModel GetGroupLocationModel(string? groupPath, LocationType type)
+        {
+            LocationModel model;
+            if (groupPath != null && Services.GroupService.TryGetGroup(groupPath, out var group, type))
+            {
+                if (group.PresetFileNames.Count > 0)
+                {
+                    model = GetPresetLocationModel(group.PresetFileNames[random.Next(group.PresetFileNames.Count)], type);
+                }
+                else
+                {
+                    var presets = Services.PresetService.Presets.Where(preset => preset.Value.LocationModel.LocationType == type);
+                    model = GetPresetLocationModel(presets.Skip(random.Next(presets.Count())).FirstOrDefault().Key, type);
+                }
+            }
+            else
+            {
+                Services.Log.Error($"Group \"{groupPath}\" not found");
+                model = Services.PresetService.GetDefaultPreset(type).LocationModel;
+            }
+            return model;
+        }
+
+        private LocationModel GetPresetLocationModel(string? presetPath, LocationType type)
+        {
+            LocationModel model;
+            if (presetPath != null && Services.PresetService.TryGetPreset(presetPath, out var preset, type))
+            {
+                model = preset.LocationModel;
+                chracterSelectLocationModel.CameraFollowMode = preset.CameraFollowMode;
+            }
+            else
+            {
+                Services.Log.Error($"Preset \"{presetPath}\" not found");
+                model = Services.PresetService.GetDefaultPreset(type).LocationModel;
+            }
+            return model;
         }
 
         private Vector3 OffsetPosition(Vector3 position)

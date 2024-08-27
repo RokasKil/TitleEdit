@@ -52,23 +52,23 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
-                fixed (uint* pFestivals = locationModel.Festivals)
+                fixed (uint* pFestivals = chracterSelectLocationModel.Festivals)
                 {
                     Services.LayoutService.LayoutManager->SetActiveFestivals((GameMain.Festival*)pFestivals);
                 }
-                EnvManager.Instance()->ActiveWeather = locationModel.WeatherId;
-                SetTime(locationModel.TimeOffset);
+                EnvManager.Instance()->ActiveWeather = chracterSelectLocationModel.WeatherId;
+                SetTime(chracterSelectLocationModel.TimeOffset);
                 Services.Log.Debug($"SetWeather to {EnvManager.Instance()->ActiveWeather}");
-                if (locationModel.Active != null && locationModel.Inactive != null)
+                if (chracterSelectLocationModel.Active != null && chracterSelectLocationModel.Inactive != null)
                 {
                     List<ulong> unknownUUIDs = new();
                     Services.LayoutService.ForEachInstance(instance =>
                     {
-                        if (locationModel.Active.Contains(instance.Value->UUID()))
+                        if (chracterSelectLocationModel.Active.Contains(instance.Value->UUID()))
                         {
                             SetActive(instance.Value, true);
                         }
-                        else if (locationModel.Inactive.Contains(instance.Value->UUID()))
+                        else if (chracterSelectLocationModel.Inactive.Contains(instance.Value->UUID()))
                         {
                             SetActive(instance.Value, false);
                         }
@@ -104,7 +104,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void SetIndex(VfxLayoutInstance* instance)
         {
-            if (locationModel.VfxTriggerIndexes.TryGetValue(instance->ILayoutInstance.UUID(), out var index))
+            if (chracterSelectLocationModel.VfxTriggerIndexes.TryGetValue(instance->ILayoutInstance.UUID(), out var index))
             {
                 Services.LayoutService.SetVfxLayoutInstanceVfxTriggerIndex(instance, index);
             }

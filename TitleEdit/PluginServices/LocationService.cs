@@ -10,7 +10,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,16 +26,16 @@ namespace TitleEdit.PluginServices
     {
         private readonly static Regex FileNameRegex = new("^([A-F0-9]{16})\\.json$", RegexOptions.IgnoreCase);
 
-        public static readonly LocationModel DefaultLocation = new LocationModel
-        {
-            TerritoryPath = "ffxiv/zon_z1/chr/z1c1/level/z1c1",
-            Position = Vector3.Zero,
-            Rotation = 0,
-            WeatherId = 2,
-            TimeOffset = 0,
-            BgmPath = "music/ffxiv/BGM_System_Chara.scd",
-            Mount = new()
-        };
+        //public static readonly LocationModel DefaultLocation = new LocationModel
+        //{
+        //    TerritoryPath = "ffxiv/zon_z1/chr/z1c1/level/z1c1",
+        //    Position = Vector3.Zero,
+        //    Rotation = 0,
+        //    WeatherId = 2,
+        //    TimeOffset = 0,
+        //    BgmPath = "music/ffxiv/BGM_System_Chara.scd",
+        //    Mount = new()
+        //};
 
         //Move this to a different service?
         public unsafe ushort TimeOffset
@@ -376,7 +375,7 @@ namespace TitleEdit.PluginServices
             {
                 return locationModel;
             }
-            return DefaultLocation;
+            return Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel;
         }
 
         public void Validate(LocationModel locationModel)

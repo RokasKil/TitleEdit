@@ -1,22 +1,27 @@
-using TitleEdit.Data.BGM;
-using TitleEdit.Data.Lobby;
-using TitleEdit.Utility;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using TitleEdit.Data.BGM;
+using TitleEdit.Data.Lobby;
+using TitleEdit.Data.Persistence;
+using TitleEdit.Utility;
 
 namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService : AbstractService
     {
+        public AgentLobby* AgentLobby => FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLobby.Instance();
 
         private delegate int CreateSceneDelegate(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7);
         private delegate byte LobbyUpdateDelegate(GameLobbyType mapId, int time);
         private delegate void LoadLobbyScene(GameLobbyType mapId);
+        private delegate void UpdateLobbyUiStage(AgentLobby* agentLobby);
 
         private readonly Hook<CreateSceneDelegate> createSceneHook;
         private readonly Hook<LobbyUpdateDelegate> lobbyUpdateHook;
         private readonly Hook<LoadLobbyScene> loadLobbySceneHook;
+        private readonly Hook<UpdateLobbyUiStage> updateLobbyUiStageHook;
 
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.None;
         private GameLobbyType lastSceneType = GameLobbyType.None;
@@ -26,6 +31,8 @@ namespace TitleEdit.PluginServices.Lobby
         private bool resetScene = false;
 
         private readonly GameLobbyType* lobbyCurrentMapAddress;
+
+        private byte lastLobbyUiStage = 0;
 
         public GameLobbyType CurrentLobbyMap
         {
@@ -50,6 +57,8 @@ namespace TitleEdit.PluginServices.Lobby
             // Important because in those scenarios the game first loads the level and only then sets CurrentLobbyMap value so we can't rely on that
             loadLobbySceneHook = Hook<LoadLobbyScene>("E8 ?? ?? ?? ?? B0 ?? 88 86", LoadLobbySceneDetour);
 
+            updateLobbyUiStageHook = Hook<UpdateLobbyUiStage>(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLobby.Addresses.UpdateLobbyUIStage.String, UpdateLobbyUiStageDetour);
+
             HookLayout();
             HookCharacter();
             HookCamera();
@@ -63,11 +72,11 @@ namespace TitleEdit.PluginServices.Lobby
             Services.Framework.Update += Tick;
             if (CurrentCharacter != null)
             {
-                locationModel = GetLocationForContentId(GetContentId());
+                chracterSelectLocationModel = GetLocationForContentId(GetContentId());
             }
             else
             {
-                locationModel = GetNothingSelectedLocation();
+                chracterSelectLocationModel = GetNothingSelectedLocation();
             }
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
@@ -110,10 +119,12 @@ namespace TitleEdit.PluginServices.Lobby
                 if ((loadingLobbyType == GameLobbyType.None && lastLobbyUpdateMapId == GameLobbyType.CharaSelect) || loadingLobbyType == GameLobbyType.CharaSelect)
                 {
                     ResetLastCameraLookAtValues();
-                    territoryPath = locationModel.TerritoryPath;
+                    territoryPath = chracterSelectLocationModel.TerritoryPath;
                     Services.Log.Debug($"Loading char select screen: {territoryPath}");
                     var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
-                    if (!locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != locationModel.BgmPath || locationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != LocationService.DefaultLocation.BgmPath)
+                    if ((!chracterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != chracterSelectLocationModel.BgmPath) ||
+                        // TODO: check if this is fine
+                        (chracterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel.BgmPath))
                     {
                         ResetSongIndex();
                     }
@@ -160,6 +171,23 @@ namespace TitleEdit.PluginServices.Lobby
             }
 
             return lobbyUpdateHook.Original(mapId, time);
+        }
+
+        // Maybe can do this on Tick?
+        private void UpdateLobbyUiStageDetour(AgentLobby* agentLobby)
+        {
+            updateLobbyUiStageHook.Original(agentLobby);
+            HandleLobbyUiStage();
+        }
+
+        private void HandleLobbyUiStage()
+        {
+
+            if (lastLobbyUiStage != AgentLobby->LobbyUIStage)
+            {
+                Services.Log.Debug($"LobbyUiStage updated {lastLobbyUiStage} to {AgentLobby->LobbyUIStage}, {CurrentLobbyMap}, {lastSceneType}, {loadingLobbyType}");
+                lastLobbyUiStage = AgentLobby->LobbyUIStage;
+            }
         }
 
         public override void Dispose()

@@ -8,9 +8,9 @@ using System.Text.RegularExpressions;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 
-namespace TitleEdit.PluginServices
+namespace TitleEdit.PluginServices.Preset
 {
-    public class PresetService : AbstractService
+    public partial class PresetService : AbstractService
     {
         private readonly static Regex FileInvalidSymbolsRegex = new(@"[/\\:*?|""<>]");
 
@@ -33,19 +33,21 @@ namespace TitleEdit.PluginServices
 
         public override void LoadData()
         {
+            LoadBasePresets();
             LoadSavedPresets();
         }
 
         private void LoadSavedPresets()
         {
-            foreach (var file in saveDirectory.EnumerateFiles())
+            Utils.IterateFiles(saveDirectory, (file, relativePath) =>
             {
+                var relativeFilePath = Path.Join(relativePath, file.Name);
                 if (file.Name.EndsWith(".json", true, null))
                 {
-                    Services.Log.Debug($"Loading {file.Name}");
+                    Services.Log.Debug($"Loading {relativeFilePath}");
                     try
                     {
-                        var preset = Load(file.FullName);
+                        var preset = Load(file.FullName, relativePath: relativePath);
                         presets[preset.FileName] = preset;
                     }
                     catch (Exception e)
@@ -55,12 +57,11 @@ namespace TitleEdit.PluginServices
                 }
                 else
                 {
-                    Services.Log.Debug($"Unknown file in preset directory {file.Name}");
+                    Services.Log.Debug($"Unknown file in preset directory {relativeFilePath}");
 
                 }
-            }
+            });
         }
-
 
         public string Save(PresetModel preset)
         {
@@ -70,7 +71,7 @@ namespace TitleEdit.PluginServices
                 var namePart = FileInvalidSymbolsRegex.Replace(preset.Name, "").Truncate(50);
                 if (presets.ContainsKey($"{namePart}.json"))
                 {
-                    int i = 1;
+                    var i = 1;
                     while (presets.ContainsKey($"{namePart} ({i}).json")) i++;
                     namePart = $"{namePart} ({i})";
                 }
@@ -166,13 +167,13 @@ namespace TitleEdit.PluginServices
             return Save(preset);
         }
 
-        private PresetModel Load(string path, bool setFileName = true)
+        private PresetModel Load(string path, bool setFileName = true, string relativePath = "")
         {
             var file = new FileInfo(path);
             var preset = LoadText(File.ReadAllText(file.FullName));
             if (setFileName)
             {
-                preset.FileName = file.Name;
+                preset.FileName = Path.Join(relativePath, file.Name);
             }
             return preset;
         }
@@ -219,6 +220,17 @@ namespace TitleEdit.PluginServices
                 return true;
             }
             return false;
+        }
+
+
+        public PresetModel GetDefaultPreset(LocationType type)
+        {
+            return type switch
+            {
+                LocationType.CharacterSelect => presets["?/AetherialSea.json"],
+                LocationType.TitleScreen => presets["?/ARealmReborn.json"],
+                _ => throw new() // should never hit
+            };
         }
 
         public override void Dispose()

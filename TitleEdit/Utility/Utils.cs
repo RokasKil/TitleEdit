@@ -1,4 +1,6 @@
+using Dalamud.Utility;
 using System;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 
@@ -58,6 +60,22 @@ namespace TitleEdit.Utility
             var yaw = MathF.Atan2(vector.X, vector.Z);
             var pitch = MathF.Asin(vector.Y);
             return (yaw, pitch);
+        }
+
+        public static void IterateFiles(DirectoryInfo directory, Action<FileInfo, string> action, string path = "")
+        {
+            foreach (var file in directory.EnumerateFiles())
+            {
+                action(file, path);
+            }
+            foreach (var subDirectory in directory.EnumerateDirectories())
+            {
+                if (subDirectory.LinkTarget.IsNullOrEmpty())
+                {
+                    IterateFiles(subDirectory, action, Path.Join(path, subDirectory.Name));
+                }
+            }
+
         }
     }
 }

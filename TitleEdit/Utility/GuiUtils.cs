@@ -96,8 +96,9 @@ namespace TitleEdit.Utility
             }
         }
 
-        public static void Combo<T>(string title, ref T value, ImGuiComboFlags flags = ImGuiComboFlags.None, Func<T, bool>? filter = null) where T : System.Enum
+        public static bool Combo<T>(string title, ref T value, ImGuiComboFlags flags = ImGuiComboFlags.None, Func<T, bool>? filter = null) where T : System.Enum
         {
+            bool selected = false;
             if (ImGui.BeginCombo(title, value.ToText(), flags))
             {
                 foreach (T enumValue in Enum.GetValues(typeof(T)))
@@ -107,6 +108,7 @@ namespace TitleEdit.Utility
                         if (ImGui.Selectable($"{enumValue.ToText()}##{title}", value.Equals(enumValue)))
                         {
                             value = enumValue;
+                            selected = true;
                         }
                     }
                 }
@@ -117,6 +119,7 @@ namespace TitleEdit.Utility
             {
                 OpenCombos[title] = false;
             }
+            return selected;
         }
 
         public static bool AngleSlider(string title, ref float value)

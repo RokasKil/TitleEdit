@@ -1,13 +1,13 @@
-using TitleEdit.Data.Character;
-using TitleEdit.Data.Lobby;
-using TitleEdit.Data.Persistence;
-using TitleEdit.Utility;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using TitleEdit.Data.Character;
+using TitleEdit.Data.Lobby;
+using TitleEdit.Data.Persistence;
+using TitleEdit.Utility;
 using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using World = Lumina.Excel.GeneratedSheets.World;
 
@@ -117,22 +117,19 @@ namespace TitleEdit.PluginServices.Lobby
         {
             Dictionary<ulong, string> result = [];
             if (CurrentLobbyMap != GameLobbyType.CharaSelect) return result;
-            var agentLobby = AgentLobby.Instance();
-            if (agentLobby != null)
+            var characterSelects = AgentLobby->LobbyData.CharaSelectEntries.AsSpan();
+            foreach (var character in characterSelects)
             {
-                var characterSelects = agentLobby->LobbyData.CharaSelectEntries.AsSpan();
-                foreach (var character in characterSelects)
+                if (character.Value->ContentId != 0)
                 {
-                    if (character.Value->ContentId != 0)
+                    var world = Services.DataManager.GetExcelSheet<World>()?.GetRow(character.Value->HomeWorldId);
+                    if (world != null)
                     {
-                        var world = Services.DataManager.GetExcelSheet<World>()?.GetRow(character.Value->HomeWorldId);
-                        if (world != null)
-                        {
-                            result[character.Value->ContentId] = $"{Encoding.UTF8.GetString(character.Value->Name).TrimEnd('\0')}@{world.Name}";
-                        }
+                        result[character.Value->ContentId] = $"{Encoding.UTF8.GetString(character.Value->Name).TrimEnd('\0')}@{world.Name}";
                     }
                 }
             }
+
             return result;
         }
 
@@ -159,7 +156,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (CurrentCharacter != null)
             {
-                CurrentCharacter->GameObject.SetRotation(locationModel.Rotation);
+                CurrentCharacter->GameObject.SetRotation(chracterSelectLocationModel.Rotation);
             }
         }
 
@@ -193,9 +190,9 @@ namespace TitleEdit.PluginServices.Lobby
             Services.Log.Debug("Nothing selected");
             lastContentId = 0;
             var newLocationModel = GetNothingSelectedLocation();
-            if (!newLocationModel.Equals(locationModel))
+            if (!newLocationModel.Equals(chracterSelectLocationModel))
             {
-                locationModel = GetNothingSelectedLocation();
+                chracterSelectLocationModel = GetNothingSelectedLocation();
                 resetScene = true;
 
             }
@@ -238,27 +235,18 @@ namespace TitleEdit.PluginServices.Lobby
         private Character* GetCurrentHoveredCharacter()
         {
 
-            var agentLobby = AgentLobby.Instance();
             var charaSelectCharacterList = CharaSelectCharacterList.Instance();
             var clientObjectManager = ClientObjectManager.Instance();
-            if (agentLobby != null && charaSelectCharacterList != null && clientObjectManager != null)
+            if (AgentLobby->HoveredCharacterContentId == 0)
             {
-                if (agentLobby->HoveredCharacterContentId == 0)
-                {
-                    return null;
-                }
-                for (var i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
-                {
-                    if (charaSelectCharacterList->CharacterMapping[i].ContentId == agentLobby->HoveredCharacterContentId)
-                    {
-                        return (Character*)clientObjectManager->GetObjectByIndex((ushort)charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
-                    }
-                }
+                return null;
             }
-            else
+            for (var i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
             {
-                Services.Log.Warning($"[getCurrentCharacter] failed to get instance  {(nint)agentLobby:X} {(nint)charaSelectCharacterList:X} {(nint)clientObjectManager:X}");
-
+                if (charaSelectCharacterList->CharacterMapping[i].ContentId == AgentLobby->HoveredCharacterContentId)
+                {
+                    return (Character*)clientObjectManager->GetObjectByIndex((ushort)charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
+                }
             }
             return null;
         }
@@ -273,17 +261,17 @@ namespace TitleEdit.PluginServices.Lobby
                     lastContentId = contentId;
 
                     var newLocationModel = GetLocationForContentId(contentId);
-                    if (!newLocationModel.Equals(locationModel))
+                    if (!newLocationModel.Equals(chracterSelectLocationModel))
                     {
-                        locationModel = newLocationModel;
+                        chracterSelectLocationModel = newLocationModel;
                         resetScene = true;
                     }
                     Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
-                    CurrentCharacter->GameObject.SetPosition(locationModel.Position.X, locationModel.Position.Y, locationModel.Position.Z);
-                    ((CharacterExpanded*)CurrentCharacter)->MovementMode = locationModel.MovementMode;
-                    if (CurrentCharacter->Mount.MountId != locationModel.Mount.MountId)
+                    CurrentCharacter->GameObject.SetPosition(chracterSelectLocationModel.Position.X, chracterSelectLocationModel.Position.Y, chracterSelectLocationModel.Position.Z);
+                    ((CharacterExpanded*)CurrentCharacter)->MovementMode = chracterSelectLocationModel.MovementMode;
+                    if (CurrentCharacter->Mount.MountId != chracterSelectLocationModel.Mount.MountId)
                     {
-                        SetupMount(CurrentCharacter, locationModel);
+                        SetupMount(CurrentCharacter, chracterSelectLocationModel);
                     }
                 }
             }
@@ -295,23 +283,18 @@ namespace TitleEdit.PluginServices.Lobby
 
         private ulong GetContentId()
         {
-            var agentLobby = AgentLobby.Instance();
-            if (agentLobby != null)
-            {
-                Services.Log.Debug($"Getting content id of {agentLobby->HoveredCharacterIndex} : {agentLobby->HoveredCharacterContentId:X} : {agentLobby->LobbyData.CharaSelectEntries.LongCount}");
-                return agentLobby->HoveredCharacterContentId;//agentLobby->LobbyData.CharaSelectEntries[agentLobby->HoveredCharacterIndex].Value->ContentId;
-            }
-            return 0;
+            Services.Log.Debug($"Getting content id of {AgentLobby->HoveredCharacterIndex} : {AgentLobby->HoveredCharacterContentId:X} : {AgentLobby->LobbyData.CharaSelectEntries.LongCount}");
+            return AgentLobby->HoveredCharacterContentId;//agentLobby->LobbyData.CharaSelectEntries[agentLobby->HoveredCharacterIndex].Value->ContentId;
         }
 
         private void SetupMount(Character* character, LocationModel location)
         {
             character->Mount.CreateAndSetupMount(
-                (short)locationModel.Mount.MountId,
-                locationModel.Mount.BuddyModelTop,
-                locationModel.Mount.BuddyModelBody,
-                locationModel.Mount.BuddyModelLegs,
-                locationModel.Mount.BuddyStain,
+                (short)chracterSelectLocationModel.Mount.MountId,
+                chracterSelectLocationModel.Mount.BuddyModelTop,
+                chracterSelectLocationModel.Mount.BuddyModelBody,
+                chracterSelectLocationModel.Mount.BuddyModelLegs,
+                chracterSelectLocationModel.Mount.BuddyStain,
                 0, 0);
         }
     }

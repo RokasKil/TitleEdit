@@ -65,10 +65,10 @@ namespace TitleEdit.PluginServices.Lobby
         {
             Services.Log.Debug($"PlayMusicDetour {self.ToInt64():X} {filename} {volume} {fadeTime}");
 
-            if (CurrentLobbyMap == GameLobbyType.CharaSelect && !locationModel.BgmPath.IsNullOrEmpty())
+            if (CurrentLobbyMap == GameLobbyType.CharaSelect && !chracterSelectLocationModel.BgmPath.IsNullOrEmpty())
             {
-                Services.Log.Debug($"Setting music to {locationModel.BgmPath}");
-                filename = locationModel.BgmPath;
+                Services.Log.Debug($"Setting music to {chracterSelectLocationModel.BgmPath}");
+                filename = chracterSelectLocationModel.BgmPath;
             }
             lastBgmPath = filename;
             return playMusicHook.Original(self, filename, volume, fadeTime);

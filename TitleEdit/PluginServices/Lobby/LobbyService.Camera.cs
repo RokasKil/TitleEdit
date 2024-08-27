@@ -76,10 +76,10 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void ResetLastCameraLookAtValues()
         {
-            lastLowPoint = 1.4350828f + locationModel.Position.Y;
-            lastMidPoint = 0.85870504f + locationModel.Position.Y;
-            lastHighPoint = 0.6742642f + locationModel.Position.Y;
-            lastLookAt = locationModel.Position;
+            lastLowPoint = 1.4350828f + chracterSelectLocationModel.Position.Y;
+            lastMidPoint = 0.85870504f + chracterSelectLocationModel.Position.Y;
+            lastHighPoint = 0.6742642f + chracterSelectLocationModel.Position.Y;
+            lastLookAt = chracterSelectLocationModel.Position;
         }
 
         private void CameraLookAtLastPosition()
@@ -186,7 +186,7 @@ namespace TitleEdit.PluginServices.Lobby
             Services.Log.Debug($"Loaded rotation {recordedYaw} {recordedPitch} {recordedDistance}");
             if (camera != null)
             {
-                camera->Yaw = Utils.NormalizeAngle(camera->Yaw + locationModel.Rotation);
+                camera->Yaw = Utils.NormalizeAngle(camera->Yaw + chracterSelectLocationModel.Rotation);
             }
             RotateCharacter();
 
@@ -215,7 +215,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private CameraFollowMode GetCameraFollowMode()
         {
-            return locationModel.CameraFollowMode == CameraFollowMode.Inherit ? Services.ConfigurationService.CameraFollowMode : locationModel.CameraFollowMode; ;
+            return chracterSelectLocationModel.CameraFollowMode == CameraFollowMode.Inherit ? Services.ConfigurationService.CameraFollowMode : chracterSelectLocationModel.CameraFollowMode; ;
         }
 
         //Can probably cache this?
