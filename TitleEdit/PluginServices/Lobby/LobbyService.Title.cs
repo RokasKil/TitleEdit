@@ -25,11 +25,20 @@ namespace TitleEdit.PluginServices.Lobby
             set => Marshal.WriteInt32(titleCutsceneStructAddress, 0x98, value ? 1 : 0);
         }
 
+        //probably should merge all the lobbyStruct stuff into an actual struct?
+
         // This needs to be set to 0 for logos to load properly, haven't seen it being read anywhere else
         public bool PreDawntrailLogoFlag
         {
             get => Marshal.ReadByte(lobbyStructAddress, 0x38) == 1;
-            set => Marshal.WriteInt32(lobbyStructAddress, 0x38, value ? 1 : 0);
+            set => Marshal.WriteByte(lobbyStructAddress, 0x38, (byte)(value ? 1 : 0));
+        }
+
+        // What cinematic in title screen is currently playing
+        public TitleScreenMovie CurrentTitleScreenMovieType
+        {
+            get => (TitleScreenMovie)Marshal.ReadInt32(lobbyStructAddress, 0x10);
+            set => Marshal.WriteInt32(lobbyStructAddress, 0x10, (int)value);
         }
 
         public TitleScreenExpansion CurrentTitleScreenType
@@ -40,6 +49,8 @@ namespace TitleEdit.PluginServices.Lobby
 
 
         private IntPtr titleCutsceneStructAddress;
+
+        private TitleScreenExpansion? overridenTitleScreenType = null;
 
         private void HookTitle()
         {
@@ -58,11 +69,41 @@ namespace TitleEdit.PluginServices.Lobby
             PreDawntrailLogoFlag = false;
             if (titleScreenLocationModel.TitleScreenOverride != null)
             {
+                overridenTitleScreenType = CurrentTitleScreenType;
                 CurrentTitleScreenType = titleScreenLocationModel.TitleScreenOverride.Value;
             }
             else if (CurrentTitleScreenType == TitleScreenExpansion.Dawntrail)
             {
+                overridenTitleScreenType = CurrentTitleScreenType;
                 CurrentTitleScreenType = TitleScreenExpansion.Endwalker;
+            }
+        }
+
+        // Restore the overriden title screen and movie
+        private void LeavingTitleScreen(bool idled)
+        {
+            if (overridenTitleScreenType != null)
+            {
+                if (LobbyUiStage != LobbyUiStage.Movie || idled)
+                {
+                    Services.Log.Debug($"LeavingTitleScreen, restoring {overridenTitleScreenType}, {AgentLobby->IdleTime}");
+                    CurrentTitleScreenType = overridenTitleScreenType.Value;
+                    if (idled)
+                    {
+                        Services.Log.Debug($"LeavingTitleScreen set current movie");
+                        CurrentTitleScreenMovieType = CurrentTitleScreenType switch
+                        {
+                            TitleScreenExpansion.ARealmReborn => TitleScreenMovie.ARealmReborn,
+                            TitleScreenExpansion.Heavensward => TitleScreenMovie.Heavensward,
+                            TitleScreenExpansion.Stormblood => TitleScreenMovie.Stormblood,
+                            TitleScreenExpansion.Shadowbringers => TitleScreenMovie.Shadowbringers,
+                            TitleScreenExpansion.Endwalker => TitleScreenMovie.Endwalker,
+                            TitleScreenExpansion.Dawntrail => TitleScreenMovie.Dawntrail,
+                            _ => TitleScreenMovie.ARealmReborn
+                        };
+                    }
+                }
+                overridenTitleScreenType = null;
             }
         }
 
@@ -73,6 +114,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void DisposeTitle()
         {
+            LeavingTitleScreen(false);
             Services.AddonLifecycle.UnregisterListener(TitleLogoFinalize);
         }
     }

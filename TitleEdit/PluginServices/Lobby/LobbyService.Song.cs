@@ -59,6 +59,13 @@ namespace TitleEdit.PluginServices.Lobby
                 Services.Log.Debug($"Setting music to {characterSelectLocationModel.BgmPath}");
                 filename = characterSelectLocationModel.BgmPath;
             }
+            else if (CurrentLobbyMap == GameLobbyType.Title &&
+                titleScreenLocationModel.TitleScreenOverride == null &&
+                !titleScreenLocationModel.BgmPath.IsNullOrEmpty())
+            {
+                Services.Log.Debug($"Setting music to {titleScreenLocationModel.BgmPath}");
+                filename = titleScreenLocationModel.BgmPath;
+            }
             lastBgmPath = filename;
             return playMusicHook.Original(self, filename, volume, fadeTime);
         }

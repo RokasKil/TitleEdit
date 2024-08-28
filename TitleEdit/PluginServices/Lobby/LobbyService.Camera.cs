@@ -2,6 +2,7 @@ using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Common.Math;
+using System;
 using TitleEdit.Data.Camera;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
@@ -14,10 +15,12 @@ namespace TitleEdit.PluginServices.Lobby
         private delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void CalculateCameraCurveLowAndHighPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void LobbySceneLoadedDelegate(ulong p1, int p2, float p3, ushort p4, uint p5, uint p6, uint p7);
+        private delegate void LobbyCameraFixOn(LobbyCameraExpanded* self, Vector3 cameraPos, Vector3 focusPos, float fovY);
 
         private Hook<SetCameraCurveMidPointDelegate> setCameraCurveMidPointHook = null!;
         private Hook<CalculateCameraCurveLowAndHighPointDelegate> calculateCameraCurveLowAndHighPointHook = null!;
         private Hook<LobbySceneLoadedDelegate> lobbySceneLoadedHook = null!;
+        private Hook<LobbyCameraFixOn> lobbyCameraFixOnHook = null!;
 
         private LobbyCameraExpanded* LobbyCamera => (LobbyCameraExpanded*)(FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager.Instance()->LobbCamera);
 
@@ -48,15 +51,15 @@ namespace TitleEdit.PluginServices.Lobby
 
             // Some LobbySceneLoaded thingy, called once a new world level is loaded, we use it to restore camera Position
             lobbySceneLoadedHook = Hook<LobbySceneLoadedDelegate>("E8 ?? ?? ?? ?? 41 0F B7 CE 40 88 2D", LobbySceneLoadedDetour);
+
+            // Called when the game needs to set LookAt of the lobbyCamera but we override that every frame so it's not needed for that purpose
+            // We use this to additionaly override camera position cause it will set stuff to 0, 0, 0 and if the title screen and character select use the same level
+            // this ight cause the loud sound bug
+            lobbyCameraFixOnHook = Hook<LobbyCameraFixOn>("E8 ?? ?? ?? ?? 89 9C 24 ?? ?? ?? ?? E8", LobbyCameraFixOnDetour);
         }
 
-        //TODO: FIGURE OUT THE NOISE ISSUE WHEN TITLE AND CHARACTER SELECT SCREEN BOTH USE THE SAME LEVEL
         private void CameraTick()
         {
-            if (LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector == new Vector3(0, 0, 0))
-            {
-                Services.Log.Debug("CAMERA lookat 0 EEEEEEEEE");
-            }
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 if (CurrentCharacter != null)
@@ -76,18 +79,6 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     CameraSetTitleScreenPosition();
                 }
-            }
-            else
-            {
-
-                if (LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector == new Vector3(0, 0, 0))
-                {
-                    Services.Log.Debug("CAMERA lookat 0 AAAAAAAAA");
-                }
-            }
-            if (LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector == new Vector3(0, 0, 0))
-            {
-                Services.Log.Debug("CAMERA lookat 0 BBBBBB");
             }
         }
 
@@ -244,12 +235,12 @@ namespace TitleEdit.PluginServices.Lobby
             return characterSelectLocationModel.CameraFollowMode == CameraFollowMode.Inherit ? Services.ConfigurationService.CameraFollowMode : characterSelectLocationModel.CameraFollowMode; ;
         }
 
-        //yaw = -0.429
-        //pitch = 0.460
-        //xzLen = math.cos(pitch)
-        //x = -xzLen * math.sin(-yaw)
-        //y = math.sin(pitch)
-        //z = xzLen * math.cos(yaw)
+        private void LobbyCameraFixOnDetour(LobbyCameraExpanded* self, Vector3 cameraPos, Vector3 focusPos, float fovY)
+        {
+            Services.Log.Debug($"LobbyCameraFixOnDetour {(IntPtr)self:X}, {self == LobbyCamera}, {cameraPos}, {focusPos}, {fovY}");
+            lobbyCameraFixOnHook.Original(self, cameraPos, focusPos, fovY);
+            CameraTick();
+        }
 
     }
 }

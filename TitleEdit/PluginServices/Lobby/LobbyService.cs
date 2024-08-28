@@ -1,6 +1,7 @@
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Lobby;
@@ -178,10 +179,12 @@ namespace TitleEdit.PluginServices.Lobby
 
         private byte LobbyUpdateDetour(GameLobbyType mapId, int time)
         {
-            lastLobbyUpdateMapId = mapId;
             Services.Log.Verbose($"mapId {mapId}");
 
-            if (resetScene)
+            // if resetScene is true or if switching between char select and char creation
+            if (resetScene ||
+                (mapId == GameLobbyType.CharaSelect && lastLobbyUpdateMapId == GameLobbyType.Aetherial) ||
+                (mapId == GameLobbyType.Aetherial && lastLobbyUpdateMapId == GameLobbyType.CharaSelect))
             {
                 if (mapId != GameLobbyType.Title)
                 {
@@ -192,17 +195,19 @@ namespace TitleEdit.PluginServices.Lobby
                 }
             }
 
+            lastLobbyUpdateMapId = mapId;
             return lobbyUpdateHook.Original(mapId, time);
         }
 
-        // Maybe can do this on Tick?
+
         private void UpdateLobbyUiStageDetour(AgentLobby* agentLobby)
         {
+            var idling = AgentLobby->IdleTime + Framework.Instance()->FrameDeltaTimeMSInt > 60000;
             updateLobbyUiStageHook.Original(agentLobby);
-            HandleLobbyUiStage();
+            HandleLobbyUiStage(idling);
         }
 
-        private void HandleLobbyUiStage()
+        private void HandleLobbyUiStage(bool idling)
         {
 
             if (lastLobbyUiStage != LobbyUiStage)
@@ -212,6 +217,10 @@ namespace TitleEdit.PluginServices.Lobby
                 if (LobbyUiStage == LobbyUiStage.EnteringTitleScreen || LobbyUiStage == LobbyUiStage.LoadingSplashScreen)
                 {
                     EnteringTitleScreen();
+                }
+                if (LobbyUiStage == LobbyUiStage.Movie || LobbyUiStage == LobbyUiStage.CharacterSelect)
+                {
+                    LeavingTitleScreen(idling);
                 }
             }
         }
