@@ -34,7 +34,10 @@ namespace TitleEdit.Windows.Tabs
                 Services.ConfigurationService.Save();
             }
 
-            ImGui.Checkbox($"Override preset title screen colors##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenColor);
+            if (ImGui.Checkbox($"Override preset title screen colors##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenColor))
+            {
+                Services.ConfigurationService.Save();
+            }
 
             ImGui.Separator();
             ImGui.TextUnformatted("Character select screen");

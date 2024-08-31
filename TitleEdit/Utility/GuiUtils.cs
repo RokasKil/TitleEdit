@@ -1,3 +1,4 @@
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
@@ -280,10 +281,11 @@ namespace TitleEdit.Utility
                 {
                     changed = true;
                 }
-                if (ImGui.ColorEdit4($"Button color##{id}", ref colorModel.HighlightColor, ImGuiColorEditFlags.NoInputs))
+                if (ImGui.ColorEdit4($"Button highlight color##{id}", ref colorModel.HighlightColor, ImGuiColorEditFlags.NoInputs))
                 {
                     changed = true;
                 }
+                ImGuiComponents.HelpMarker("The button highlight color will not be accurate, because the highlight image itself is blue, I tried to work around that by offsetting the color but it's not perfect");
                 var selection = UiColorPickerSelections.GetValueOrDefault(id, UiColorExpansion.Dawntrail);
                 if (Combo($"##{id}##selectExpansionToApply", ref selection, filter: (entry) => entry != UiColorExpansion.Unspecified && entry != UiColorExpansion.Custom))
                 {

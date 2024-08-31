@@ -38,8 +38,13 @@ namespace TitleEdit.PluginServices.Lobby
         private TitleScreenExpansion? overridenTitleScreenType = null;
 
         private bool titleScreenLoaded = false;
+
         private bool ShouldModifyTitleScreen => titleScreenLoaded && titleScreenLocationModel.TitleScreenOverride == null;
 
+        private bool shouldAnimateDawntrailLogo = false;
+
+        private bool shouldAdvanceTitleLogoAnimation = false;
+        private float advanceTitleLogoAnimationDuration = 0;
         //These might be inneficient but we don't call them often so maybe it's fine or maybe it's smart and caches but I doubt
         private UiColorModel TitleScreenColors
         {
@@ -85,11 +90,48 @@ namespace TitleEdit.PluginServices.Lobby
 
             // Used when unloading TitleScreen menu
             Services.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_TitleMenu", TitleMenuFinalize);
+            // To animate/skip animation of title logo
+            Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_TitleLogo", TitleLogoPostSetup);
             // Register UI stuff we want to recolor
             foreach (var addon in new string[] { "_TitleRights", "_TitleMenu", "_TitleRevision" })
             {
                 Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, addon, RecolorablePostSetup);
             }
+        }
+
+        private void TitleLogoPostSetup(AddonEvent type, AddonArgs args)
+        {
+            if (shouldAnimateDawntrailLogo)
+            {
+                AnimateDawntrailLogo();
+                shouldAnimateDawntrailLogo = false;
+            }
+            if (shouldAdvanceTitleLogoAnimation)
+            {
+                AdvanceTitleLogoAnimation();
+                shouldAdvanceTitleLogoAnimation = false;
+            }
+        }
+
+        private void AnimateDawntrailLogo()
+        {
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
+            if (addon == null || addon->UldManager.NodeListCount < 2) return;
+            var node = addon->UldManager.NodeList[0];
+            if (node == null) return;
+            Services.Log.Debug("Animating dawntrail logo");
+            // Values taken by observing what the game calls, no clue what they mean :)
+            node->Timeline->PlayAnimation(AtkTimelineJumpBehavior.LoopForever, 0x65);
+        }
+        private void AdvanceTitleLogoAnimation()
+        {
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
+            if (addon == null || addon->UldManager.NodeListCount < 2) return;
+            var node = addon->UldManager.NodeList[0];
+            if (node == null) return;
+            Services.Log.Debug($"Advancing timeline animation by {advanceTitleLogoAnimationDuration}");
+            // Values taken by observing what the game calls, no clue what they mean :)
+            node->Timeline->FrameTime += advanceTitleLogoAnimationDuration;
         }
 
         private void RecolorablePostSetup(AddonEvent type, AddonArgs args)
@@ -153,6 +195,20 @@ namespace TitleEdit.PluginServices.Lobby
                     TitleScreenLogo.Dawntrail => TitleScreenExpansion.Dawntrail,
                     _ => LobbyInfo->CurrentTitleScreenType
                 };
+                if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Stormblood)
+                {
+                    shouldAdvanceTitleLogoAnimation = true;
+                    advanceTitleLogoAnimationDuration = 1.2f;
+                }
+                else if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Endwalker)
+                {
+                    shouldAdvanceTitleLogoAnimation = true;
+                    advanceTitleLogoAnimationDuration = 9.8f;
+                }
+                else if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Dawntrail)
+                {
+                    shouldAnimateDawntrailLogo = true;
+                }
             }
 
             Services.Log.Debug($"[PickTitleLogoDetour] set {LobbyInfo->CurrentTitleScreenType} {LobbyInfo->FreeTrial}");
@@ -217,6 +273,7 @@ namespace TitleEdit.PluginServices.Lobby
             LeavingTitleScreen(false);
             Services.AddonLifecycle.UnregisterListener(TitleMenuFinalize);
             Services.AddonLifecycle.UnregisterListener(RecolorablePostSetup);
+            Services.AddonLifecycle.UnregisterListener(TitleLogoPostSetup);
         }
     }
 }
