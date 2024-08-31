@@ -1,3 +1,4 @@
+using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using System;
@@ -12,6 +13,8 @@ namespace TitleEdit.Utility
     {
         private static readonly Dictionary<string, bool> OpenCombos = [];
         private static readonly Dictionary<string, string> ComboFilters = [];
+
+        private static readonly Dictionary<string, UiColorExpansion> UiColorPickerSelections = [];
         private static string? FilterComboTitle = null;
         private static bool FilterDrawSeperator = true;
         private static bool FilterDrawTooltip = false;
@@ -99,13 +102,16 @@ namespace TitleEdit.Utility
         public static bool Combo<T>(string title, ref T value, ImGuiComboFlags flags = ImGuiComboFlags.None, Func<T, bool>? filter = null) where T : System.Enum
         {
             bool selected = false;
-            if (ImGui.BeginCombo(title, value.ToText(), flags))
+
+            using var combo = ImRaii.Combo(title, value.ToText(), flags);
+            if (combo)
             {
+                using var id = ImRaii.PushId(title); // I only discovered this exists after pretty much all of the UI is done, I should go and redo everything one day
                 foreach (T enumValue in Enum.GetValues(typeof(T)))
                 {
                     if (filter == null || filter.Invoke(enumValue))
                     {
-                        if (ImGui.Selectable($"{enumValue.ToText()}##{title}", value.Equals(enumValue)))
+                        if (ImGui.Selectable(enumValue.ToText(), value.Equals(enumValue)))
                         {
                             value = enumValue;
                             selected = true;
@@ -113,7 +119,6 @@ namespace TitleEdit.Utility
                     }
                 }
                 OpenCombos[title] = true;
-                ImGui.EndCombo();
             }
             else
             {
@@ -256,6 +261,44 @@ namespace TitleEdit.Utility
             {
                 ImGui.TextWrapped("Selected group does not exist or failed to load");
             }
+        }
+
+        public static bool DrawUiColorPicker(string title, string id, ref UiColorModel colorModel, bool allowUnspecified = false)
+        {
+            bool changed = false;
+            if (Combo($"{title}##{id}", ref colorModel.Expansion, filter: (entry) => allowUnspecified || entry != UiColorExpansion.Unspecified))
+            {
+                changed = true;
+            }
+            if (colorModel.Expansion == UiColorExpansion.Custom)
+            {
+                if (ImGui.ColorEdit4($"Text color##{id}", ref colorModel.Color, ImGuiColorEditFlags.NoInputs))
+                {
+                    changed = true;
+                }
+                if (ImGui.ColorEdit4($"Edge color##{id}", ref colorModel.EdgeColor, ImGuiColorEditFlags.NoInputs))
+                {
+                    changed = true;
+                }
+                if (ImGui.ColorEdit4($"Button color##{id}", ref colorModel.HighlightColor, ImGuiColorEditFlags.NoInputs))
+                {
+                    changed = true;
+                }
+                var selection = UiColorPickerSelections.GetValueOrDefault(id, UiColorExpansion.Dawntrail);
+                if (Combo($"##{id}##selectExpansionToApply", ref selection, filter: (entry) => entry != UiColorExpansion.Unspecified && entry != UiColorExpansion.Custom))
+                {
+                    UiColorPickerSelections[id] = selection;
+                }
+                ImGui.SameLine();
+                if (ImGui.Button($"Apply expansion colors##{id}"))
+                {
+                    colorModel = UiColors.GetColorModelByExpansion(selection);
+                    colorModel.Expansion = UiColorExpansion.Custom;
+                    changed = true;
+                }
+
+            }
+            return changed;
         }
     }
 }

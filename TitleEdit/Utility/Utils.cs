@@ -1,4 +1,5 @@
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
 using System.IO;
 using System.Linq;
@@ -76,6 +77,40 @@ namespace TitleEdit.Utility
                 }
             }
 
+        }
+
+        public unsafe delegate void NodeAction(AtkResNode* node);
+
+        public static unsafe void IterateNodes(AtkResNode* node, NodeAction action, bool iterateSiblings = true)
+        {
+            action(node);
+            if (node->ChildNode != null)
+            {
+                IterateNodes(node->ChildNode, action);
+            }
+            if (iterateSiblings) // logic yoinked from dalamud cause wtf is this
+            {
+                var prevNode = node;
+                while ((prevNode = prevNode->PrevSiblingNode) != null)
+                    IterateNodes(prevNode, action, false);
+
+                var nextNode = node;
+                while ((nextNode = nextNode->NextSiblingNode) != null)
+                    IterateNodes(nextNode, action, false);
+            }
+            if ((int)node->Type >= 1000)
+            {
+                var compNode = (AtkComponentNode*)node;
+                if (compNode->Component != null)
+                {
+                    for (int i = 0; i < compNode->Component->UldManager.NodeListCount; i++)
+                    {
+                        // might not work with sub components if that exists
+                        action(compNode->Component->UldManager.NodeList[i]);
+                    }
+                }
+
+            }
         }
     }
 }

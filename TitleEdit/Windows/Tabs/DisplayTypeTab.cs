@@ -20,52 +20,67 @@ namespace TitleEdit.Windows.Tabs
         {
             base.Draw();
             ImGui.TextUnformatted("Title screen");
-            DrawSelectPresetCombo("Title screen setting", Services.ConfigurationService.TitleDisplayTypeOption, (result) => Services.ConfigurationService.TitleDisplayTypeOption = result);
-            GuiUtils.Combo("Default title screen logo", ref Services.ConfigurationService.TitleScreenLogo, filter: (entry) => entry != TitleScreenLogo.Unspecified);
-            ImGui.Checkbox("Override preset title screen logo setting", ref Services.ConfigurationService.OverridePresetTitleScreenLogo);
+            DrawSelectPresetCombo($"Title screen setting##{Title}", Services.ConfigurationService.TitleDisplayTypeOption, (result) => Services.ConfigurationService.TitleDisplayTypeOption = result);
+            if (GuiUtils.Combo($"Default title screen logo##{Title}", ref Services.ConfigurationService.TitleScreenLogo, filter: (entry) => entry != TitleScreenLogo.Unspecified))
+            {
+                Services.ConfigurationService.Save();
+            }
+            if (ImGui.Checkbox($"Override preset title screen logo setting##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenLogo))
+            {
+                Services.ConfigurationService.Save();
+            }
+            if (GuiUtils.DrawUiColorPicker("Default title screen colors", Title, ref Services.ConfigurationService.TitleScreenColor))
+            {
+                Services.ConfigurationService.Save();
+            }
+
+            ImGui.Checkbox($"Override preset title screen colors##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenColor);
 
             ImGui.Separator();
             ImGui.TextUnformatted("Character select screen");
-            DrawSelectPresetCombo("Nothing selected setting", Services.ConfigurationService.NoCharacterDisplayType, (result) => Services.ConfigurationService.NoCharacterDisplayType = result, false);
+            DrawSelectPresetCombo($"Nothing selected setting##{Title}", Services.ConfigurationService.NoCharacterDisplayType, (result) => Services.ConfigurationService.NoCharacterDisplayType = result, false);
             ImGuiComponents.HelpMarker("Preset that is used when no character is selected");
-            DrawSelectPresetCombo("Global character setting", Services.ConfigurationService.GlobalDisplayType, (result) => Services.ConfigurationService.GlobalDisplayType = result);
+            DrawSelectPresetCombo($"Global character setting##{Title}", Services.ConfigurationService.GlobalDisplayType, (result) => Services.ConfigurationService.GlobalDisplayType = result);
 
             ImGui.Separator();
             ImGui.TextUnformatted("Character overrides");
             var usedIds = new HashSet<ulong>(Services.ConfigurationService.DisplayTypeOverrides.Count);
             var tableHeight = MathF.Max(1f, MathF.Min(8f, Services.ConfigurationService.DisplayTypeOverrides.Count) * (ImGui.CalcTextSize(" ").Y + ImGui.GetStyle().CellPadding.Y * 2 + ImGui.GetStyle().FramePadding.Y * 2));
 
-            using (ImRaii.Table($"Display Type Overrides##{Title}", 4, ImGuiTableFlags.ScrollY, new(0, tableHeight)))
+            using (var table = ImRaii.Table($"Display Type Overrides##{Title}", 4, ImGuiTableFlags.ScrollY, new(0, tableHeight)))
             {
-                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed);
-                //Empty column for setting scroll bar spacing
-                ImGui.TableSetupColumn("scrollbar_spacing", ImGuiTableColumnFlags.WidthFixed, ImGui.GetStyle().ScrollbarSize);
-                for (int i = 0; i < Services.ConfigurationService.DisplayTypeOverrides.Count; i++)
+                if (table)
                 {
-                    var entry = Services.ConfigurationService.DisplayTypeOverrides[i];
-                    usedIds.Add(entry.Key);
-                    ImGui.TableNextColumn();
-                    var label = Services.CharactersService.Characters.TryGetValue(entry.Key, out var charName) ? charName : entry.Key.ToString("X");
-                    ImGui.TextUnformatted(label);
-                    ImGui.TableNextColumn();
-
-                    ImGui.SetNextItemWidth(16f * ImGui.GetFontSize());
-                    DrawSelectPresetCombo($"##Character override##{i}", entry.Value, (result) => Services.ConfigurationService.DisplayTypeOverrides[i] = new(entry.Key, result));
-                    ImGui.TableNextColumn();
-                    if (ImGuiComponents.IconButton($"##{Title}##{i}##Delete", FontAwesomeIcon.Trash))
+                    ImGui.TableSetupColumn("1", ImGuiTableColumnFlags.WidthFixed);
+                    ImGui.TableSetupColumn("2", ImGuiTableColumnFlags.WidthFixed);
+                    ImGui.TableSetupColumn("3", ImGuiTableColumnFlags.WidthFixed);
+                    //Empty column for setting scroll bar spacing
+                    ImGui.TableSetupColumn("scrollbar_spacing", ImGuiTableColumnFlags.WidthFixed, ImGui.GetStyle().ScrollbarSize);
+                    for (int i = 0; i < Services.ConfigurationService.DisplayTypeOverrides.Count; i++)
                     {
-                        Services.ConfigurationService.DisplayTypeOverrides.RemoveRange(i, 1);
-                        Services.ConfigurationService.Save();
-                        i--;
+                        var entry = Services.ConfigurationService.DisplayTypeOverrides[i];
+                        usedIds.Add(entry.Key);
+                        ImGui.TableNextColumn();
+                        var label = Services.CharactersService.Characters.TryGetValue(entry.Key, out var charName) ? charName : entry.Key.ToString("X");
+                        ImGui.TextUnformatted(label);
+                        ImGui.TableNextColumn();
+
+                        ImGui.SetNextItemWidth(16f * ImGui.GetFontSize());
+                        DrawSelectPresetCombo($"##Character override##{i}", entry.Value, (result) => Services.ConfigurationService.DisplayTypeOverrides[i] = new(entry.Key, result));
+                        ImGui.TableNextColumn();
+                        if (ImGuiComponents.IconButton($"##{Title}##{i}##Delete", FontAwesomeIcon.Trash))
+                        {
+                            Services.ConfigurationService.DisplayTypeOverrides.RemoveRange(i, 1);
+                            Services.ConfigurationService.Save();
+                            i--;
+                        }
+                        ImGui.TableNextColumn();
                     }
-                    ImGui.TableNextColumn();
                 }
             }
 
             var characterLabel = Services.CharactersService.Characters.TryGetValue(currentContentId, out var characterName) ? characterName : "";
-            GuiUtils.FilterCombo("##Character override", characterLabel, () =>
+            GuiUtils.FilterCombo($"##{Title}##Character override", characterLabel, () =>
             {
                 bool empty = true;
                 foreach (var entry in Services.CharactersService.Characters)

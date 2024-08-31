@@ -428,6 +428,8 @@ namespace TitleEdit.Windows.Tabs
                 }
                 ImGui.SliderFloat($"FOV##{Title}", ref preset.LocationModel.Fov, 0.01f, 3f);
                 GuiUtils.Combo($"Logo##{Title}", ref preset.LocationModel.TitleScreenLogo);
+                GuiUtils.DrawUiColorPicker("Menu color", Title, ref preset.LocationModel.UiColor);
+
             }
             ImGui.TextUnformatted($"Preset file: {preset.FileName}");
             ImGui.EndDisabled();

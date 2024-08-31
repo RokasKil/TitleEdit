@@ -47,6 +47,8 @@ namespace TitleEdit.PluginServices.Lobby
             set => *lobbyCurrentMapAddress = value;
         }
 
+        public LobbyInfo* LobbyInfo => (LobbyInfo*)lobbyStructAddress;
+
         public LobbyService()
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
@@ -145,7 +147,7 @@ namespace TitleEdit.PluginServices.Lobby
                     }
                     return returnVal;
                 }
-                else if (lobbyType == GameLobbyType.Title && titleScreenLocationModel.TitleScreenOverride == null)
+                else if (lobbyType == GameLobbyType.Title && ShouldModifyTitleScreen)
                 {
                     territoryPath = titleScreenLocationModel.TerritoryPath;
                     Services.Log.Debug($"Loading title screen: {territoryPath}");

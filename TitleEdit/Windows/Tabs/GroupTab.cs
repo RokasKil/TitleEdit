@@ -100,69 +100,72 @@ namespace TitleEdit.Windows.Tabs
 
             ImGui.InputText($"Name##{Title}", ref group.Name, 256);
             var tableHeight = MathF.Max(1f, MathF.Min(8f, group.PresetFileNames.Count) * (ImGui.CalcTextSize(" ").Y + ImGui.GetStyle().CellPadding.Y * 2 + ImGui.GetStyle().FramePadding.Y * 2));
-            using (ImRaii.Table($"Group entries##{Title}", 2, ImGuiTableFlags.ScrollY, new(0f, tableHeight)))
+            using (var table = ImRaii.Table($"Group entries##{Title}", 2, ImGuiTableFlags.ScrollY, new(0f, tableHeight)))
             {
-                var usedPresets = new HashSet<string?>(group.PresetFileNames); // performance?
-                for (int i = 0; i < group.PresetFileNames.Count; i++)
+                if (table)
                 {
-                    var presetPath = group.PresetFileNames[i];
-                    ImGui.TableNextColumn();
+                    var usedPresets = new HashSet<string?>(group.PresetFileNames); // performance?
+                    for (int i = 0; i < group.PresetFileNames.Count; i++)
+                    {
+                        var presetPath = group.PresetFileNames[i];
+                        ImGui.TableNextColumn();
 
-                    ImGui.SetNextItemWidth(16f * ImGui.GetFontSize());
-                    //
-                    string display;
-                    bool invalid = false;
-                    if (presetPath == null)
-                    {
-                        display = "";
-                    }
-                    else if (Services.PresetService.TryGetPreset(presetPath, out var preset, group.LocationType))
-                    {
-                        display = preset.Name;
-                    }
-                    else
-                    {
-                        display = "Invalid preset";
-                        invalid = true;
-                    }
-
-                    if (invalid)
-                    {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.8f, 0, 1));
-                    }
-                    GuiUtils.FilterCombo($"##{Title}##grouprow{i}", display, () =>
-                    {
-                        foreach (var entry in Services.PresetService.Presets.Where(preset => preset.Value.LocationModel.LocationType == group.LocationType && !group.PresetFileNames.Contains(preset.Key)))
+                        ImGui.SetNextItemWidth(16f * ImGui.GetFontSize());
+                        //
+                        string display;
+                        bool invalid = false;
+                        if (presetPath == null)
                         {
-                            if (GuiUtils.FilterSelectable($"{entry.Value.Name}##{Title}##grouprow{i}##{entry.Key}", entry.Key == presetPath))
-                            {
-                                group.PresetFileNames[i] = entry.Key;
-                                return true;
-                            }
-                            GuiUtils.DrawPresetTooltip(entry.Key, group.LocationType);
-
+                            display = "";
                         }
-                        return false;
-                    }, popStyleColor: invalid);
-                    if (presetPath != null)
-                    {
-                        GuiUtils.DrawPresetTooltip(presetPath, group.LocationType);
-                    }
-                    //
-                    ImGui.TableNextColumn();
-                    if (ImGuiComponents.IconButton($"##{Title}##{i}##Delete", FontAwesomeIcon.Trash))
-                    {
-                        group.PresetFileNames.RemoveRange(i, 1);
+                        else if (Services.PresetService.TryGetPreset(presetPath, out var preset, group.LocationType))
+                        {
+                            display = preset.Name;
+                        }
+                        else
+                        {
+                            display = "Invalid preset";
+                            invalid = true;
+                        }
+
+                        if (invalid)
+                        {
+                            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.8f, 0, 1));
+                        }
+                        GuiUtils.FilterCombo($"##{Title}##grouprow{i}", display, () =>
+                        {
+                            foreach (var entry in Services.PresetService.Presets.Where(preset => preset.Value.LocationModel.LocationType == group.LocationType && !group.PresetFileNames.Contains(preset.Key)))
+                            {
+                                if (GuiUtils.FilterSelectable($"{entry.Value.Name}##{Title}##grouprow{i}##{entry.Key}", entry.Key == presetPath))
+                                {
+                                    group.PresetFileNames[i] = entry.Key;
+                                    return true;
+                                }
+                                GuiUtils.DrawPresetTooltip(entry.Key, group.LocationType);
+
+                            }
+                            return false;
+                        }, popStyleColor: invalid);
+                        if (presetPath != null)
+                        {
+                            GuiUtils.DrawPresetTooltip(presetPath, group.LocationType);
+                        }
+                        //
+                        ImGui.TableNextColumn();
+                        if (ImGuiComponents.IconButton($"##{Title}##{i}##Delete", FontAwesomeIcon.Trash))
+                        {
+                            group.PresetFileNames.RemoveRange(i, 1);
+                        }
                     }
                 }
             }
 
-            //
             if (ImGui.Button($"Add preset##{Title}##addEntry"))
             {
                 group.PresetFileNames.Add(null);
             }
             ImGui.EndDisabled();
+
         }
 
         private void DrawGroupActions()

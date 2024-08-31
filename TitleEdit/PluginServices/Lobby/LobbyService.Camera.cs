@@ -75,7 +75,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
             else if (CurrentLobbyMap == GameLobbyType.Title)
             {
-                if (titleScreenLocationModel.TitleScreenOverride == null)
+                if (ShouldModifyTitleScreen)
                 {
                     CameraSetTitleScreenPosition();
                 }

@@ -10,7 +10,7 @@ namespace TitleEdit.Data.Persistence
     // Could seperate these into title screen and character select but I kinda want to allow users to easily convert between the two maybe (also am lazy)
     public struct LocationModel
     {
-        public readonly static int CurrentVersion = 2;
+        public readonly static int CurrentVersion = 3;
 
         public int Version = CurrentVersion;
         public LocationType LocationType = LocationType.TitleScreen;
@@ -38,6 +38,7 @@ namespace TitleEdit.Data.Persistence
         [NonSerialized]
         public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;
         public TitleScreenExpansion? TitleScreenOverride = null;
+        public UiColorModel UiColor = UiColors.Dawntrail;
 
         public LocationModel()
         {
@@ -59,6 +60,7 @@ namespace TitleEdit.Data.Persistence
                     Equals(Yaw, other.Yaw) &&
                     Equals(Roll, other.Roll) &&
                     Equals(Pitch, other.Pitch) &&
+                    Equals(Fov, other.Fov) &&
                     Equals(WeatherId, other.WeatherId) &&
                     Equals(TimeOffset, other.TimeOffset) &&
                     Equals(BgmId, other.BgmId) &&
@@ -67,7 +69,9 @@ namespace TitleEdit.Data.Persistence
                     Equals(Active, other.Active) &&
                     Equals(Inactive, other.Inactive) &&
                     Equals(VfxTriggerIndexes, other.VfxTriggerIndexes) &&
-                    Equals(Festivals, other.Festivals);
+                    Equals(Festivals, other.Festivals) &&
+                    Equals(TitleScreenOverride, other.TitleScreenOverride) &&
+                    Equals(UiColor, other.UiColor);
             }
             return false;
         }
@@ -98,18 +102,4 @@ namespace TitleEdit.Data.Persistence
             return hash.ToHashCode();
         }
     }
-
-    public struct MountModel
-    {
-        public uint MountId = 0;
-        public uint BuddyModelTop = 0;
-        public uint BuddyModelBody = 0;
-        public uint BuddyModelLegs = 0;
-        public byte BuddyStain = 0;
-
-        public MountModel()
-        {
-        }
-    }
-
 }

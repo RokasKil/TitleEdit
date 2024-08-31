@@ -1,7 +1,6 @@
 using Dalamud.Hooking;
 using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
-using System.Runtime.InteropServices;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Utility;
@@ -17,12 +16,6 @@ namespace TitleEdit.PluginServices.Lobby
 
         private Hook<PlayMusicDelegate> playMusicHook = null!;
 
-        public LobbySong CurrentLobbyMusicIndex
-        {
-            get => (LobbySong)Marshal.ReadInt32(lobbyStructAddress, 0x20);
-            set => Marshal.WriteInt32(lobbyStructAddress, 0x20, (int)value);
-        }
-
         private string? lastBgmPath;
 
         private void HookSong()
@@ -34,12 +27,12 @@ namespace TitleEdit.PluginServices.Lobby
         private void ResetSongIndex()
         {
             Services.Log.Debug("ResetSongIndex");
-            CurrentLobbyMusicIndex = LobbySong.None;
+            LobbyInfo->CurrentLobbyMusicIndex = LobbySong.None;
         }
 
         private void ForcePlaySongIndex(LobbySong song)
         {
-            CurrentLobbyMusicIndex = LobbySong.None;
+            LobbyInfo->CurrentLobbyMusicIndex = LobbySong.None;
             PickSong(song);
         }
 
@@ -60,7 +53,7 @@ namespace TitleEdit.PluginServices.Lobby
                 filename = characterSelectLocationModel.BgmPath;
             }
             else if (CurrentLobbyMap == GameLobbyType.Title &&
-                titleScreenLocationModel.TitleScreenOverride == null &&
+                ShouldModifyTitleScreen &&
                 !titleScreenLocationModel.BgmPath.IsNullOrEmpty())
             {
                 Services.Log.Debug($"Setting music to {titleScreenLocationModel.BgmPath}");

@@ -43,7 +43,7 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted($"Current layout2 {Services.LocationService.Active.Count} {Services.LocationService.Inactive.Count} {Services.LocationService.VfxTriggerIndexes.Count}");
             ImGui.TextUnformatted($"Current layout3 {location.Active.All(Services.LocationService.Active.Contains)} {location.Inactive.All(Services.LocationService.Inactive.Contains)} {location.VfxTriggerIndexes.Keys.Count == Services.LocationService.VfxTriggerIndexes.Keys.Count && location.VfxTriggerIndexes.Keys.All(k => Services.LocationService.VfxTriggerIndexes.ContainsKey(k) && object.Equals(location.VfxTriggerIndexes[k], Services.LocationService.VfxTriggerIndexes[k]))}");
             ImGui.TextUnformatted($"Current Song {Services.BgmService.CurrentSongId}");
-            ImGui.TextUnformatted($"Current LobbyMusicIndex {Services.LobbyService.CurrentLobbyMusicIndex}");
+            ImGui.TextUnformatted($"Current LobbyMusicIndex {Services.LobbyService.LobbyInfo->CurrentLobbyMusicIndex}");
             ImGui.TextUnformatted($"Current MountId {location.Mount.MountId}");
             ImGui.TextUnformatted($"Update time {Services.LayoutService.UpdateTime}");
             ImGui.SliderAngle($"test", ref test1, -360, 360);

@@ -46,6 +46,8 @@ public class ConfigurationService
     public bool DisplayTitleToast = false;
     public bool DebugLogging = false;
     public bool SettingsMigrated = false;
+    public UiColorModel TitleScreenColor = UiColors.Dawntrail;
+    public bool OverridePresetTitleScreenColor = false;
 
     [NonSerialized]
     private string filePath = null!;

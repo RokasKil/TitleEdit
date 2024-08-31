@@ -50,7 +50,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 model = characterSelectLocationModel;
             }
-            else if (CurrentLobbyMap == GameLobbyType.Title)
+            else if (CurrentLobbyMap == GameLobbyType.Title && ShouldModifyTitleScreen)
             {
                 model = titleScreenLocationModel;
             }
