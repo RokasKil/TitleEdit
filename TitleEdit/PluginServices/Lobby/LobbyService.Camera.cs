@@ -60,6 +60,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void CameraTick()
         {
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.Vector_1 = new(0, 1, 0);
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 if (CurrentCharacter != null)
@@ -126,6 +127,9 @@ namespace TitleEdit.PluginServices.Lobby
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.Position = titleScreenLocationModel.CameraPosition;
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(titleScreenLocationModel.CameraPosition + Utils.GetVectorFromAngles(titleScreenLocationModel.Yaw, titleScreenLocationModel.Pitch));
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.RenderCamera->FoV = titleScreenLocationModel.Fov;
+            // Up vector
+            // TODO: TEST PROPERLY
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.Vector_1 = new(MathF.Sin(titleScreenLocationModel.Roll), MathF.Cos(titleScreenLocationModel.Roll), 0);
         }
 
         private void ResetCameraLookAtOnExitCharacterSelect()

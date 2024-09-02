@@ -81,6 +81,7 @@ namespace TitleEdit.Utility
 
         public unsafe delegate void NodeAction(AtkResNode* node);
 
+        //I realized I could use the addon's UldManager but don't wanna refactor now
         public static unsafe void IterateNodes(AtkResNode* node, NodeAction action, bool iterateSiblings = true)
         {
             action(node);

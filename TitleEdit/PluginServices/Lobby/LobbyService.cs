@@ -39,7 +39,11 @@ namespace TitleEdit.PluginServices.Lobby
 
         private LobbyUiStage lastLobbyUiStage = 0;
 
-        private LobbyUiStage LobbyUiStage => (LobbyUiStage)AgentLobby->LobbyUIStage;
+        public LobbyUiStage LobbyUiStage
+        {
+            get => (LobbyUiStage)AgentLobby->LobbyUIStage;
+            set => AgentLobby->LobbyUIStage = (byte)value;
+        }
 
         public GameLobbyType CurrentLobbyMap
         {
@@ -123,6 +127,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 ClearCameraModifications();
             }
+            TickTitle();
         }
 
 

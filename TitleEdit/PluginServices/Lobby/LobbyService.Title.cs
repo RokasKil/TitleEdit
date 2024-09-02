@@ -3,10 +3,13 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Hooking;
 using Dalamud.Utility.Numerics;
 using Dalamud.Utility.Signatures;
+using FFXIVClientStructs.FFXIV.Client.System.Scheduler;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using TitleEdit.Data.BGM;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
@@ -21,11 +24,13 @@ namespace TitleEdit.PluginServices.Lobby
         private readonly delegate* unmanaged<AgentLobby*, void> removeTitleScreenUi = null!;
 
         [Signature("E8 ?? ?? ?? ?? 48 8D 4F ?? 44 89 77")]
-        private readonly delegate* unmanaged<IntPtr, IntPtr, void> cancelScheduledTask = null!;
+        private readonly delegate* unmanaged<ScheduleManagement*, IntPtr, void> cancelScheduledTask = null!;
+
+        private readonly string[] recolorableAddons = { "_TitleRights", "_TitleMenu", "_TitleRevision" };
 
         private IntPtr titleCutsceneStructAddress;
 
-        private delegate bool PickTitleLogo(IntPtr atkUnit, float delay);
+        private delegate bool PickTitleLogo(IntPtr atkUnit);
 
         private Hook<PickTitleLogo> pickTitleLogoHook = null!;
 
@@ -34,6 +39,8 @@ namespace TitleEdit.PluginServices.Lobby
             get => Marshal.ReadByte(titleCutsceneStructAddress, 0x98) == 1;
             set => Marshal.WriteInt32(titleCutsceneStructAddress, 0x98, value ? 1 : 0);
         }
+
+        private bool lastCutsceneStatus = false;
 
         private TitleScreenExpansion? overridenTitleScreenType = null;
 
@@ -45,6 +52,14 @@ namespace TitleEdit.PluginServices.Lobby
 
         private bool shouldAdvanceTitleLogoAnimation = false;
         private float advanceTitleLogoAnimationDuration = 0;
+
+        private bool reloadingTitleScreenUi = false;
+        private bool reloadingTitleScreen = false;
+
+        private Queue<Action> titleMenuFinalizeActions = [];
+        private Queue<Action> cutsceneStoppedActions = [];
+
+
         //These might be inneficient but we don't call them often so maybe it's fine or maybe it's smart and caches but I doubt
         private UiColorModel TitleScreenColors
         {
@@ -92,11 +107,35 @@ namespace TitleEdit.PluginServices.Lobby
             Services.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_TitleMenu", TitleMenuFinalize);
             // To animate/skip animation of title logo
             Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_TitleLogo", TitleLogoPostSetup);
+
+            Services.AddonLifecycle.RegisterListener(AddonEvent.PreSetup, "_TitleLogo", TitleLogoPreSetup);
             // Register UI stuff we want to recolor
-            foreach (var addon in new string[] { "_TitleRights", "_TitleMenu", "_TitleRevision" })
+            foreach (var addon in recolorableAddons)
             {
                 Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, addon, RecolorablePostSetup);
             }
+        }
+
+        private void TitleLogoPreSetup(AddonEvent type, AddonArgs args)
+        {
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
+            if (addon == null || addon->UldManager.NodeListCount < 3) return;
+            var node = (AtkImageNode*)addon->UldManager.NodeList[2];
+            if (node == null) return;
+            Services.Log.Debug($"TitleLogo image pre setup part id {node->PartId}");
+        }
+
+        private void TickTitle()
+        {
+            if (!TitleCutsceneIsLoaded && lastCutsceneStatus)
+            {
+                foreach (var action in cutsceneStoppedActions)
+                {
+                    action();
+                }
+                cutsceneStoppedActions.Clear();
+            }
+            lastCutsceneStatus = TitleCutsceneIsLoaded;
         }
 
         private void TitleLogoPostSetup(AddonEvent type, AddonArgs args)
@@ -111,6 +150,29 @@ namespace TitleEdit.PluginServices.Lobby
                 AdvanceTitleLogoAnimation();
                 shouldAdvanceTitleLogoAnimation = false;
             }
+            // Title screen logos have two parts one with japanese subtitle and one without
+            // They all default to part 1 which is the english version even on client set to JP language
+            // but shb one won't if the title isn't set to shb
+            // it's set from some updateAnimation call somewhere in the setup process
+            // we just manually set it here because I didn't want to figure that out
+            if (ShouldModifyTitleScreen && TitleScreenLogoOption == TitleScreenLogo.Shadowbringers)
+            {
+                SetTitleScreenLogoPartId();
+            }
+        }
+
+        private void SetTitleScreenLogoPartId()
+        {
+            // Iterating through all nodes cause there's like 5 image nodes used in the animation for shadowbringers
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
+            Utils.IterateNodes(addon->RootNode, node =>
+            {
+                if (node->Type == NodeType.Image)
+                {
+                    var imageNode = (AtkImageNode*)node;
+                    imageNode->PartId = 1;
+                }
+            });
         }
 
         private void AnimateDawntrailLogo()
@@ -138,12 +200,19 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (ShouldModifyTitleScreen)
             {
-                var rootNode = ((AtkUnitBase*)args.Addon)->RootNode;
-                Utils.IterateNodes(rootNode, (node) =>
+                RecolorAddon((AtkUnitBase*)args.Addon);
+            }
+        }
+
+        private void RecolorAddon(AtkUnitBase* addon)
+        {
+            if (addon != null && addon->RootNode != null)
+            {
+                Utils.IterateNodes(addon->RootNode, (node) =>
                 {
                     if (node->Type == NodeType.Text)
                     {
-                        Services.Log.Debug($"[RecolorablePostSetup] Recoloring {(IntPtr)node:X} to {TitleScreenColors.Color} {TitleScreenColors.EdgeColor}");
+                        Services.Log.Debug($"[RecolorablePostSetup] Recoloring text {(IntPtr)node:X} to {TitleScreenColors.Color} {TitleScreenColors.EdgeColor}");
                         var textNode = (AtkTextNode*)node;
                         textNode->TextColor = TitleScreenColors.Color.ToByteColor();
                         textNode->EdgeColor = TitleScreenColors.EdgeColor.ToByteColor();
@@ -151,7 +220,7 @@ namespace TitleEdit.PluginServices.Lobby
                     else if (node->Type == NodeType.NineGrid)
                     {
                         var nineGridNode = (AtkNineGridNode*)node;
-                        Services.Log.Debug($"[RecolorablePostSetup] Recoloring {(IntPtr)node:X} to {TitleScreenColors.HighlightColor}");
+                        Services.Log.Debug($"[RecolorablePostSetup] Recoloring ninegrid {(IntPtr)node:X} to {TitleScreenColors.HighlightColor}");
                         var color = TitleScreenColors.HighlightColor - UiColors.HighlightColorApproximation;
                         nineGridNode->AddRed = nineGridNode->AddRed_2 = (short)(color.X * 255);
                         nineGridNode->AddGreen = nineGridNode->AddGreen_2 = (short)(color.Y * 255);
@@ -163,14 +232,36 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
-        private bool PickTitleLogoDetour(IntPtr atkUnit, float delay)
+        private bool PickTitleLogoDetour(IntPtr atkUnit)
         {
+            var addon = (AtkUnitBase*)atkUnit;
+            if (!(addon->UldManager.NodeListCount < 3))
+            {
+
+                var node = (AtkImageNode*)addon->UldManager.NodeList[2];
+                if (!(node == null))
+                {
+                    Services.Log.Debug($"TitleLogo image PickTitleLogoDetour part id {node->PartId}");
+                }
+                else
+                {
+                    Services.Log.Debug($"no image node PickTitleLogoDetour");
+
+                }
+
+            }
+            else
+            {
+                Services.Log.Debug($"no addon {addon->UldManager.NodeListCount}");
+
+            }
+
             // have to set it to false or some logos won't load because ???
             LobbyInfo->PreDawntrailLogoFlag = false;
-            Services.Log.Debug($"[PickTitleLogoDetour] {atkUnit:X} {delay}");
+            Services.Log.Debug($"[PickTitleLogoDetour] {atkUnit:X}");
             if (!ShouldModifyTitleScreen)
             {
-                return pickTitleLogoHook.Original(atkUnit, delay);
+                return pickTitleLogoHook.Original(atkUnit);
             }
             bool currentFreeTrial = LobbyInfo->FreeTrial;
             TitleScreenExpansion currentTitleScreenType = LobbyInfo->CurrentTitleScreenType;
@@ -212,7 +303,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
 
             Services.Log.Debug($"[PickTitleLogoDetour] set {LobbyInfo->CurrentTitleScreenType} {LobbyInfo->FreeTrial}");
-            bool result = pickTitleLogoHook.Original(atkUnit, delay);
+            bool result = pickTitleLogoHook.Original(atkUnit);
             LobbyInfo->FreeTrial = currentFreeTrial;
             LobbyInfo->CurrentTitleScreenType = currentTitleScreenType;
             return result;
@@ -222,7 +313,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             titleScreenLocationModel = GetTitleLocation();
             titleScreenLoaded = true;
-            Services.Log.Debug($"Got title screen {titleScreenLocationModel.TerritoryPath}");
+            Services.Log.Debug($"[EnteringTitleScreen] Got title screen {titleScreenLocationModel.TerritoryPath}");
             if (titleScreenLocationModel.TitleScreenOverride != null)
             {
                 overridenTitleScreenType = LobbyInfo->CurrentTitleScreenType;
@@ -242,11 +333,10 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 if (LobbyUiStage != LobbyUiStage.Movie || idled)
                 {
-                    Services.Log.Debug($"LeavingTitleScreen, restoring {overridenTitleScreenType}, {AgentLobby->IdleTime}");
+                    Services.Log.Debug($"[LeavingTitleScreen] restoring {overridenTitleScreenType}, {AgentLobby->IdleTime}");
                     LobbyInfo->CurrentTitleScreenType = overridenTitleScreenType.Value;
                     if (idled)
                     {
-                        Services.Log.Debug($"LeavingTitleScreen set current movie");
                         LobbyInfo->CurrentTitleScreenMovieType = LobbyInfo->CurrentTitleScreenType switch
                         {
                             TitleScreenExpansion.ARealmReborn => TitleScreenMovie.ARealmReborn,
@@ -257,15 +347,97 @@ namespace TitleEdit.PluginServices.Lobby
                             TitleScreenExpansion.Dawntrail => TitleScreenMovie.Dawntrail,
                             _ => TitleScreenMovie.ARealmReborn
                         };
+                        Services.Log.Debug($"[LeavingTitleScreen] set current movie to {LobbyInfo->CurrentTitleScreenMovieType}");
                     }
                 }
                 overridenTitleScreenType = null;
             }
         }
 
+        // Before a reload happens the UI needs to be unloaded and the cutscene if it's DT title screen
+        public void ReloadTitleScreen()
+        {
+            reloadingTitleScreen = true;
+            OnTitleMenuFinalize(() =>
+            {
+                OnCutsceneStopped(ExecuteTitleScreenReload);
+                Services.LobbyService.StopCutscene();
+            });
+            removeTitleScreenUi(AgentLobby);
+        }
+
+        public void ReloadTitleScreenUi()
+        {
+            if (reloadingTitleScreen) return; // if a full reload is in progress ignore this call
+            reloadingTitleScreenUi = true;
+            OnTitleMenuFinalize(ExecuteTitleScreenUiReload);
+            removeTitleScreenUi(AgentLobby);
+        }
+
+        public void RecolorTitleScreenUi()
+        {
+            foreach (var addon in recolorableAddons)
+            {
+                RecolorAddon((AtkUnitBase*)Services.GameGui.GetAddonByName(addon));
+            }
+        }
+
+        //Execute action if _TitleMenu is unloaded or when it cleans up
+        private void OnTitleMenuFinalize(Action action)
+        {
+            if (Services.GameGui.GetAddonByName("_TitleMenu") != IntPtr.Zero)
+            {
+                titleMenuFinalizeActions.Enqueue(action);
+            }
+            else
+            {
+                action();
+            }
+        }
+
+        //Execute action if cutscene is unloaded or when it cleans up
+        private void OnCutsceneStopped(Action action)
+        {
+            if (TitleCutsceneIsLoaded)
+            {
+                cutsceneStoppedActions.Enqueue(action);
+            }
+            else
+            {
+                action();
+            }
+        }
+
+        private void StopCutscene()
+        {
+            if (TitleCutsceneIsLoaded)
+            {
+                // at offset 30 is the cutscene path which I assume acts as a key?
+                cancelScheduledTask(ScheduleManagement.Instance(), *(IntPtr*)(titleCutsceneStructAddress + 0x30));
+            }
+        }
+
         private void TitleMenuFinalize(AddonEvent type, AddonArgs args)
         {
-            Services.Log.Debug("TitleMenu PreFinalize");
+            foreach (var action in titleMenuFinalizeActions)
+            {
+                action();
+            }
+            titleMenuFinalizeActions.Clear();
+        }
+
+        private void ExecuteTitleScreenReload()
+        {
+            LobbyUiStage = LobbyUiStage.InitialLobbyLoading;
+            LobbyInfo->CurrentLobbyMusicIndex = LobbySong.None;
+            reloadingTitleScreen = false;
+            reloadingTitleScreenUi = false; // just in case
+        }
+
+        private void ExecuteTitleScreenUiReload()
+        {
+            LobbyUiStage = LobbyUiStage.LoadingTitleScreen2;
+            reloadingTitleScreenUi = false;
         }
 
         private void DisposeTitle()

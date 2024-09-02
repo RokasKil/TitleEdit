@@ -18,6 +18,8 @@ namespace TitleEdit.Data.Camera
         public float Pitch;
         [FieldOffset(0x138)]
         public float Roll;
+        [FieldOffset(0x2B0)]
+        public bool TitleScreenLocked;
         [FieldOffset(0x2D0)]
         public CurvePoint LowPoint;
         [FieldOffset(0x2C0)]

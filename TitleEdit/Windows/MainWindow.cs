@@ -52,8 +52,21 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle((float)(test2 / 180 * Math.PI)) / Math.PI * 180}");
             if (ImGui.Button("Remigrate title screens"))
             {
-
                 Services.MigrationService.MigrateTitleScreenV2Presets();
+            }
+            ImGui.TextUnformatted($"LobbyUiStage {Services.LobbyService.LobbyUiStage}");
+            ImGui.TextUnformatted($"TitleCutsceneIsLoaded {Services.LobbyService.TitleCutsceneIsLoaded}");
+            if (ImGui.Button("Reload title screen UI"))
+            {
+                Services.LobbyService.ReloadTitleScreenUi();
+            }
+            if (ImGui.Button("Reload title screen colors"))
+            {
+                Services.LobbyService.RecolorTitleScreenUi();
+            }
+            if (ImGui.Button("Reload title screen"))
+            {
+                Services.LobbyService.ReloadTitleScreen();
             }
         }
     }

@@ -20,23 +20,31 @@ namespace TitleEdit.Windows.Tabs
         {
             base.Draw();
             ImGui.TextUnformatted("Title screen");
-            DrawSelectPresetCombo($"Title screen setting##{Title}", Services.ConfigurationService.TitleDisplayTypeOption, (result) => Services.ConfigurationService.TitleDisplayTypeOption = result);
+            DrawSelectPresetCombo($"Title screen setting##{Title}", Services.ConfigurationService.TitleDisplayTypeOption, (result) =>
+            {
+                Services.ConfigurationService.TitleDisplayTypeOption = result;
+                Services.LobbyService.ReloadTitleScreen();
+            });
             if (GuiUtils.Combo($"Default title screen logo##{Title}", ref Services.ConfigurationService.TitleScreenLogo, filter: (entry) => entry != TitleScreenLogo.Unspecified))
             {
                 Services.ConfigurationService.Save();
+                Services.LobbyService.ReloadTitleScreenUi();
             }
             if (ImGui.Checkbox($"Override preset title screen logo setting##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenLogo))
             {
                 Services.ConfigurationService.Save();
+                Services.LobbyService.ReloadTitleScreenUi();
             }
             if (GuiUtils.DrawUiColorPicker("Default title screen colors", Title, ref Services.ConfigurationService.TitleScreenColor))
             {
                 Services.ConfigurationService.Save();
+                Services.LobbyService.RecolorTitleScreenUi();
             }
 
             if (ImGui.Checkbox($"Override preset title screen colors##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenColor))
             {
                 Services.ConfigurationService.Save();
+                Services.LobbyService.RecolorTitleScreenUi();
             }
 
             ImGui.Separator();
