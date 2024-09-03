@@ -150,6 +150,7 @@ namespace TitleEdit.PluginServices.Lobby
                     {
                         ResetSongIndex();
                     }
+                    SetAllCharacterPostions();
                     return returnVal;
                 }
                 else if (lobbyType == GameLobbyType.Title && ShouldModifyTitleScreen)

@@ -3,6 +3,7 @@ using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
+using FFXIVClientStructs.Interop;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
 using System;
@@ -282,6 +283,7 @@ namespace TitleEdit.PluginServices
             locationModel.Active = active;
             locationModel.Inactive = inactive;
             locationModel.VfxTriggerIndexes = vfxTriggerIndexes;
+            locationModel.Festivals = new Span<uint>(Services.LayoutService.LayoutManager->ActiveFestivals.GetPointer(0), 4).ToArray();
             if (Active.Count == 0)
             {
                 Active = active;

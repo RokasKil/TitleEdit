@@ -18,8 +18,6 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-
-
         [Signature("E8 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? E8")]
         private readonly delegate* unmanaged<AgentLobby*, void> removeTitleScreenUi = null!;
 

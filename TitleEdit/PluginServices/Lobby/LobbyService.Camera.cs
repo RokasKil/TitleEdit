@@ -1,4 +1,5 @@
 using Dalamud.Hooking;
+using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Common.Math;
@@ -12,6 +13,10 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
+
+        [Signature("48 83 EC ?? F3 41 0F 10 01 0F 28 D1")]
+        private readonly delegate* unmanaged<LobbyCameraExpanded*, float, CurvePoint*, CurvePoint*, CurvePoint*, float> calculateLobbyCameraLookAtY = null!;
+
         private delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void CalculateCameraCurveLowAndHighPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void LobbySceneLoadedDelegate(ulong p1, int p2, float p3, ushort p4, uint p5, uint p6, uint p7);
@@ -27,8 +32,12 @@ namespace TitleEdit.PluginServices.Lobby
         private float recordedYaw = 0;
         private float recordedPitch = 0;
         private float recordedDistance = 3.3f;
+
         //default state is recorded so we don't record anything when entering character select
         private bool rotationJustRecorded = true;
+
+        // Used when just loaded a new scene in character select and want to snap the camera's Y
+        private bool shouldSetLookAtY = false;
 
         private float cameraYOffset = 0;
 
@@ -73,6 +82,19 @@ namespace TitleEdit.PluginServices.Lobby
                     // Tell camera to look at last recorded position
                     CameraLookAtLastPosition();
                 }
+                if (shouldSetLookAtY)
+                {
+                    shouldSetLookAtY = false;
+                    // Does some simpleish math which and I would rather call the native code for than rewrite into c#
+                    LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y = calculateLobbyCameraLookAtY(
+                        LobbyCamera,
+                        LobbyCamera->LobbyCamera.Distance,
+                        &LobbyCamera->LowPoint,
+                        &LobbyCamera->MidPoint,
+                        &LobbyCamera->HighPoint);
+                    Services.Log.Debug($"Set lookAtVectorY to {LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y} {LobbyCamera->LowPoint.Value} {LobbyCamera->MidPoint.Value} {LobbyCamera->HighPoint.Value}");
+                }
+
             }
             else if (CurrentLobbyMap == GameLobbyType.Title)
             {
@@ -172,10 +194,10 @@ namespace TitleEdit.PluginServices.Lobby
                 recordedYaw = LobbyCamera->Yaw;
                 recordedPitch = LobbyCamera->Pitch;
                 recordedDistance = LobbyCamera->LobbyCamera.Camera.Distance;
-                rotationJustRecorded = true;
                 recordedYaw -= lastCharacterRotation;
+                rotationJustRecorded = true;
                 recordedYaw = Utils.NormalizeAngle(recordedYaw);
-                Services.Log.Debug($"Recorded rotation {recordedYaw} {recordedPitch} {recordedDistance}");
+                Services.Log.Debug($"Recorded rotation {recordedYaw} {recordedPitch} {recordedDistance} ");
             }
         }
 
@@ -212,6 +234,7 @@ namespace TitleEdit.PluginServices.Lobby
             RotateCharacter();
 
             Services.Log.Debug($"After load rotation {LobbyCamera->Yaw} {LobbyCamera->Pitch} {LobbyCamera->LobbyCamera.Camera.Distance}");
+            shouldSetLookAtY = true;
         }
 
 
@@ -226,6 +249,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 cameraYOffset = 0;
             }
+            //Services.Log.Debug($"SetCameraCurveMidPointDetour {value}");
             self->MidPoint.Value = value + cameraYOffset;
         }
 
@@ -245,6 +269,5 @@ namespace TitleEdit.PluginServices.Lobby
             lobbyCameraFixOnHook.Original(self, cameraPos, focusPos, fovY);
             CameraTick();
         }
-
     }
 }

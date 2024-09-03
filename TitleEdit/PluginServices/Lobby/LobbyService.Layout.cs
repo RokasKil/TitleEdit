@@ -1,5 +1,6 @@
 using Dalamud.Hooking;
 using Dalamud.Utility.Signatures;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using System.Collections.Generic;
@@ -58,10 +59,12 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 return;
             }
-            fixed (uint* pFestivals = characterSelectLocationModel.Festivals)
+            if (characterSelectLocationModel.Festivals != null)
             {
-                //TODO: check why this was crashing
-                //Services.LayoutService.LayoutManager->SetActiveFestivals((GameMain.Festival*)pFestivals);
+                fixed (uint* pFestivals = characterSelectLocationModel.Festivals)
+                {
+                    Services.LayoutService.LayoutManager->SetActiveFestivals((GameMain.Festival*)pFestivals);
+                }
             }
             EnvManager.Instance()->ActiveWeather = model.WeatherId;
             SetTime(model.TimeOffset);

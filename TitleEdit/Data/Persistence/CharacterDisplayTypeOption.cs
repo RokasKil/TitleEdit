@@ -13,7 +13,7 @@ namespace TitleEdit.Data.Persistence
         LastLocation,
         Preset,
         [Obsolete]
-        AetherialSea, // TODO: replace this with built in preset
+        AetherialSea,
         Random
     }
 }

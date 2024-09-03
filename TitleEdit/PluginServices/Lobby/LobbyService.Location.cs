@@ -92,7 +92,6 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 model = Services.PresetService.GetDefaultPreset(LocationType.TitleScreen).LocationModel;
             }
-            // TODO: is this needed
             model.CameraPosition = OffsetPosition(model.CameraPosition);
             return model;
         }

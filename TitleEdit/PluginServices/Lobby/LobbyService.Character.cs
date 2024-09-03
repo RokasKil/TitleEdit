@@ -7,6 +7,7 @@ using System.Text;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
+using TitleEdit.Extensions;
 using TitleEdit.Utility;
 using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using World = Lumina.Excel.GeneratedSheets.World;
@@ -15,15 +16,11 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-        private delegate ulong SelectCharacterDelegate(uint characterIndex, char p2);
-        private delegate ulong SelectCharacter2Delegate(nint p1);
         private delegate void UpdateCharaSelectDisplayDelegate(IntPtr agentLobby, byte p2, byte p3);
         private delegate nint CreateBattleCharacterDelegate(nint objectManager, uint index, bool assignCompanion);
         private delegate void SetCharSelectCurrentWorldDelegate(ulong p1);
         private delegate void CharSelectWorldPreviewEventHandlerDelegate(ulong p1, ulong p2, ulong p3, uint p4);
 
-        private Hook<SelectCharacterDelegate> selectCharacterHook = null!;
-        private Hook<SelectCharacter2Delegate> selectCharacter2Hook = null!;
         private Hook<UpdateCharaSelectDisplayDelegate> updateCharaSelectDisplayHook = null!;
         private Hook<CreateBattleCharacterDelegate> createBattleCharacterHook = null!;
         private Hook<SetCharSelectCurrentWorldDelegate> setCharSelectCurrentWorldHook = null!;
@@ -40,15 +37,6 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void HookCharacter()
         {
-            /// I think the bit for selecting character got inlined... :(
-            // Happends on character list hover - update character Position, mount create mount if needed, change the scene if needed
-            /// TODO: check if new sig works, I don't see any method calling this anymore
-            selectCharacterHook = Hook<SelectCharacterDelegate>("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 1D ?? ?? ?? ?? 0F B6 FA 83 F9", SelectCharacterDetour);
-
-            // Happens on world list hover - update character Position, mount create mount if needed, change the scene if needed
-            /// TODO: check if new sig works, I don't see any method calling this anymore
-            selectCharacter2Hook = Hook<SelectCharacter2Delegate>("40 53 48 83 EC ?? 33 D2 4C 8D 15", SelectCharacter2Detour);
-
             updateCharaSelectDisplayHook = Hook<UpdateCharaSelectDisplayDelegate>("E8 ?? ?? ?? ?? 84 C0 74 ?? C6 86 ?? ?? ?? ?? ?? 48 8B 8C 24", UpdateCharaSelectDisplayDetour);
 
             // Called when the game is making a new character - if set by other hooks we force the flag to include a companionObject so we can display a mount
@@ -142,7 +130,28 @@ namespace TitleEdit.PluginServices.Lobby
 
             Services.Log.Debug($"Set current char to {(nint)(*CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter):X}");
             UpdateCharacter(true);
-            RotateCharacter();
+            //RotateCharacter();
+        }
+
+        private void SetAllCharacterPostions()
+        {
+            var charaSelectCharacterList = CharaSelectCharacterList.Instance();
+            var clientObjectManager = ClientObjectManager.Instance();
+
+
+            for (int i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
+            {
+                if (charaSelectCharacterList->CharacterMapping[i].ContentId == 0)
+                {
+                    break;
+                }
+                var gameObject = clientObjectManager->GetObjectByIndex((ushort)charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
+                if (gameObject != null)
+                {
+                    Services.Log.Debug($"Setting position for {(IntPtr)gameObject:X}");
+                    gameObject->SetPosition(characterSelectLocationModel.Position);
+                }
+            }
         }
 
         private void RotateCharacter()
@@ -200,28 +209,16 @@ namespace TitleEdit.PluginServices.Lobby
 
         private nint CreateBattleCharacterDetour(nint objectManager, uint index, bool assignCompanion)
         {
+            var result = createBattleCharacterHook.Original(objectManager, index, assignCompanion || creatingCharSelectGameObjects);
+
             if (creatingCharSelectGameObjects)
             {
-                Services.Log.Debug("[CreateBattleCharacterDetour] setting assignCompanion");
+                // When making a new character make sure it's created with a companion and also prematurely set it's position to avoid some camera jank
+                Services.Log.Debug($"[CreateBattleCharacterDetour] setting assignCompanion {index:X} {result:X}");
+                ClientObjectManager.Instance()->GetObjectByIndex((ushort)result)->SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
             }
-            return createBattleCharacterHook.Original(objectManager, index, assignCompanion || creatingCharSelectGameObjects);
-        }
-
-
-        private ulong SelectCharacter2Detour(nint p1)
-        {
-            Services.Log.Debug($"SelectCharacter2Detour");
-            var result = selectCharacter2Hook.Original(p1);
-            UpdateCharacter();
             return result;
-        }
 
-        private ulong SelectCharacterDetour(uint characterIndex, char p2)
-        {
-            Services.Log.Debug($"SelectCharacterDetour");
-            var result = selectCharacterHook.Original(characterIndex, p2);
-            UpdateCharacter();
-            return result;
         }
 
         //Get current hovered character by it's content id because the index is set to 100 when flipping through worlds
@@ -248,6 +245,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (CurrentCharacter != null)
             {
+
                 var contentId = GetContentId();
                 if (lastContentId != contentId || forced)
                 {
@@ -259,13 +257,24 @@ namespace TitleEdit.PluginServices.Lobby
                         characterSelectLocationModel = newLocationModel;
                         resetScene = true;
                     }
-                    Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
+                    else
+                    {
+                        CurrentCharacter->GameObject.Rotation = lastCharacterRotation;
+                    }
+                    //else if (CurrentCharacter->GameObject.Position == FFXIVClientStructs.FFXIV.Common.Math.Vector3.Zero)
+                    //{
+                    //    //FixCameraCurve();
+                    //    shouldOffsetCurves = true;
+                    //}
+                    Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X} {LobbyCamera->MidPoint.Value}"); // TODO: Find a better hook to set position or manually recalculate curve here
                     CurrentCharacter->GameObject.SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
+
                     ((CharacterExpanded*)CurrentCharacter)->MovementMode = characterSelectLocationModel.MovementMode;
                     if (CurrentCharacter->Mount.MountId != characterSelectLocationModel.Mount.MountId)
                     {
                         SetupMount(CurrentCharacter, characterSelectLocationModel);
                     }
+                    //calculateLobbyCameraCurve();
                 }
             }
             else
