@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/10.0.0">
 
-  <PropertyGroup>
-    <Version>3.0.0.0</Version>
-    <PackageProjectUrl>https://github.com/RokasKil/TitleEdit</PackageProjectUrl>
-  </PropertyGroup>
+    <PropertyGroup>
+        <Version>3.0.0.0</Version>
+        <PackageProjectUrl>https://github.com/RokasKil/TitleEdit</PackageProjectUrl>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="..\Data\xiv_bgm_en.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="..\Data\xiv_bgm_en.csv">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+        </Content>
+    </ItemGroup>
 
-  <ItemGroup>
-      <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
-      <Reference Include="InteropGenerator.Runtime" Private="false" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
+        <Reference Include="InteropGenerator.Runtime" Private="false" />
+    </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="menu_icon.png" />
+    </ItemGroup>
 </Project>

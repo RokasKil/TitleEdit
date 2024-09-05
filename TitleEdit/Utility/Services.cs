@@ -22,6 +22,9 @@ namespace TitleEdit.Utility
         [PluginService] public static IFramework Framework { get; set; } = null!;
         [PluginService] public static ICommandManager CommandManager { get; set; } = null!;
         [PluginService] public static IAddonLifecycle AddonLifecycle { get; set; } = null!;
+        [PluginService] public static ITextureProvider TextureProvider { get; set; } = null!;
+        [PluginService] public static ITitleScreenMenu TitleScreenMenu { get; set; } = null!;
+        [PluginService] public static IKeyState KeyState { get; set; } = null!;
         public static IDalamudPluginInterface PluginInterface { get; set; } = null!;
         public static ConfigurationService ConfigurationService { get; set; } = null!;
         public static LayoutService LayoutService { get; set; } = null!;

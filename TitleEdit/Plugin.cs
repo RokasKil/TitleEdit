@@ -1,6 +1,11 @@
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Command;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
+using System.Reflection;
+using System.Threading.Tasks;
 using TitleEdit.Utility;
 using TitleEdit.Windows;
 
@@ -16,6 +21,10 @@ public sealed class Plugin : IDalamudPlugin
     private MainWindow MainWindow { get; init; }
     private ConfigButtonOverlay ConfigButtonOverlay { get; init; }
 
+    private IDalamudTextureWrap? logoTexture;
+
+    private bool canChangeUiVisibility = true;
+
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
         Services.ConstructServices(pluginInterface, this);
@@ -25,7 +34,24 @@ public sealed class Plugin : IDalamudPlugin
             Services.MigrationService.MigrateTitleScreenV2Presets();
             Services.MigrationService.MigrateTitleScreenV2Configuration();
         }
-        Services.InitServices();
+        Services.Framework.RunOnFrameworkThread(Services.InitServices);
+        // Load menu_icon.png from dll resources
+        Services.PluginInterface.UiBuilder.RunWhenUiPrepared(() =>
+        {
+            var image = Services.TextureProvider.GetFromManifestResource(Assembly.GetExecutingAssembly(), "TitleEdit.menu_icon.png");
+            return image.RentAsync();
+        }).ContinueWith(imageTask =>
+        {
+            if (!imageTask.IsFaulted)
+            {
+                logoTexture = imageTask.Result;
+                Services.Framework.RunOnFrameworkThread(() =>
+                {
+                    Services.TitleScreenMenu.AddEntry("Title Edit Menu", logoTexture, ToggleConfigUI);
+                });
+
+            }
+        });
 
         ConfigWindow = new();
         MainWindow = new();
@@ -49,10 +75,13 @@ public sealed class Plugin : IDalamudPlugin
 #if DEBUG
         Services.PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
 #endif
+        Services.Framework.Update += CheckHotkey;
     }
 
     public void Dispose()
     {
+        Services.Framework.Update -= CheckHotkey;
+
         WindowSystem.RemoveAllWindows();
 
         ConfigWindow.Dispose();
@@ -61,11 +90,12 @@ public sealed class Plugin : IDalamudPlugin
         Services.CommandManager.RemoveHandler(CommandName);
         Services.CommandManager.RemoveHandler(CommandNameAlias);
         Services.Dispose();
+        logoTexture?.Dispose();
+
     }
 
     private void OnCommand(string command, string args)
     {
-        // in response to the slash command, just toggle the display status of our main ui
         ToggleConfigUI();
     }
 
@@ -77,4 +107,18 @@ public sealed class Plugin : IDalamudPlugin
 
     public void ToggleConfigUI() => ConfigWindow.Toggle();
     public void ToggleMainUI() => MainWindow.Toggle();
+
+    private void CheckHotkey(IFramework framework)
+    {
+        // ctrl+t only on title screen (maybe? (not really but close enough))
+        if (Services.KeyState[VirtualKey.CONTROL] &&
+            Services.KeyState[VirtualKey.T] &&
+            Services.ClientState.LocalPlayer == null
+            && canChangeUiVisibility)
+        {
+            ToggleConfigUI();
+            canChangeUiVisibility = false;
+            Task.Delay(200).ContinueWith(_ => canChangeUiVisibility = true);
+        }
+    }
 }

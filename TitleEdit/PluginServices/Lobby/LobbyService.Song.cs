@@ -1,6 +1,7 @@
 using Dalamud.Hooking;
 using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
+using System;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Utility;
@@ -47,7 +48,12 @@ namespace TitleEdit.PluginServices.Lobby
         {
             Services.Log.Debug($"PlayMusicDetour {self.ToInt64():X} {filename} {volume} {fadeTime}");
 
-            if (CurrentLobbyMap == GameLobbyType.CharaSelect && !characterSelectLocationModel.BgmPath.IsNullOrEmpty())
+            // if we're waiting on a reload prevent music from playing to make it less jarring for the user
+            if (shouldReloadTitleScreenOnLoadingStage2)
+            {
+                return IntPtr.Zero;
+            }
+            else if (CurrentLobbyMap == GameLobbyType.CharaSelect && !characterSelectLocationModel.BgmPath.IsNullOrEmpty())
             {
                 Services.Log.Debug($"Setting music to {characterSelectLocationModel.BgmPath}");
                 filename = characterSelectLocationModel.BgmPath;

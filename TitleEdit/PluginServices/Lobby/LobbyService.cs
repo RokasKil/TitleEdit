@@ -3,6 +3,7 @@ using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using System;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
@@ -85,6 +86,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         public override void Init()
         {
+            InitTitle();
             EnableHooks();
 
             Services.Framework.Update += Tick;
@@ -104,6 +106,17 @@ namespace TitleEdit.PluginServices.Lobby
                 // Will be missing mount if there was no companion object created which is probably the case unless the plugin is being turned off and on again
                 // I will not be fixing that cause fuck it
                 forceUpdateCharacter = CurrentCharacter != null;
+            }
+            // LobbyUiStage is CommonBaseStage (1) when splash screen is being shown for some reason so we look at the addon
+            else if ((Services.GameGui.GetAddonByName("Logo") != IntPtr.Zero && LobbyUiStage == LobbyUiStage.CommonBaseStage) ||
+                LobbyUiStage == LobbyUiStage.EnteringTitleScreen ||
+                LobbyUiStage == LobbyUiStage.LoadingSplashScreen)
+            {
+                EnteringTitleScreen();
+            }
+            else if (CanReloadTitleScreen || LobbyUiStage == LobbyUiStage.LoadingTitleScreen1)
+            {
+                ReloadTitleScreen();
             }
         }
 
@@ -217,7 +230,6 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void HandleLobbyUiStage(bool idling)
         {
-
             if (lastLobbyUiStage != LobbyUiStage)
             {
                 Services.Log.Debug($"LobbyUiStage updated {lastLobbyUiStage} to {LobbyUiStage}, {CurrentLobbyMap}, {lastSceneType}, {loadingLobbyType}");
@@ -229,6 +241,11 @@ namespace TitleEdit.PluginServices.Lobby
                 if (LobbyUiStage == LobbyUiStage.Movie || LobbyUiStage == LobbyUiStage.CharacterSelect)
                 {
                     LeavingTitleScreen(idling);
+                }
+                if (LobbyUiStage == LobbyUiStage.LoadingTitleScreen2 && shouldReloadTitleScreenOnLoadingStage2)
+                {
+                    shouldReloadTitleScreenOnLoadingStage2 = false;
+                    ReloadTitleScreen();
                 }
             }
         }

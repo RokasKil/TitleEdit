@@ -9,7 +9,7 @@ namespace TitleEdit.Data.Lobby
         InitialLobbyLoading = 3,
         LoadingSplashScreen = 4,
         EnteringTitleScreen = 6,
-        LoadingTitleScreen1 = 7,
+        LoadingTitleScreen1 = 7, // CAN'T RELOAD HERE, WAIT FOR LoadingTitleScreen2
         LoadingTitleScreen2 = 8,
         TitleScreen = 9,
         LoadingDataCenter = 12,

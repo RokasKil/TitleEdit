@@ -8,6 +8,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Lobby;
@@ -32,12 +33,6 @@ namespace TitleEdit.PluginServices.Lobby
 
         private Hook<PickTitleLogo> pickTitleLogoHook = null!;
 
-        public bool TitleCutsceneIsLoaded
-        {
-            get => Marshal.ReadByte(titleCutsceneStructAddress, 0x98) == 1;
-            set => Marshal.WriteInt32(titleCutsceneStructAddress, 0x98, value ? 1 : 0);
-        }
-
         private bool lastCutsceneStatus = false;
 
         private TitleScreenExpansion? overridenTitleScreenType = null;
@@ -54,8 +49,24 @@ namespace TitleEdit.PluginServices.Lobby
         private bool reloadingTitleScreenUi = false;
         private bool reloadingTitleScreen = false;
 
+        private bool shouldReloadTitleScreenOnLoadingStage2 = false;
+
         private Queue<Action> titleMenuFinalizeActions = [];
         private Queue<Action> cutsceneStoppedActions = [];
+
+        private bool CanReloadTitleScreen => (new LobbyUiStage[] {
+            //LobbyUiStage.LoadingSplashScreen,
+            //LobbyUiStage.EnteringTitleScreen,
+            //LobbyUiStage.LoadingTitleScreen1,
+            LobbyUiStage.LoadingTitleScreen2,
+            LobbyUiStage.TitleScreen,
+            LobbyUiStage.LoadingDataCenter,
+            LobbyUiStage.TitleScreenMovies,
+            LobbyUiStage.TitleScreenOptions,
+            LobbyUiStage.TitleScreenLicense,
+            LobbyUiStage.TitleScreenConfiguration,
+            LobbyUiStage.TitleScreenInstallationDetails
+        }).Contains(LobbyUiStage);
 
 
         //These might be inneficient but we don't call them often so maybe it's fine or maybe it's smart and caches but I doubt
@@ -93,6 +104,12 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        public bool TitleCutsceneIsLoaded
+        {
+            get => Marshal.ReadByte(titleCutsceneStructAddress, 0x98) == 1;
+            set => Marshal.WriteInt32(titleCutsceneStructAddress, 0x98, value ? 1 : 0);
+        }
+
         private void HookTitle()
         {
             //Some struct holding information about title screen cutscene that plays on DT title
@@ -106,7 +123,6 @@ namespace TitleEdit.PluginServices.Lobby
             // To animate/skip animation of title logo
             Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_TitleLogo", TitleLogoPostSetup);
 
-            Services.AddonLifecycle.RegisterListener(AddonEvent.PreSetup, "_TitleLogo", TitleLogoPreSetup);
             // Register UI stuff we want to recolor
             foreach (var addon in recolorableAddons)
             {
@@ -114,13 +130,9 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
-        private void TitleLogoPreSetup(AddonEvent type, AddonArgs args)
+        private void InitTitle()
         {
-            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
-            if (addon == null || addon->UldManager.NodeListCount < 3) return;
-            var node = (AtkImageNode*)addon->UldManager.NodeList[2];
-            if (node == null) return;
-            Services.Log.Debug($"TitleLogo image pre setup part id {node->PartId}");
+            lastCutsceneStatus = TitleCutsceneIsLoaded;
         }
 
         private void TickTitle()
@@ -353,30 +365,45 @@ namespace TitleEdit.PluginServices.Lobby
         }
 
         // Before a reload happens the UI needs to be unloaded and the cutscene if it's DT title screen
-        public void ReloadTitleScreen()
+        public void ReloadTitleScreen(bool force = false)
         {
-            reloadingTitleScreen = true;
-            OnTitleMenuFinalize(() =>
+            if (CanReloadTitleScreen || force)
             {
-                OnCutsceneStopped(ExecuteTitleScreenReload);
-                Services.LobbyService.StopCutscene();
-            });
-            removeTitleScreenUi(AgentLobby);
+                Services.Log.Debug("[ReloadTitleScreen] reloading");
+                reloadingTitleScreen = true;
+                OnTitleMenuFinalize(() =>
+                {
+                    Services.Log.Debug("[OnTitleMenuFinalize] OnTitleMenuFinalize");
+                    OnCutsceneStopped(ExecuteTitleScreenReload);
+                    Services.LobbyService.StopCutscene();
+                });
+                removeTitleScreenUi(AgentLobby);
+            }
+            else if (LobbyUiStage == LobbyUiStage.LoadingTitleScreen1)
+            {
+                shouldReloadTitleScreenOnLoadingStage2 = true;
+            }
         }
 
-        public void ReloadTitleScreenUi()
+        public void ReloadTitleScreenUi(bool force = false)
         {
-            if (reloadingTitleScreen) return; // if a full reload is in progress ignore this call
-            reloadingTitleScreenUi = true;
-            OnTitleMenuFinalize(ExecuteTitleScreenUiReload);
-            removeTitleScreenUi(AgentLobby);
+            if (CanReloadTitleScreen || force)
+            {
+                if (reloadingTitleScreen) return; // if a full reload is in progress ignore this call
+                reloadingTitleScreenUi = true;
+                OnTitleMenuFinalize(ExecuteTitleScreenUiReload);
+                removeTitleScreenUi(AgentLobby);
+            }
         }
 
-        public void RecolorTitleScreenUi()
+        public void RecolorTitleScreenUi(bool force = false)
         {
-            foreach (var addon in recolorableAddons)
+            if (CanReloadTitleScreen || force)
             {
-                RecolorAddon((AtkUnitBase*)Services.GameGui.GetAddonByName(addon));
+                foreach (var addon in recolorableAddons)
+                {
+                    RecolorAddon((AtkUnitBase*)Services.GameGui.GetAddonByName(addon));
+                }
             }
         }
 
@@ -385,10 +412,12 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (Services.GameGui.GetAddonByName("_TitleMenu") != IntPtr.Zero)
             {
+                Services.Log.Debug("[OnTitleMenuFinalize] queueing");
                 titleMenuFinalizeActions.Enqueue(action);
             }
             else
             {
+                Services.Log.Debug("[OnTitleMenuFinalize] running instant");
                 action();
             }
         }
@@ -398,10 +427,12 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (TitleCutsceneIsLoaded)
             {
+                Services.Log.Debug("[OnCutsceneStopped] queueing");
                 cutsceneStoppedActions.Enqueue(action);
             }
             else
             {
+                Services.Log.Debug("[OnCutsceneStopped] running instant");
                 action();
             }
         }
@@ -410,6 +441,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (TitleCutsceneIsLoaded)
             {
+                Services.Log.Debug("[StopCutscene] stopping");
                 // at offset 30 is the cutscene path which I assume acts as a key?
                 cancelScheduledTask(ScheduleManagement.Instance(), *(IntPtr*)(titleCutsceneStructAddress + 0x30));
             }
@@ -426,6 +458,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void ExecuteTitleScreenReload()
         {
+            Services.Log.Debug("[ExecuteTitleScreenReload] reloading");
             LobbyUiStage = LobbyUiStage.InitialLobbyLoading;
             LobbyInfo->CurrentLobbyMusicIndex = LobbySong.None;
             reloadingTitleScreen = false;
