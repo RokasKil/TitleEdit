@@ -13,6 +13,7 @@ namespace TitleEdit.Utility
 {
     public static class GuiUtils
     {
+        public static readonly Vector4 WarningColor = new Vector4(1, 0.8f, 0, 1);
         private static readonly Dictionary<string, bool> OpenCombos = [];
         private static readonly Dictionary<string, string> ComboFilters = [];
 
@@ -21,18 +22,19 @@ namespace TitleEdit.Utility
         private static bool FilterDrawSeperator = true;
         private static bool FilterDrawTooltip = false;
 
-        public static void Combo(string title, string value, Action elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false) =>
+        public static bool Combo(string title, string value, Func<bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false) =>
             Combo(title, value, (_) => elementsAction.Invoke(), flags);
 
-        public static void Combo(string title, string value, Action<bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false)
+        public static bool Combo(string title, string value, Func<bool, bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false)
         {
+            bool selected = false;
             if (ImGui.BeginCombo(title, value, flags))
             {
                 if (popStyleColor)
                 {
                     ImGui.PopStyleColor();
                 }
-                elementsAction.Invoke(!OpenCombos.GetValueOrDefault(title));
+                selected = elementsAction.Invoke(!OpenCombos.GetValueOrDefault(title));
                 OpenCombos[title] = true;
                 ImGui.EndCombo();
             }
@@ -44,15 +46,17 @@ namespace TitleEdit.Utility
                 }
                 OpenCombos[title] = false;
             }
+            return selected;
         }
 
-        public static void FilterCombo(string title, string value, Func<bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false) =>
+        public static bool FilterCombo(string title, string value, Func<bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false) =>
             FilterCombo(title, value, (_, _) => elementsAction.Invoke(), flags, popStyleColor);
 
-        public static void FilterCombo(string title, string value, Func<bool, string, bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false)
+        public static bool FilterCombo(string title, string value, Func<bool, string, bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false)
         {
-            Combo(title, value, (justOpened) =>
+            return Combo(title, value, (justOpened) =>
             {
+                bool selected = false;
                 if (justOpened)
                 {
                     ImGui.SetKeyboardFocusHere();
@@ -68,11 +72,13 @@ namespace TitleEdit.Utility
                     FilterDrawSeperator = false;
                     if (elementsAction.Invoke(justOpened, filter))
                     {
+                        selected = true;
                         ImGui.CloseCurrentPopup();
                     }
                     FilterComboTitle = null;
                     ImGui.EndChild();
                 }
+                return selected;
             }, flags | ImGuiComboFlags.HeightLargest, popStyleColor);
         }
 
@@ -137,6 +143,17 @@ namespace TitleEdit.Utility
             if (ImGui.SliderFloat(title, ref rotation, -180, 180, "%.2f", ImGuiSliderFlags.AlwaysClamp))
             {
                 value = rotation / 180.0f * (float)Math.PI;
+                return true;
+            }
+            return false;
+        }
+
+        public static bool AngleDrag(string title, ref float value)
+        {
+            var rotation = Utils.NormalizeAngle(value) / MathF.PI * 180.0f;
+            if (ImGui.DragFloat(title, ref rotation, 1, float.NegativeInfinity, float.PositiveInfinity, rotation.ToString("0.00")))
+            {
+                value = Utils.NormalizeAngle(rotation / 180.0f * MathF.PI);
                 return true;
             }
             return false;

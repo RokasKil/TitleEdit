@@ -33,7 +33,7 @@ namespace TitleEdit.Windows.Tabs
             SettingCheckbox($"Save Eorzea time##{Title}", ref Services.ConfigurationService.SaveTime);
             ImGui.Separator();
             SettingCheckbox($"Add a button to character select screen that opens this window##{Title}", ref Services.ConfigurationService.DrawCharacterSelectButton);
-
+            SettingCheckbox($"Display the name of the current screen when loaded##{Title}", ref Services.ConfigurationService.DisplayTitleToast);
         }
 
         private void SettingCheckbox(string label, ref bool value, bool save = true)

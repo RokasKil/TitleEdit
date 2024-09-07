@@ -1,7 +1,4 @@
-#define CALC_LAYOUT_UPDATE
-
-using TitleEdit.Data.Layout;
-using TitleEdit.Utility;
+//#define CALC_LAYOUT_UPDATE
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
@@ -9,7 +6,8 @@ using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Group;
 using FFXIVClientStructs.Interop;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using TitleEdit.Data.Layout;
+using TitleEdit.Utility;
 
 namespace TitleEdit.PluginServices
 {

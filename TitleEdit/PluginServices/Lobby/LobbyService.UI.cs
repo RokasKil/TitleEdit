@@ -39,7 +39,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 UiColorModel color;
                 if (titleScreenLocationModel.UiColor.Expansion == UiColorExpansion.Unspecified ||
-                    Services.ConfigurationService.OverridePresetTitleScreenColor)
+                    (Services.ConfigurationService.OverridePresetTitleScreenColor && !liveEditTitleScreen))
                 {
                     color = Services.ConfigurationService.TitleScreenColor;
                 }
@@ -56,7 +56,7 @@ namespace TitleEdit.PluginServices.Lobby
             get
             {
                 if (titleScreenLocationModel.TitleScreenLogo == TitleScreenLogo.Unspecified ||
-                    Services.ConfigurationService.OverridePresetTitleScreenLogo)
+                    (Services.ConfigurationService.OverridePresetTitleScreenLogo && !liveEditTitleScreen))
                 {
                     return Services.ConfigurationService.TitleScreenLogo;
                 }

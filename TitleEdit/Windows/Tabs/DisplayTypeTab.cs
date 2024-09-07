@@ -4,7 +4,6 @@ using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
@@ -230,7 +229,7 @@ namespace TitleEdit.Windows.Tabs
 
             if (invalid)
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.8f, 0, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, GuiUtils.WarningColor);
             }
             GuiUtils.FilterCombo(label, display, () =>
             {
@@ -324,7 +323,7 @@ namespace TitleEdit.Windows.Tabs
 
             if (invalid)
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.8f, 0, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, GuiUtils.WarningColor);
             }
             GuiUtils.FilterCombo(label, display, () =>
             {

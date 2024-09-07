@@ -1,13 +1,17 @@
-using TitleEdit.Data.Layout;
-using TitleEdit.Utility;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using System.Collections.Generic;
+using TitleEdit.Data.Layout;
+using TitleEdit.Utility;
 
 namespace TitleEdit.PluginServices
 {
     public class WeatherService : AbstractService
     {
-        public unsafe byte WeatherId => EnvManager.Instance()->ActiveWeather;
+        public unsafe byte WeatherId
+        {
+            get => EnvManager.Instance()->ActiveWeather;
+            set => EnvManager.Instance()->ActiveWeather = value;
+        }
 
         private readonly Dictionary<string, List<byte>> weathers = [];
         public WeatherService()

@@ -119,6 +119,13 @@ namespace TitleEdit.PluginServices.Migration
             Services.Log.Info($"Migrating preset to v4 {preset.Name}");
             preset.Version = 4;
             preset.LocationModel = MigrateV3(preset.LocationModel);
+
+#pragma warning disable CS0612 // Type or member is obsolete
+            if (preset.LastLocationMount)
+            {
+                preset.LocationModel.Mount = new() { LastLocationMount = true };
+            }
+#pragma warning restore CS0612 // Type or member is obsolete
             return preset;
         }
 

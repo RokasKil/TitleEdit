@@ -17,7 +17,8 @@ namespace TitleEdit.PluginServices.Preset
                 LocationModel = new()
                 {
                     LocationType = LocationType.TitleScreen,
-                    TitleScreenOverride = TitleScreenExpansion.ARealmReborn
+                    TitleScreenOverride = TitleScreenExpansion.ARealmReborn,
+                    ToastNotificationText = "Now displaying: A Realm Reborn"
                 }
             });
 
@@ -96,6 +97,7 @@ namespace TitleEdit.PluginServices.Preset
                     WeatherId = 2,
                     TimeOffset = 0,
                     BgmPath = "music/ffxiv/BGM_System_Chara.scd",
+                    ToastNotificationText = "Now displaying: Atherial Sea"
                 }
             });
 

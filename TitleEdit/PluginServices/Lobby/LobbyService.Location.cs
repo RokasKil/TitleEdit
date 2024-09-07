@@ -1,7 +1,7 @@
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Common.Math;
 using System;
 using System.Linq;
-using TitleEdit.Data.Character;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 
@@ -18,6 +18,15 @@ namespace TitleEdit.PluginServices.Lobby
 
         private LocationModel GetLocationForContentId(ulong contentId)
         {
+            if (liveEditCharacterSelect)
+            {
+                if (!liveEditCharacterSelectLoaded)
+                {
+                    characterSelectLocationModel = liveEditCharacterSelectLocationModel!.Value;
+                    liveEditCharacterSelectLoaded = true;
+                }
+                return characterSelectLocationModel;
+            }
             var displayOverrideIdx = Services.ConfigurationService.DisplayTypeOverrides.FindIndex((entry) => entry.Key == contentId);
 
             CharacterDisplayTypeOption displayOption;
@@ -34,7 +43,16 @@ namespace TitleEdit.PluginServices.Lobby
 
             if (displayOption.Type == CharacterDisplayType.LastLocation)
             {
-                if (!Services.LocationService.Locations.TryGetValue(contentId, out model))
+                if (Services.LocationService.Locations.TryGetValue(contentId, out model))
+                {
+                    model.ToastNotificationText = $"Now displaying last recorded location";
+                    //Should always have name but just in case
+                    if (Services.CharactersService.Characters.TryGetValue(contentId, out var characterName))
+                    {
+                        model.ToastNotificationText += $" for {characterName}";
+                    }
+                }
+                else
                 {
                     model = GetNothingSelectedLocation();
                 }
@@ -58,6 +76,15 @@ namespace TitleEdit.PluginServices.Lobby
 
         private LocationModel GetNothingSelectedLocation()
         {
+            if (liveEditCharacterSelect)
+            {
+                if (!liveEditCharacterSelectLoaded)
+                {
+                    characterSelectLocationModel = liveEditCharacterSelectLocationModel!.Value;
+                    liveEditCharacterSelectLoaded = true;
+                }
+                return characterSelectLocationModel;
+            }
             var displayOption = Services.ConfigurationService.NoCharacterDisplayType;
             LocationModel model;
             if (displayOption.Type == CharacterDisplayType.Preset)
@@ -78,6 +105,15 @@ namespace TitleEdit.PluginServices.Lobby
 
         private LocationModel GetTitleLocation()
         {
+            if (liveEditTitleScreen)
+            {
+                if (!liveEditTitleScreenLoaded)
+                {
+                    titleScreenLocationModel = liveEditTitleScreenLocationModel!.Value;
+                    liveEditTitleScreenLoaded = true;
+                }
+                return titleScreenLocationModel;
+            }
             var displayOption = Services.ConfigurationService.TitleDisplayTypeOption;
             LocationModel model;
             if (displayOption.Type == TitleDisplayType.Preset)
@@ -94,34 +130,6 @@ namespace TitleEdit.PluginServices.Lobby
             }
             model.CameraPosition = OffsetPosition(model.CameraPosition);
             return model;
-        }
-
-        // TODO: Rework
-        public void Apply(PresetModel preset)
-        {
-            characterSelectLocationModel = preset.LocationModel;
-            characterSelectLocationModel.CameraFollowMode = preset.CameraFollowMode;
-            characterSelectLocationModel.Position = OffsetPosition(characterSelectLocationModel.Position);
-            Services.Log.Debug("Applying location model");
-            if (CurrentCharacter != null)
-            {
-                var contentId = AgentLobby->LobbyData.CharaSelectEntries[AgentLobby->HoveredCharacterIndex].Value->ContentId;
-                if (preset.LastLocationMount)
-                {
-                    characterSelectLocationModel.Mount = Services.LocationService.GetLocationModel(contentId).Mount;
-                }
-                Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
-                CurrentCharacter->GameObject.SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
-                ((CharacterExpanded*)CurrentCharacter)->MovementMode = characterSelectLocationModel.MovementMode;
-
-                if (CurrentCharacter->Mount.MountId != characterSelectLocationModel.Mount.MountId)
-                {
-                    SetupMount(CurrentCharacter, characterSelectLocationModel);
-                }
-
-
-            }
-            resetCharacterSelectScene = true;
         }
 
         private LocationModel GetGroupLocationModel(string? groupPath, LocationType type)
@@ -154,6 +162,11 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 model = preset.LocationModel;
                 characterSelectLocationModel.CameraFollowMode = preset.CameraFollowMode;
+                model.ToastNotificationText = $"Now displaying: {preset.Name}";
+                if (!preset.Author.IsNullOrEmpty())
+                {
+                    model.ToastNotificationText += $"\nBy {preset.Author}";
+                }
             }
             else
             {
@@ -175,6 +188,5 @@ namespace TitleEdit.PluginServices.Lobby
             if (position.Z == 0) position.Z = 0.001f;
             return position;
         }
-
     }
 }

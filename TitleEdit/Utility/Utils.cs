@@ -57,6 +57,12 @@ namespace TitleEdit.Utility
             return normalized;
         }
 
+        // the % is a reminder operator not modulo (-1 mod 9 should be 8 not -1) 
+        public static int Modulo(int k, int n)
+        {
+            return ((k %= n) < 0) ? k + n : k;
+        }
+
         public static Vector3 GetVectorFromAngles(float yaw, float pitch)
         {
             var xzLen = MathF.Cos(pitch);

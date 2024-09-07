@@ -38,12 +38,15 @@ namespace TitleEdit.Data.Persistence
         public bool SaveLayout = false;
         public bool UseVfx = true;
         public bool SaveFestivals = true;
-        // Only set when used with a preset
-        [NonSerialized]
-        public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;
         public TitleScreenExpansion? TitleScreenOverride = null;
         public UiColorModel UiColor = UiColors.Dawntrail;
 
+        // Only set when used with a preset
+        [NonSerialized]
+        public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;
+        // What to say in the toast notification
+        [NonSerialized]
+        public string ToastNotificationText = "";
         public LocationModel()
         {
         }

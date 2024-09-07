@@ -266,7 +266,7 @@ namespace TitleEdit.PluginServices.Lobby
                     ((CharacterExpanded*)CurrentCharacter)->MovementMode = characterSelectLocationModel.MovementMode;
                     if (CurrentCharacter->Mount.MountId != characterSelectLocationModel.Mount.MountId)
                     {
-                        SetupMount(CurrentCharacter, characterSelectLocationModel);
+                        SetupMount(CurrentCharacter, CurrentContentId, characterSelectLocationModel);
                     }
                 }
             }
@@ -276,14 +276,15 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
-        private void SetupMount(Character* character, LocationModel location)
+        private void SetupMount(Character* character, ulong contentId, LocationModel location)
         {
+            var mount = location.Mount.LastLocationMount ? Services.LocationService.GetLocationModel(0).Mount : location.Mount;
             character->Mount.CreateAndSetupMount(
-                (short)characterSelectLocationModel.Mount.MountId,
-                characterSelectLocationModel.Mount.BuddyModelTop,
-                characterSelectLocationModel.Mount.BuddyModelBody,
-                characterSelectLocationModel.Mount.BuddyModelLegs,
-                characterSelectLocationModel.Mount.BuddyStain,
+                (short)mount.MountId,
+                mount.BuddyModelTop,
+                mount.BuddyModelBody,
+                mount.BuddyModelLegs,
+                mount.BuddyStain,
                 0, 0);
         }
     }

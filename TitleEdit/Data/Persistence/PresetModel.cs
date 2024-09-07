@@ -10,6 +10,7 @@ namespace TitleEdit.Data.Persistence
         public string Name = "";
         public string Author = "";
         public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;
+        [Obsolete]
         public bool LastLocationMount = false;
         public LocationModel LocationModel = new();
         [NonSerialized]

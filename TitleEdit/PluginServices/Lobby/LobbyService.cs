@@ -1,4 +1,5 @@
 using Dalamud.Hooking;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
@@ -157,7 +158,6 @@ namespace TitleEdit.PluginServices.Lobby
                     Services.Log.Debug($"Loading char select screen: {territoryPath}");
                     var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
                     if ((!characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != characterSelectLocationModel.BgmPath) ||
-                        // TODO: check if this is fine
                         (characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel.BgmPath))
                     {
                         ResetSongIndex();
@@ -209,6 +209,13 @@ namespace TitleEdit.PluginServices.Lobby
                 if (mapId != GameLobbyType.Title)
                 {
                     Services.Log.Debug("Resetting scene");
+
+                    if (liveEditCharacterSelect && !liveEditCharacterSelectLoaded)
+                    {
+                        previousCharacterSelectModelRotation = characterSelectLocationModel.Rotation;
+                        lastCharacterRotation = 0;
+                        characterSelectLocationModel = GetNothingSelectedLocation();
+                    }
                     RecordCameraRotation();
                     CurrentLobbyMap = GameLobbyType.None;
                     resetCharacterSelectScene = false;
@@ -232,7 +239,6 @@ namespace TitleEdit.PluginServices.Lobby
             if (lastLobbyUiStage != LobbyUiStage)
             {
                 Services.Log.Debug($"LobbyUiStage updated {lastLobbyUiStage} to {LobbyUiStage}, {CurrentLobbyMap}, {lastSceneType}, {loadingLobbyType}");
-                lastLobbyUiStage = LobbyUiStage;
                 if (LobbyUiStage == LobbyUiStage.EnteringTitleScreen || LobbyUiStage == LobbyUiStage.LoadingSplashScreen)
                 {
                     EnteringTitleScreen();
@@ -241,11 +247,16 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     LeavingTitleScreen(idling);
                 }
+                if (LobbyUiStage == LobbyUiStage.TitleScreen && lastLobbyUiStage == LobbyUiStage.LoadingTitleScreen2 && titleScreenLoaded)
+                {
+                    ShowToastNotification(titleScreenLocationModel.ToastNotificationText);
+                }
                 if (LobbyUiStage == LobbyUiStage.LoadingTitleScreen2 && shouldReloadTitleScreenOnLoadingStage2)
                 {
                     shouldReloadTitleScreenOnLoadingStage2 = false;
                     ReloadTitleScreen();
                 }
+                lastLobbyUiStage = LobbyUiStage;
             }
         }
 
@@ -257,6 +268,23 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 resetCharacterSelectScene = true;
                 forceUpdateCharacter = true;
+                previousCharacterSelectModelRotation = characterSelectLocationModel.Rotation;
+            }
+        }
+
+        private void ShowToastNotification(string message)
+        {
+            if (Services.ConfigurationService.DisplayTitleToast)
+            {
+
+                Services.NotificationManager.AddNotification(new()
+                {
+                    Content = message,
+                    MinimizedText = message[..(!message.Contains('\n') ? message.Length : message.IndexOf('\n'))],
+                    Title = "Scene loaded",
+                    Type = NotificationType.Info
+                });
+
             }
         }
 

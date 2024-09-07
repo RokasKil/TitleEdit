@@ -31,7 +31,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private Queue<Action> cutsceneStoppedActions = [];
 
-        private bool CanReloadTitleScreen => (new LobbyUiStage[] {
+        public bool CanReloadTitleScreen => (new LobbyUiStage[] {
             //LobbyUiStage.LoadingSplashScreen,
             //LobbyUiStage.EnteringTitleScreen,
             //LobbyUiStage.LoadingTitleScreen1,

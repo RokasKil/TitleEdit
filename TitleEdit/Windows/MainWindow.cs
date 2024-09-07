@@ -1,5 +1,4 @@
 using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using ImGuiNET;
 using System;
 using System.Linq;
@@ -36,7 +35,7 @@ public class MainWindow : Window, IDisposable
         {
             ImGui.TextUnformatted($"Current character {Services.ClientState.LocalContentId:X16}");
             ImGui.TextUnformatted($"Selected character {(IntPtr)Services.LobbyService.CurrentCharacter:X16}");
-            ImGui.TextUnformatted($"Current weather {EnvManager.Instance()->ActiveWeather}");
+            ImGui.TextUnformatted($"Current weather {Services.WeatherService.WeatherId}");
             ImGui.TextUnformatted($"Current lobbymap {Services.LobbyService.CurrentLobbyMap}");
             var location = Services.LocationService.GetLocationModel(Services.ClientState.LocalContentId);
             ImGui.TextUnformatted($"Current layout {location.Active.Count} {location.Inactive.Count} {location.VfxTriggerIndexes.Count}");

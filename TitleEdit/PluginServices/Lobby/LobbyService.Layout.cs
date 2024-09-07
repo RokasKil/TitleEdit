@@ -1,7 +1,6 @@
 using Dalamud.Hooking;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Environment;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using System.Collections.Generic;
 using TitleEdit.Data.Layout;
@@ -39,7 +38,7 @@ namespace TitleEdit.PluginServices.Lobby
                 UpdateCharacter(true);
                 forceUpdateCharacter = false;
             }
-            Services.Log.Debug($"LobbySetWeatherDetour {EnvManager.Instance()->ActiveWeather}");
+            Services.Log.Debug($"LobbySetWeatherDetour {Services.WeatherService.WeatherId}");
 
         }
 
@@ -58,17 +57,25 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 return;
             }
-            if (characterSelectLocationModel.Festivals != null)
+            if (model.SaveFestivals && model.Festivals != null)
             {
-                fixed (uint* pFestivals = characterSelectLocationModel.Festivals)
+                fixed (uint* pFestivals = model.Festivals)
                 {
                     Services.LayoutService.LayoutManager->SetActiveFestivals((GameMain.Festival*)pFestivals);
                 }
             }
-            EnvManager.Instance()->ActiveWeather = model.WeatherId;
+            else
+            {
+                Services.Log.Debug("Unsetting festivals");
+                fixed (uint* pFestivals = new uint[4])
+                {
+                    Services.LayoutService.LayoutManager->SetActiveFestivals((GameMain.Festival*)pFestivals);
+                }
+            }
+            Services.WeatherService.WeatherId = model.WeatherId;
             SetTime(model.TimeOffset);
-            Services.Log.Debug($"SetWeather to {EnvManager.Instance()->ActiveWeather}");
-            if (model.Active != null && model.Inactive != null)
+            Services.Log.Debug($"SetWeather to {Services.WeatherService.WeatherId}");
+            if (model.SaveLayout && model.Active != null && model.Inactive != null)
             {
                 List<ulong> unknownUUIDs = new();
                 Services.LayoutService.ForEachInstance(instance =>
@@ -91,19 +98,17 @@ namespace TitleEdit.PluginServices.Lobby
                     Services.Log.Debug($"{unknownUUIDs.Count} UUIDs not found in the layout data");
                 }
             }
-            else
-            {
-                Services.Log.Warning($"Layout data was null for {lastContentId:X16}");
-            }
-
         }
 
         private void SetActive(ILayoutInstance* instance, bool active, LocationModel model)
         {
             if (instance->Id.Type == InstanceType.Vfx)
             {
-                SetIndex((VfxLayoutInstance*)instance, model);
-                instance->SetActiveVf54(active);
+                if (model.UseVfx)
+                {
+                    SetIndex((VfxLayoutInstance*)instance, model);
+                    instance->SetActiveVf54(active);
+                }
             }
             else
             {

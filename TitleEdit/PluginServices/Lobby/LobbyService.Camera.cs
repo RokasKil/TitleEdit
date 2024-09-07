@@ -147,12 +147,15 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void CameraSetTitleScreenPosition()
         {
+            var lookAt = Utils.GetVectorFromAngles(titleScreenLocationModel.Yaw, titleScreenLocationModel.Pitch);
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.Position = titleScreenLocationModel.CameraPosition;
-            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(titleScreenLocationModel.CameraPosition + Utils.GetVectorFromAngles(titleScreenLocationModel.Yaw, titleScreenLocationModel.Pitch));
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(titleScreenLocationModel.CameraPosition + lookAt);
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.RenderCamera->FoV = titleScreenLocationModel.Fov;
             // Up vector
-            // TODO: TEST PROPERLY
-            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.Vector_1 = new(MathF.Sin(titleScreenLocationModel.Roll), MathF.Cos(titleScreenLocationModel.Roll), 0);
+            // A lot of this vector math is above me so something might be wrong here but it works fine from my testing
+            Quaternion rotation = Quaternion.CreateFromAxisAngle(lookAt, titleScreenLocationModel.Roll);
+            Vector3 rotatedUpVector = Vector3.Transform(Utils.GetVectorFromAngles(titleScreenLocationModel.Yaw, titleScreenLocationModel.Pitch + MathF.PI / 2), rotation);
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.Vector_1 = rotatedUpVector;
         }
 
         private void ResetCameraLookAtOnExitCharacterSelect()
@@ -207,6 +210,7 @@ namespace TitleEdit.PluginServices.Lobby
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 SetCameraRotation();
+                ShowToastNotification(characterSelectLocationModel.ToastNotificationText);
             }
         }
 

@@ -5,7 +5,6 @@ using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 
@@ -39,7 +38,7 @@ namespace TitleEdit.Windows.Tabs
                     LocationType.CharacterSelect => "Unsaved Character Select group",
                     _ => throw new Exception()
                 };
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.8f, 0, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, GuiUtils.WarningColor);
             }
             else if (currentGroup == "")
             {
@@ -130,7 +129,7 @@ namespace TitleEdit.Windows.Tabs
 
                         if (invalid)
                         {
-                            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.8f, 0, 1));
+                            ImGui.PushStyleColor(ImGuiCol.Text, GuiUtils.WarningColor);
                         }
                         GuiUtils.FilterCombo($"##{Title}##grouprow{i}", display, () =>
                         {
