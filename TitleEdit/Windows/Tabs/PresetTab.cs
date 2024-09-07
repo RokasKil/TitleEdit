@@ -264,7 +264,6 @@ namespace TitleEdit.Windows.Tabs
                     Services.LobbyService.UpdateLiveEditTime(liveEditingLocationType);
                 }
             }
-            ImGui.TextUnformatted($"{preset.LocationModel.TimeOffset} {time} {-1 % 2400}");
             if (Services.ClientState.LocalPlayer != null)
             {
                 var currentTime = Services.LocationService.TimeOffset;
@@ -539,7 +538,7 @@ namespace TitleEdit.Windows.Tabs
                 }
                 color.Pop();
 
-                ImGuiComponents.HelpMarker("Experimental feature to save world layout (e.g. changes that happen when you progress msq).\nWorks fairly well out in the world but often has issues in MSQ.");
+                ImGuiComponents.HelpMarker("Experimental feature to save world layout (e.g. changes that happen when you progress MSQ).\nWorks fairly well out in the world but often has issues in instances.");
                 color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
                 if (preset.LocationModel.SaveLayout)
                 {

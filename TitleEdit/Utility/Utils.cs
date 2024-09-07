@@ -9,18 +9,6 @@ namespace TitleEdit.Utility
 {
     public static class Utils
     {
-        public static nint GetStaticAddressFromSigOrThrow(string signature, int offset = 0)
-        {
-            if (Services.SigScanner.TryGetStaticAddressFromSig(signature, out var result, offset))
-            {
-                return result;
-            }
-            else
-            {
-                throw new Exception($"Failed to get static address from '{signature}'");
-            }
-        }
-
         public static string Truncate(this string value, int maxLength)
         {
             if (string.IsNullOrEmpty(value))

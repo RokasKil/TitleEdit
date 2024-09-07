@@ -1,7 +1,6 @@
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using System;
-using System.Linq;
 using System.Numerics;
 using TitleEdit.Utility;
 
@@ -39,8 +38,8 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted($"Current lobbymap {Services.LobbyService.CurrentLobbyMap}");
             var location = Services.LocationService.GetLocationModel(Services.ClientState.LocalContentId);
             ImGui.TextUnformatted($"Current layout {location.Active.Count} {location.Inactive.Count} {location.VfxTriggerIndexes.Count}");
-            ImGui.TextUnformatted($"Current layout2 {Services.LocationService.Active.Count} {Services.LocationService.Inactive.Count} {Services.LocationService.VfxTriggerIndexes.Count}");
-            ImGui.TextUnformatted($"Current layout3 {location.Active.All(Services.LocationService.Active.Contains)} {location.Inactive.All(Services.LocationService.Inactive.Contains)} {location.VfxTriggerIndexes.Keys.Count == Services.LocationService.VfxTriggerIndexes.Keys.Count && location.VfxTriggerIndexes.Keys.All(k => Services.LocationService.VfxTriggerIndexes.ContainsKey(k) && object.Equals(location.VfxTriggerIndexes[k], Services.LocationService.VfxTriggerIndexes[k]))}");
+            //ImGui.TextUnformatted($"Current layout2 {Services.LocationService.Active.Count} {Services.LocationService.Inactive.Count} {Services.LocationService.VfxTriggerIndexes.Count}");
+            //ImGui.TextUnformatted($"Current layout3 {location.Active.All(Services.LocationService.Active.Contains)} {location.Inactive.All(Services.LocationService.Inactive.Contains)} {location.VfxTriggerIndexes.Keys.Count == Services.LocationService.VfxTriggerIndexes.Keys.Count && location.VfxTriggerIndexes.Keys.All(k => Services.LocationService.VfxTriggerIndexes.ContainsKey(k) && object.Equals(location.VfxTriggerIndexes[k], Services.LocationService.VfxTriggerIndexes[k]))}");
             ImGui.TextUnformatted($"Current Song {Services.BgmService.CurrentSongId}");
             ImGui.TextUnformatted($"Current LobbyMusicIndex {Services.LobbyService.LobbyInfo->CurrentLobbyMusicIndex}");
             ImGui.TextUnformatted($"Current MountId {location.Mount.MountId}");

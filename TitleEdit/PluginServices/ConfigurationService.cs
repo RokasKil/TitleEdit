@@ -14,7 +14,7 @@ public class ConfigurationService
 {
     public int Version { get; set; } = 1;
 
-    public bool TrackPlayerLocation = true;
+    public bool TrackPlayerLocation = false;
     public bool PeriodicSaving = true;
     public int SavePeriod = 10;
     public bool SaveLayout = true;

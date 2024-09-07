@@ -32,6 +32,7 @@ namespace TitleEdit.PluginServices
 
         public override void LoadData()
         {
+            LoadBaseGroups();
             LoadSavedGroups();
         }
 
@@ -155,6 +156,28 @@ namespace TitleEdit.PluginServices
             return false;
         }
 
+        private void LoadBaseGroups()
+        {
+            AddGroup(new()
+            {
+                Name = "Random",
+                Tooltip = "Contains all of your title screen presets",
+                FileName = "?/RandomTitleScreen.json",
+                LocationType = LocationType.TitleScreen
+            });
+            AddGroup(new()
+            {
+                Name = "Random",
+                Tooltip = "Contains all of your character select presets",
+                FileName = "?/RandomCharacterSelect.json",
+                LocationType = LocationType.CharacterSelect
+            });
+        }
+
+        private void AddGroup(GroupModel group)
+        {
+            groups.Add(group.FileName, group);
+        }
         public override void Dispose()
         {
             base.Dispose();

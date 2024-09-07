@@ -27,17 +27,6 @@ namespace TitleEdit.PluginServices
     {
         private readonly static Regex FileNameRegex = new("^([A-F0-9]{16})\\.json$", RegexOptions.IgnoreCase);
 
-        //public static readonly LocationModel DefaultLocation = new LocationModel
-        //{
-        //    TerritoryPath = "ffxiv/zon_z1/chr/z1c1/level/z1c1",
-        //    Position = Vector3.Zero,
-        //    Rotation = 0,
-        //    WeatherId = 2,
-        //    TimeOffset = 0,
-        //    BgmPath = "music/ffxiv/BGM_System_Chara.scd",
-        //    Mount = new()
-        //};
-
         //Move this to a different service?
         public unsafe ushort TimeOffset
         {
@@ -51,6 +40,7 @@ namespace TitleEdit.PluginServices
 
         private readonly CancellationTokenSource cancellationToken = new();
         private DateTime lastSave = DateTime.Now;
+        private DateTime lastLocationCollection = DateTime.Now;
         public string? TerritoryPath { get; private set; }
         public IReadOnlyDictionary<ulong, LocationModel> Locations => locations;
         private ConcurrentDictionary<ulong, LocationModel> locations = [];
@@ -62,21 +52,14 @@ namespace TitleEdit.PluginServices
 
         private DirectoryInfo saveDirectory;
 
-        public HashSet<ulong> Active = [];
-        public HashSet<ulong> Inactive = [];
-        public Dictionary<ulong, short> VfxTriggerIndexes = [];
-
-
         public Dictionary<uint, string> TerritoryPaths { get; private set; }
         public Dictionary<string, uint> TerritoryPathsReverse { get; private set; }
 
         public LocationService()
         {
-
             saveDirectory = ConfigurationService.GetBaseConfigDirectory().CreateSubdirectory(PersistanceConsts.CharacterLocationsFolder);
             TerritoryPaths = Services.DataManager.GetExcelSheet<TerritoryType>()!.ToDictionary(r => r.RowId, r => r.Bg.ToString());
             TerritoryPathsReverse = TerritoryPaths.GroupBy(r => r.Value).ToDictionary(r => r.Key, r => r.First().Key); // is it worth to load this into memory just for migration?
-
         }
 
         public override void LoadData()
@@ -103,22 +86,14 @@ namespace TitleEdit.PluginServices
 
         private unsafe void VfxLayoutInstanceSetVfxTriggerIndex(VfxLayoutInstance* instance, int index)
         {
-
             Services.Log.Debug($"[VfxLayoutInstanceSetVfxTriggerIndex] {instance->ILayoutInstance.UUID():X} {index}");
-            if (instance->VfxTriggerIndex != -1)
-            {
-                VfxTriggerIndexes[instance->ILayoutInstance.UUID()] = (short)index;
-            }
-            else
-            {
-                VfxTriggerIndexes.Remove(instance->ILayoutInstance.UUID());
-            }
+            refreshLayout = true;
         }
 
         private unsafe void Tick(IFramework framework)
         {
             isLoggedIn = Services.ClientState.IsLoggedIn;
-            if (!Services.ConfigurationService.TrackPlayerLocation) return;
+            if (!Services.ConfigurationService.TrackPlayerLocation || (DateTime.Now - lastLocationCollection).TotalSeconds < 2) return;
             if (Services.ClientState.LocalPlayer != null)
             {
                 lastContentId = Services.ClientState.LocalContentId;
@@ -159,7 +134,7 @@ namespace TitleEdit.PluginServices
 
                         if (Services.LayoutService.LayoutInitialized)
                         {
-                            if (refreshLayout || true)
+                            if (refreshLayout)
                             {
                                 SetLayout(ref locationModel);
                             }
@@ -171,6 +146,7 @@ namespace TitleEdit.PluginServices
                     {
                         locationModel.Active.Clear();
                         locationModel.Inactive.Clear();
+                        locationModel.VfxTriggerIndexes.Clear();
                         locationModel.Festivals = [];
                     }
                     locations[lastContentId] = locationModel;
@@ -180,6 +156,7 @@ namespace TitleEdit.PluginServices
                     Services.Log.Debug("No territory path?");
                 }
             }
+            lastLocationCollection = DateTime.Now;
 
         }
 
@@ -199,9 +176,6 @@ namespace TitleEdit.PluginServices
         private void TerritoryChanged(ushort territoryId)
         {
             TerritoryPath = TerritoryPaths.GetValueOrDefault(territoryId);
-            Active = [];
-            Inactive = [];
-            VfxTriggerIndexes = [];
             Services.Log.Debug($"TerritoryChanged: {TerritoryPath}");
         }
 
@@ -213,7 +187,6 @@ namespace TitleEdit.PluginServices
         private void LayoutChanged()
         {
             refreshLayout = true;
-            Active = [];
         }
 
         private void BgmChanged(uint songId)
@@ -225,7 +198,7 @@ namespace TitleEdit.PluginServices
         //Hook on whatever deletes stuff (and maybe adds) so we can get rid of the constant refreshing cause in solution 9 it might cause lag spikes
         private unsafe void LayoutInstanceSetActive(ILayoutInstance* layout, bool active)
         {
-            if (!refreshLayout && Services.ClientState.LocalPlayer != null && locations.TryGetValue(Services.ClientState.LocalContentId, out var locationModel))
+            if (Services.ConfigurationService.SaveLayout && !refreshLayout && Services.ClientState.LocalPlayer != null && locations.TryGetValue(Services.ClientState.LocalContentId, out var locationModel))
             {
                 var inActive = locationModel.Active.Contains(layout->UUID());
                 var inInactive = locationModel.Inactive.Contains(layout->UUID());
@@ -234,24 +207,6 @@ namespace TitleEdit.PluginServices
                     refreshLayout = true;
                     Services.Log.Debug($"[LayoutSetActiveDetour] refreshLayout");
                 }
-            }
-            if (refreshLayout && Active.Count == 0)
-            {
-                return;
-            }
-            var inActive2 = Active.Contains(layout->UUID());
-            var inInactive2 = Inactive.Contains(layout->UUID());
-            if (active && !inActive2)
-            {
-                Active.Add(layout->UUID());
-                Inactive.Remove(layout->UUID());
-                Services.Log.Debug($"[LayoutSetActiveDetour] Activating {layout->UUID()}");
-            }
-            else if (!active && !inInactive2)
-            {
-                Active.Remove(layout->UUID());
-                Inactive.Add(layout->UUID());
-                Services.Log.Debug($"[LayoutSetActiveDetour] Deactivating {layout->UUID()}");
             }
         }
 
@@ -284,12 +239,6 @@ namespace TitleEdit.PluginServices
             locationModel.Inactive = inactive;
             locationModel.VfxTriggerIndexes = vfxTriggerIndexes;
             locationModel.Festivals = new Span<uint>(Services.LayoutService.LayoutManager->ActiveFestivals.GetPointer(0), 4).ToArray();
-            if (Active.Count == 0)
-            {
-                Active = active;
-                Inactive = inactive;
-                VfxTriggerIndexes = vfxTriggerIndexes;
-            }
         }
 
         public void Save(ulong localContentId)
@@ -394,6 +343,11 @@ namespace TitleEdit.PluginServices
             {
                 throw new("BGM file not found");
             }
+        }
+
+        public void LayoutSettingsUpdated()
+        {
+            refreshLayout = true;
         }
 
         public override void Dispose()

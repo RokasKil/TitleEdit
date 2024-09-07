@@ -21,10 +21,10 @@ namespace TitleEdit.PluginServices.Lobby
         private delegate void LoadLobbyScene(GameLobbyType mapId);
         private delegate void UpdateLobbyUiStage(AgentLobby* agentLobby);
 
-        private readonly Hook<CreateSceneDelegate> createSceneHook;
-        private readonly Hook<LobbyUpdateDelegate> lobbyUpdateHook;
-        private readonly Hook<LoadLobbyScene> loadLobbySceneHook;
-        private readonly Hook<UpdateLobbyUiStage> updateLobbyUiStageHook;
+        private Hook<CreateSceneDelegate> createSceneHook = null!;
+        private Hook<LobbyUpdateDelegate> lobbyUpdateHook = null!;
+        private Hook<LoadLobbyScene> loadLobbySceneHook = null!;
+        private Hook<UpdateLobbyUiStage> updateLobbyUiStageHook = null!;
 
         // Probably some lobby instance
         private nint lobbyStructAddress;
@@ -35,7 +35,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private bool resetCharacterSelectScene = false;
 
-        private readonly GameLobbyType* lobbyCurrentMapAddress;
+        private GameLobbyType* lobbyCurrentMapAddress;
 
         private LobbyUiStage lastLobbyUiStage = 0;
 
@@ -57,13 +57,17 @@ namespace TitleEdit.PluginServices.Lobby
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
 
-
             // Points to a struct with a value that indicates the current lobby bgm and current title screen type (among other things)
-            lobbyStructAddress = Utils.GetStaticAddressFromSigOrThrow("66 0F 7F 05 ?? ?? ?? ?? 4C 89 35");
+            lobbyStructAddress = Services.SigScanner.GetStaticAddressFromSig("66 0F 7F 05 ?? ?? ?? ?? 4C 89 35");
 
             // Points to a Value that says what Type of lobby map is being displayer
-            lobbyCurrentMapAddress = (GameLobbyType*)Utils.GetStaticAddressFromSigOrThrow("0F B7 05 ?? ?? ?? ?? 48 8B CE");
+            lobbyCurrentMapAddress = (GameLobbyType*)Services.SigScanner.GetStaticAddressFromSig("0F B7 05 ?? ?? ?? ?? 48 8B CE");
 
+            ScanTitleAddressess();
+        }
+
+        public override void Init()
+        {
             // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
             createSceneHook = Hook<CreateSceneDelegate>("E8 ?? ?? ?? ?? 66 89 1D ?? ?? ?? ?? E9 ?? ?? ?? ??", CreateSceneDetour);
 
@@ -80,12 +84,8 @@ namespace TitleEdit.PluginServices.Lobby
             HookCharacter();
             HookCamera();
             HookSong();
-            HookTitle();
             HookUi();
-        }
 
-        public override void Init()
-        {
             InitTitle();
             EnableHooks();
 

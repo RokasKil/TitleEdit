@@ -1,4 +1,4 @@
-//#define CALC_LAYOUT_UPDATE
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
@@ -6,6 +6,9 @@ using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Group;
 using FFXIVClientStructs.Interop;
 using System;
 using System.Collections.Generic;
+#if CALC_LAYOUT_UPDATE
+using System.Diagnostics;
+#endif
 using TitleEdit.Data.Layout;
 using TitleEdit.Utility;
 
@@ -20,7 +23,7 @@ namespace TitleEdit.PluginServices
         public unsafe delegate void LayoutInstanceSetActiveDelegate(ILayoutInstance* instance, bool active);
         public unsafe delegate void VfxLayoutInstanceSetVfxTriggerIndexDelegate(VfxLayoutInstance* vfxInstance, int index);
 
-        private Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate> vfxLayoutInstanceSetVfxTriggerIndexHook;
+        private Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate> vfxLayoutInstanceSetVfxTriggerIndexHook = null!;
 
         public unsafe event LayoutInstanceSetActiveDelegate? OnLayoutInstanceSetActive;
         public unsafe event VfxLayoutInstanceSetVfxTriggerIndexDelegate? OnVfxLayoutInstanceSetVfxTriggerIndex;
@@ -28,6 +31,10 @@ namespace TitleEdit.PluginServices
 
         private bool territoryChanged;
         public Dictionary<IntPtr, Hook<LayoutInstanceSetActiveDelegate>> ActiveHooks { get; set; } = [];
+
+        private bool ShouldEnableHooks => Services.ConfigurationService.TrackPlayerLocation &&
+            Services.ConfigurationService.SaveLayout &&
+            (!Services.Condition.Any(ConditionFlag.BoundByDuty) || Services.ConfigurationService.SaveLayoutInInstance);
 
         private List<InstanceType> instanceTypes =
         [
@@ -43,14 +50,14 @@ namespace TitleEdit.PluginServices
         public LayoutService()
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
-            unsafe
-            {
-                vfxLayoutInstanceSetVfxTriggerIndexHook = Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate>("48 89 5C 24 ?? 57 48 83 EC ?? 8B FA 48 8B D9 83 FA ?? 75", SetVfxLayoutInstanceVfxTriggerIndexDetour);
-            }
         }
 
         public override void Init()
         {
+            unsafe
+            {
+                vfxLayoutInstanceSetVfxTriggerIndexHook = Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate>("48 89 5C 24 ?? 57 48 83 EC ?? 8B FA 48 8B D9 83 FA ?? 75", SetVfxLayoutInstanceVfxTriggerIndexDetour);
+            }
             Services.Framework.Update += Tick;
             Services.ClientState.Logout += OnLogout;
             Services.ClientState.TerritoryChanged += TerritoryChanged;
@@ -61,7 +68,7 @@ namespace TitleEdit.PluginServices
 
         private unsafe void SetVfxLayoutInstanceVfxTriggerIndexDetour(VfxLayoutInstance* vfxInstance, int index)
         {
-            vfxLayoutInstanceSetVfxTriggerIndexHook.Original(vfxInstance, index);
+            vfxLayoutInstanceSetVfxTriggerIndexHook?.Original(vfxInstance, index);
             OnVfxLayoutInstanceSetVfxTriggerIndex?.Invoke(vfxInstance, index);
         }
 
@@ -108,7 +115,10 @@ namespace TitleEdit.PluginServices
                 if (ActiveHooks.ContainsKey(setActiveAddress)) continue;
                 var hook = Services.GameInteropProvider.HookFromAddress<LayoutInstanceSetActiveDelegate>(setActiveAddress, (layout, active) => LayoutInstanceSetActiveDetour(setActiveAddress, layout, active));
                 ActiveHooks[setActiveAddress] = hook;
-                hook.Enable();
+                if (ShouldEnableHooks)
+                {
+                    hook.Enable();
+                }
             }
         }
 
@@ -179,6 +189,22 @@ namespace TitleEdit.PluginServices
         }
 
         public unsafe void SetVfxLayoutInstanceVfxTriggerIndex(VfxLayoutInstance* instance, int index) => vfxLayoutInstanceSetVfxTriggerIndexHook.Original(instance, index);
+
+
+        public void SettingsUpdated()
+        {
+            foreach (var hook in ActiveHooks.Values)
+            {
+                if (ShouldEnableHooks)
+                {
+                    hook.Enable();
+                }
+                else
+                {
+                    hook.Disable();
+                }
+            }
+        }
 
         public override void Dispose()
         {

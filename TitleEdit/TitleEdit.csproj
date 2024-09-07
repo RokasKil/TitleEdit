@@ -6,6 +6,10 @@
         <PackageProjectUrl>https://github.com/RokasKil/TitleEdit</PackageProjectUrl>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      <DefineConstants>$(DefineConstants);CALC_LAYOUT_UPDATE</DefineConstants>
+    </PropertyGroup>
+
     <ItemGroup>
         <Content Include="..\Data\xiv_bgm_en.csv">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

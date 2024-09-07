@@ -62,7 +62,7 @@ namespace TitleEdit.PluginServices
 
         public BgmService()
         {
-            baseAddress = Utils.GetStaticAddressFromSigOrThrow("48 8B 15 ?? ?? ?? ?? 0F B6 42");
+            baseAddress = Services.SigScanner.GetStaticAddressFromSig("48 8B 15 ?? ?? ?? ?? 0F B6 42");
 
             Bgms = [];
             BgmPaths = Services.DataManager.GetExcelSheet<BGM>()!.ToDictionary(r => r.RowId, r => r.File.ToString());
