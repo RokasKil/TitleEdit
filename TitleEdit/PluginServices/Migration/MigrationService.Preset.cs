@@ -33,6 +33,9 @@ namespace TitleEdit.PluginServices.Migration
                     goto case 2;
                 case 2:
                     preset = MigrateV2(preset.Value);
+                    goto case 3;
+                case 3:
+                    preset = MigrateV3(preset.Value);
                     break;
                 default:
                     break;
@@ -108,6 +111,14 @@ namespace TitleEdit.PluginServices.Migration
             Services.Log.Info($"Migrating preset to v3 {preset.Name}");
             preset.Version = 3;
             preset.LocationModel = MigrateV2(preset.LocationModel);
+            return preset;
+        }
+
+        private PresetModel MigrateV3(PresetModel preset)
+        {
+            Services.Log.Info($"Migrating preset to v4 {preset.Name}");
+            preset.Version = 4;
+            preset.LocationModel = MigrateV3(preset.LocationModel);
             return preset;
         }
 

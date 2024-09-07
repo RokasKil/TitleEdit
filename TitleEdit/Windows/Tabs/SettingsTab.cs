@@ -1,7 +1,6 @@
 using Dalamud.Interface.Components;
 using ImGuiNET;
 using System;
-using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 
 namespace TitleEdit.Windows.Tabs
@@ -33,17 +32,6 @@ namespace TitleEdit.Windows.Tabs
             SettingCheckbox($"Save song##{Title}", ref Services.ConfigurationService.SaveBgm);
             SettingCheckbox($"Save Eorzea time##{Title}", ref Services.ConfigurationService.SaveTime);
             ImGui.Separator();
-
-            GuiUtils.Combo($"Camera follow mode##{Title}", Services.ConfigurationService.CameraFollowMode.ToText(), () =>
-            {
-                foreach (var mode in Enum.GetValues<CameraFollowMode>().AsSpan(1))
-                {
-                    if (ImGui.Selectable($"{mode.ToText()}##{Title}", Services.ConfigurationService.CameraFollowMode == mode))
-                    {
-                        Services.ConfigurationService.CameraFollowMode = mode;
-                    }
-                }
-            });
             SettingCheckbox($"Add a button to character select screen that opens this window##{Title}", ref Services.ConfigurationService.DrawCharacterSelectButton);
 
         }

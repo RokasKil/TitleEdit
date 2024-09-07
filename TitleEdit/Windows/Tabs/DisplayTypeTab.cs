@@ -5,6 +5,7 @@ using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 
@@ -49,10 +50,39 @@ namespace TitleEdit.Windows.Tabs
 
             ImGui.Separator();
             ImGui.TextUnformatted("Character select screen");
-            DrawSelectPresetCombo($"Nothing selected setting##{Title}", Services.ConfigurationService.NoCharacterDisplayType, (result) => Services.ConfigurationService.NoCharacterDisplayType = result, false);
+            DrawSelectPresetCombo($"Nothing selected setting##{Title}", Services.ConfigurationService.NoCharacterDisplayType, (result) =>
+            {
+                Services.ConfigurationService.NoCharacterDisplayType = result;
+                unsafe
+                {
+                    if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
+                    Services.LobbyService.CurrentContentId == 0)
+                    {
+                        Services.LobbyService.ReloadCharacterSelect();
+                    }
+                }
+            }, false);
             ImGuiComponents.HelpMarker("Preset that is used when no character is selected");
-            DrawSelectPresetCombo($"Global character setting##{Title}", Services.ConfigurationService.GlobalDisplayType, (result) => Services.ConfigurationService.GlobalDisplayType = result);
+            DrawSelectPresetCombo($"Global character setting##{Title}", Services.ConfigurationService.GlobalDisplayType, (result) =>
+            {
+                Services.ConfigurationService.GlobalDisplayType = result;
 
+                unsafe
+                {
+                    if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
+                    Services.LobbyService.CurrentContentId != 0 &&
+                    !Services.ConfigurationService.DisplayTypeOverrides.Exists(displayOverride => displayOverride.Key == Services.LobbyService.CurrentContentId))
+                    {
+                        Services.LobbyService.ReloadCharacterSelect();
+                    }
+                }
+            });
+
+
+            if (GuiUtils.Combo($"Camera follow mode##{Title}", ref Services.ConfigurationService.CameraFollowMode, filter: (mode) => mode != CameraFollowMode.Inherit))
+            {
+                Services.ConfigurationService.Save();
+            }
             ImGui.Separator();
             ImGui.TextUnformatted("Character overrides");
             var usedIds = new HashSet<ulong>(Services.ConfigurationService.DisplayTypeOverrides.Count);
@@ -77,13 +107,34 @@ namespace TitleEdit.Windows.Tabs
                         ImGui.TableNextColumn();
 
                         ImGui.SetNextItemWidth(16f * ImGui.GetFontSize());
-                        DrawSelectPresetCombo($"##Character override##{i}", entry.Value, (result) => Services.ConfigurationService.DisplayTypeOverrides[i] = new(entry.Key, result));
+                        DrawSelectPresetCombo($"##Character override##{i}", entry.Value, (result) =>
+                        {
+                            Services.ConfigurationService.DisplayTypeOverrides[i] = new(entry.Key, result);
+                            unsafe
+                            {
+                                if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
+                                Services.LobbyService.CurrentContentId != 0 &&
+                                entry.Key == Services.LobbyService.CurrentContentId)
+                                {
+                                    Services.LobbyService.ReloadCharacterSelect();
+                                }
+                            }
+                        });
                         ImGui.TableNextColumn();
                         if (ImGuiComponents.IconButton($"##{Title}##{i}##Delete", FontAwesomeIcon.Trash))
                         {
                             Services.ConfigurationService.DisplayTypeOverrides.RemoveRange(i, 1);
                             Services.ConfigurationService.Save();
                             i--;
+                            unsafe
+                            {
+                                if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
+                                Services.LobbyService.CurrentContentId != 0 &&
+                                !Services.ConfigurationService.DisplayTypeOverrides.Exists(displayOverride => displayOverride.Key == Services.LobbyService.CurrentContentId))
+                                {
+                                    Services.LobbyService.ReloadCharacterSelect();
+                                }
+                            }
                         }
                         ImGui.TableNextColumn();
                     }
@@ -119,10 +170,21 @@ namespace TitleEdit.Windows.Tabs
                 Services.ConfigurationService.DisplayTypeOverrides.Add(new(currentContentId, new() { Type = CharacterDisplayType.LastLocation }));
                 Services.ConfigurationService.Save();
 
+                unsafe
+                {
+                    if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
+                    Services.LobbyService.CurrentContentId != 0 &&
+                    currentContentId == Services.LobbyService.CurrentContentId)
+                    {
+                        Services.LobbyService.ReloadCharacterSelect();
+                    }
+                }
                 currentContentId = 0;
+
             }
             ImGui.EndDisabled();
         }
+
 
         private void DrawSelectPresetCombo(string label, CharacterDisplayTypeOption value, Action<CharacterDisplayTypeOption> selectAction, bool showLastLocationOption = true)
         {

@@ -27,12 +27,12 @@ namespace TitleEdit.PluginServices.Lobby
         private Hook<CharSelectWorldPreviewEventHandlerDelegate> charSelectWorldPreviewEventHandlerHook = null!;
 
         public Character* CurrentCharacter => CharaSelectCharacterList.GetCurrentCharacter();
+        public ulong CurrentContentId => AgentLobby->HoveredCharacterContentId;
 
 
         private bool creatingCharSelectGameObjects = false;
         private ulong lastContentId;
 
-        // Set every tick when CurrentCharacter is not null and reset when going from nothing selected to displaying a character (because we're restoring the angle specifically from camera)
         private float lastCharacterRotation = 0;
 
         private void HookCharacter()
@@ -62,7 +62,6 @@ namespace TitleEdit.PluginServices.Lobby
                 if (lastContentId == 0)
                 {
                     Services.Log.Debug($"Reseting last character rotation {lastCharacterRotation}");
-                    lastCharacterRotation = 0;
                 }
                 UpdateCharacter();
             }
@@ -76,9 +75,9 @@ namespace TitleEdit.PluginServices.Lobby
                 if (CurrentCharacter != null)
                 {
                     // Don't record rotation when loading next scene
-                    if (!rotationJustRecorded && !resetScene)
+                    if (!rotationJustRecorded && !resetCharacterSelectScene)
                     {
-                        lastCharacterRotation = CurrentCharacter->Rotation;
+                        lastCharacterRotation = Utils.NormalizeAngle(CurrentCharacter->Rotation - characterSelectLocationModel.Rotation);
                     }
                     if (CurrentCharacter->GameObject.RenderFlags != 0 && CurrentCharacter->GameObject.RenderFlags != 0x40 && CurrentCharacter->GameObject.IsReadyToDraw())
                     {
@@ -130,7 +129,7 @@ namespace TitleEdit.PluginServices.Lobby
 
             Services.Log.Debug($"Set current char to {(nint)(*CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter):X}");
             UpdateCharacter(true);
-            //RotateCharacter();
+            RotateCharacter();
         }
 
         private void SetAllCharacterPostions()
@@ -158,7 +157,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (CurrentCharacter != null)
             {
-                CurrentCharacter->GameObject.SetRotation(characterSelectLocationModel.Rotation);
+                CurrentCharacter->GameObject.SetRotation(Utils.NormalizeAngle(lastCharacterRotation + characterSelectLocationModel.Rotation));
             }
         }
 
@@ -194,8 +193,9 @@ namespace TitleEdit.PluginServices.Lobby
             var newLocationModel = GetNothingSelectedLocation();
             if (!newLocationModel.Equals(characterSelectLocationModel))
             {
+                previousCharacterSelectModelRotation = characterSelectLocationModel.Rotation;
                 characterSelectLocationModel = GetNothingSelectedLocation();
-                resetScene = true;
+                resetCharacterSelectScene = true;
 
             }
         }
@@ -245,28 +245,22 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (CurrentCharacter != null)
             {
-
-                var contentId = GetContentId();
-                if (lastContentId != contentId || forced)
+                if (lastContentId != CurrentContentId || forced)
                 {
-                    lastContentId = contentId;
+                    lastContentId = CurrentContentId;
 
-                    var newLocationModel = GetLocationForContentId(contentId);
+                    var newLocationModel = GetLocationForContentId(CurrentContentId);
                     if (!newLocationModel.Equals(characterSelectLocationModel))
                     {
+                        previousCharacterSelectModelRotation = characterSelectLocationModel.Rotation;
                         characterSelectLocationModel = newLocationModel;
-                        resetScene = true;
+                        resetCharacterSelectScene = true;
                     }
                     else
                     {
-                        CurrentCharacter->GameObject.Rotation = lastCharacterRotation;
+                        RotateCharacter();
                     }
-                    //else if (CurrentCharacter->GameObject.Position == FFXIVClientStructs.FFXIV.Common.Math.Vector3.Zero)
-                    //{
-                    //    //FixCameraCurve();
-                    //    shouldOffsetCurves = true;
-                    //}
-                    Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X} {LobbyCamera->MidPoint.Value}"); // TODO: Find a better hook to set position or manually recalculate curve here
+                    Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
                     CurrentCharacter->GameObject.SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
 
                     ((CharacterExpanded*)CurrentCharacter)->MovementMode = characterSelectLocationModel.MovementMode;
@@ -274,19 +268,12 @@ namespace TitleEdit.PluginServices.Lobby
                     {
                         SetupMount(CurrentCharacter, characterSelectLocationModel);
                     }
-                    //calculateLobbyCameraCurve();
                 }
             }
             else
             {
                 NothingSelected();
             }
-        }
-
-        private ulong GetContentId()
-        {
-            Services.Log.Debug($"Getting content id of {AgentLobby->HoveredCharacterIndex} : {AgentLobby->HoveredCharacterContentId:X} : {AgentLobby->LobbyData.CharaSelectEntries.LongCount}");
-            return AgentLobby->HoveredCharacterContentId;//agentLobby->LobbyData.CharaSelectEntries[agentLobby->HoveredCharacterIndex].Value->ContentId;
         }
 
         private void SetupMount(Character* character, LocationModel location)

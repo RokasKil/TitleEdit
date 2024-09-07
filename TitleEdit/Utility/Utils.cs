@@ -39,6 +39,14 @@ namespace TitleEdit.Utility
                 .SingleOrDefault() is not EnumTranslationAttribute attribute ? value.ToString() : attribute.Translation;
         }
 
+        public static string? ToTooltip(this Enum value)
+        {
+            return value.GetType()?
+                .GetField(value.ToString())?
+                .GetCustomAttributes(typeof(EnumTranslationAttribute), false)
+                .SingleOrDefault() is not EnumTranslationAttribute attribute ? null : attribute.Tooltip;
+        }
+
         public static float NormalizeAngle(float angle)
         {
             var normalized = angle % (MathF.PI * 2);

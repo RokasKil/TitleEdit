@@ -32,9 +32,7 @@ namespace TitleEdit.PluginServices.Lobby
         private GameLobbyType lastSceneType = GameLobbyType.None;
         private GameLobbyType loadingLobbyType = GameLobbyType.None;
 
-
-
-        private bool resetScene = false;
+        private bool resetCharacterSelectScene = false;
 
         private readonly GameLobbyType* lobbyCurrentMapAddress;
 
@@ -82,6 +80,7 @@ namespace TitleEdit.PluginServices.Lobby
             HookCamera();
             HookSong();
             HookTitle();
+            HookUi();
         }
 
         public override void Init()
@@ -92,7 +91,7 @@ namespace TitleEdit.PluginServices.Lobby
             Services.Framework.Update += Tick;
             if (CurrentCharacter != null)
             {
-                characterSelectLocationModel = GetLocationForContentId(GetContentId());
+                characterSelectLocationModel = GetLocationForContentId(CurrentContentId);
             }
             else
             {
@@ -101,7 +100,7 @@ namespace TitleEdit.PluginServices.Lobby
             titleScreenLocationModel = GetTitleLocation();
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
-                resetScene = true;
+                resetCharacterSelectScene = true;
                 // Forcing a character update on layout load to set positions and stuff
                 // Will be missing mount if there was no companion object created which is probably the case unless the plugin is being turned off and on again
                 // I will not be fixing that cause fuck it
@@ -202,8 +201,8 @@ namespace TitleEdit.PluginServices.Lobby
         {
             Services.Log.Verbose($"mapId {mapId}");
 
-            // if resetScene is true or if switching between char select and char creation
-            if (resetScene ||
+            // if resetCharacterSelectScene is true or if switching between char select and char creation
+            if (resetCharacterSelectScene ||
                 (mapId == GameLobbyType.CharaSelect && lastLobbyUpdateMapId == GameLobbyType.Aetherial) ||
                 (mapId == GameLobbyType.Aetherial && lastLobbyUpdateMapId == GameLobbyType.CharaSelect))
             {
@@ -212,7 +211,7 @@ namespace TitleEdit.PluginServices.Lobby
                     Services.Log.Debug("Resetting scene");
                     RecordCameraRotation();
                     CurrentLobbyMap = GameLobbyType.None;
-                    resetScene = false;
+                    resetCharacterSelectScene = false;
                 }
             }
 
@@ -250,10 +249,22 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        public void ReloadCharacterSelect(bool force = false)
+        {
+            // Dawntrail title screen is a bitch and doesn't respect our CurrentLobbyMap value
+            // You can even still move your camera around behind the cutscene which is neat but fuck you SE
+            if ((CurrentLobbyMap == GameLobbyType.CharaSelect && !TitleCutsceneIsLoaded) || force)
+            {
+                resetCharacterSelectScene = true;
+                forceUpdateCharacter = true;
+            }
+        }
+
         public override void Dispose()
         {
             base.Dispose();
             DisposeTitle();
+            DisposeUi();
             Services.Framework.Update -= Tick;
             // Resetting the character select thingy on unload
             // If this thing causes any troubles we axe it and tell the users to not do it :)

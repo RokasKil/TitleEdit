@@ -121,7 +121,7 @@ namespace TitleEdit.PluginServices.Lobby
 
 
             }
-            resetScene = true;
+            resetCharacterSelectScene = true;
         }
 
         private LocationModel GetGroupLocationModel(string? groupPath, LocationType type)

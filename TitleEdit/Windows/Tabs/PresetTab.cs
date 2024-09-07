@@ -431,6 +431,13 @@ namespace TitleEdit.Windows.Tabs
                 GuiUtils.DrawUiColorPicker("Menu color", Title, ref preset.LocationModel.UiColor);
 
             }
+            ImGui.Checkbox($"Save world layout##{Title}", ref preset.LocationModel.SaveLayout);
+            if (preset.LocationModel.SaveLayout)
+            {
+                ImGui.Checkbox($"Save world layout vfs##{Title}", ref preset.LocationModel.SaveLayout);
+            }
+            ImGui.Checkbox($"Save festivals##{Title}", ref preset.LocationModel.SaveFestivals);
+
             ImGui.TextUnformatted($"Preset file: {preset.FileName}");
             ImGui.EndDisabled();
         }

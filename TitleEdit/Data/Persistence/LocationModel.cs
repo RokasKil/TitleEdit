@@ -10,7 +10,7 @@ namespace TitleEdit.Data.Persistence
     // Could seperate these into title screen and character select but I kinda want to allow users to easily convert between the two maybe (also am lazy)
     public struct LocationModel
     {
-        public readonly static int CurrentVersion = 3;
+        public readonly static int CurrentVersion = 4;
 
         public int Version = CurrentVersion;
         public LocationType LocationType = LocationType.TitleScreen;
@@ -33,7 +33,11 @@ namespace TitleEdit.Data.Persistence
         public HashSet<ulong> Active = [];
         public HashSet<ulong> Inactive = [];
         public Dictionary<ulong, short> VfxTriggerIndexes = [];
+        // TODO: Rework this into the new Festival objects
         public uint[] Festivals = new uint[4];
+        public bool SaveLayout = false;
+        public bool UseVfx = true;
+        public bool SaveFestivals = true;
         // Only set when used with a preset
         [NonSerialized]
         public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;

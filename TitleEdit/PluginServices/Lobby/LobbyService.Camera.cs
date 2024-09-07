@@ -32,6 +32,7 @@ namespace TitleEdit.PluginServices.Lobby
         private float recordedYaw = 0;
         private float recordedPitch = 0;
         private float recordedDistance = 3.3f;
+        private float previousCharacterSelectModelRotation = 0f;
 
         //default state is recorded so we don't record anything when entering character select
         private bool rotationJustRecorded = true;
@@ -191,13 +192,11 @@ namespace TitleEdit.PluginServices.Lobby
             // Prevent overwriting camera location when going through characters rapidly (switching while a scene is still loading)
             if (!rotationJustRecorded)
             {
-                recordedYaw = LobbyCamera->Yaw;
+                recordedYaw = Utils.NormalizeAngle(LobbyCamera->Yaw - previousCharacterSelectModelRotation);
                 recordedPitch = LobbyCamera->Pitch;
                 recordedDistance = LobbyCamera->LobbyCamera.Camera.Distance;
-                recordedYaw -= lastCharacterRotation;
                 rotationJustRecorded = true;
-                recordedYaw = Utils.NormalizeAngle(recordedYaw);
-                Services.Log.Debug($"Recorded rotation {recordedYaw} {recordedPitch} {recordedDistance} ");
+                Services.Log.Debug($"Recorded rotation {recordedYaw} {recordedPitch} {recordedDistance} ({lastCharacterRotation} {LobbyCamera->Yaw - lastCharacterRotation} {Utils.NormalizeAngle(LobbyCamera->Yaw - lastCharacterRotation)})");
             }
         }
 
@@ -217,19 +216,17 @@ namespace TitleEdit.PluginServices.Lobby
             recordedYaw = 0;
             recordedPitch = 0;
             recordedDistance = 3.3f;
+            lastCharacterRotation = 0;
         }
 
         private void SetCameraRotation()
         {
-            LobbyCamera->Yaw = Utils.NormalizeAngle(recordedYaw);
+            LobbyCamera->Yaw = Utils.NormalizeAngle(recordedYaw + characterSelectLocationModel.Rotation);
             LobbyCamera->Pitch = recordedPitch;
             LobbyCamera->LobbyCamera.Camera.Distance = recordedDistance;
             LobbyCamera->LobbyCamera.Camera.InterpDistance = recordedDistance;
 
             rotationJustRecorded = false;
-            Services.Log.Debug($"Loaded rotation {recordedYaw} {recordedPitch} {recordedDistance}");
-
-            LobbyCamera->Yaw = Utils.NormalizeAngle(LobbyCamera->Yaw + characterSelectLocationModel.Rotation);
 
             RotateCharacter();
 

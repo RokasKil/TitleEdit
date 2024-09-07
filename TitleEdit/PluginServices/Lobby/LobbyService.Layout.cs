@@ -38,7 +38,6 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 UpdateCharacter(true);
                 forceUpdateCharacter = false;
-                forceUpdateCharacter = false;
             }
             Services.Log.Debug($"LobbySetWeatherDetour {EnvManager.Instance()->ActiveWeather}");
 

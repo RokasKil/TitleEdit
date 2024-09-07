@@ -1,5 +1,6 @@
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using System;
@@ -105,6 +106,7 @@ namespace TitleEdit.Utility
             bool selected = false;
 
             using var combo = ImRaii.Combo(title, value.ToText(), flags);
+            HoverTooltip(value);
             if (combo)
             {
                 using var id = ImRaii.PushId(title); // I only discovered this exists after pretty much all of the UI is done, I should go and redo everything one day
@@ -117,6 +119,7 @@ namespace TitleEdit.Utility
                             value = enumValue;
                             selected = true;
                         }
+                        HoverTooltip(enumValue);
                     }
                 }
                 OpenCombos[title] = true;
@@ -147,12 +150,20 @@ namespace TitleEdit.Utility
             if (!ignoreFilter && FilterComboTitle != null && !FilterDrawTooltip) return;
             if (ImGui.IsItemHovered(flags))
             {
-                ImGui.BeginTooltip();
+                using var tooltip = ImRaii.Tooltip();
                 element.Invoke();
-                ImGui.EndTooltip();
             }
         }
 
+
+        public static void HoverTooltip(Enum enumValue, ImGuiHoveredFlags flags = ImGuiHoveredFlags.None, bool ignoreFilter = false)
+        {
+            var tooltip = enumValue.ToTooltip();
+            if (!tooltip.IsNullOrEmpty())
+            {
+                HoverTooltip(tooltip, flags, ignoreFilter);
+            }
+        }
 
         public static float GuiScale(float f)
         {

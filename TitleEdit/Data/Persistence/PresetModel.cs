@@ -4,7 +4,7 @@ namespace TitleEdit.Data.Persistence
 {
     public struct PresetModel
     {
-        public readonly static int CurrentVersion = 3;
+        public readonly static int CurrentVersion = 4;
 
         public int? Version = CurrentVersion;
         public string Name = "";
