@@ -538,7 +538,7 @@ namespace TitleEdit.Windows.Tabs
                 }
                 color.Pop();
 
-                ImGuiComponents.HelpMarker("Experimental feature to save world layout (e.g. changes that happen when you progress MSQ).\nWorks fairly well out in the world but often has issues in instances.");
+                ImGuiComponents.HelpMarker("Experimental feature to save world layout (e.g. changes that happen when you progress MSQ).\nWorks fairly well out in the world but often has issues in instances.\nThis will also increase the preset file size by around 50kb depending on the zone");
                 color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
                 if (preset.LocationModel.SaveLayout)
                 {

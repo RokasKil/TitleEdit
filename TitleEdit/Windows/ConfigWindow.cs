@@ -15,7 +15,8 @@ public class ConfigWindow : Window, IDisposable
         new SettingsTab(),
         new PresetTab(),
         new GroupTab(),
-        new AboutTab()
+        new AboutTab(),
+        new ExtrasTab()
     };
 
     public ConfigWindow() : base(

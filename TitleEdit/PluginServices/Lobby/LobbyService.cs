@@ -26,31 +26,34 @@ namespace TitleEdit.PluginServices.Lobby
         private Hook<LoadLobbyScene> loadLobbySceneHook = null!;
         private Hook<UpdateLobbyUiStage> updateLobbyUiStageHook = null!;
 
-        // Probably some lobby instance
         private nint lobbyStructAddress;
+        private GameLobbyType* lobbyCurrentMapAddress;
 
+        // Data used when loading new scenes and clearing the modification of old ones
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.None;
         private GameLobbyType lastSceneType = GameLobbyType.None;
         private GameLobbyType loadingLobbyType = GameLobbyType.None;
 
+        // Should reload character select scene
         private bool resetCharacterSelectScene = false;
 
-        private GameLobbyType* lobbyCurrentMapAddress;
 
+        // last and current LobbyUiStage, enum made based on my observation
         private LobbyUiStage lastLobbyUiStage = 0;
-
         public LobbyUiStage LobbyUiStage
         {
             get => (LobbyUiStage)AgentLobby->LobbyUIStage;
             set => AgentLobby->LobbyUIStage = (byte)value;
         }
 
+        // variable showing the current Lobby type
         public GameLobbyType CurrentLobbyMap
         {
             get => *lobbyCurrentMapAddress;
             set => *lobbyCurrentMapAddress = value;
         }
 
+        // Probably some lobby instance
         public LobbyInfo* LobbyInfo => (LobbyInfo*)lobbyStructAddress;
 
         public LobbyService()
@@ -120,6 +123,8 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Called when going from title to char select or reverse
+        // Important because in those scenarios the game first loads the level and only then sets CurrentLobbyMap value so we can't rely on that
         private void LoadLobbySceneDetour(GameLobbyType mapId)
         {
             Services.Log.Debug($"LoadLobbySceneDetour {mapId}");
@@ -143,8 +148,7 @@ namespace TitleEdit.PluginServices.Lobby
             TickTitle();
         }
 
-
-
+        // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
         private int CreateSceneDetour(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7)
         {
             try
@@ -197,10 +201,9 @@ namespace TitleEdit.PluginServices.Lobby
 
         }
 
+        // Called every frame to process something in character select and on load for title screen
         private byte LobbyUpdateDetour(GameLobbyType mapId, int time)
         {
-            Services.Log.Verbose($"mapId {mapId}");
-
             // if resetCharacterSelectScene is true or if switching between char select and char creation
             if (resetCharacterSelectScene ||
                 (mapId == GameLobbyType.CharaSelect && lastLobbyUpdateMapId == GameLobbyType.Aetherial) ||
@@ -227,6 +230,7 @@ namespace TitleEdit.PluginServices.Lobby
         }
 
 
+        // Called every frame to process lobby stuff
         private void UpdateLobbyUiStageDetour(AgentLobby* agentLobby)
         {
             var idling = AgentLobby->IdleTime + Framework.Instance()->FrameDeltaTimeMSInt > 60000;
@@ -303,6 +307,12 @@ namespace TitleEdit.PluginServices.Lobby
                 ForcePlaySongIndex(LobbySong.CharacterSelect);
                 ClearCameraModifications();
                 ResetCharacters();
+            }
+            // Doing a scuffed title screen (Ui won't change) to prevent user from getting stuck in infinite loading screen
+            // because of the DT cutscene being unloaded and the plugin restoring selected title screen to dawntrail
+            if (CanReloadTitleScreen)
+            {
+                ExecuteTitleScreenReload();
             }
         }
     }

@@ -16,9 +16,10 @@ namespace TitleEdit.PluginServices
 
         public IReadOnlyDictionary<string, GroupModel> Groups => groups;
 
-        public IEnumerable<KeyValuePair<string, GroupModel>> CharacterSelectPresetEnumerator => Groups.Where(group => group.Value.LocationType == LocationType.CharacterSelect);
+        public IEnumerable<KeyValuePair<string, GroupModel>> CharacterSelectGroupEnumerator => Groups.Where(group => group.Value.LocationType == LocationType.CharacterSelect);
 
-        public IEnumerable<KeyValuePair<string, GroupModel>> TitleScreenPresetEnumerator => Groups.Where(group => group.Value.LocationType == LocationType.TitleScreen);
+        public IEnumerable<KeyValuePair<string, GroupModel>> TitleScreenGroupEnumerator => Groups.Where(group => group.Value.LocationType == LocationType.TitleScreen);
+        public IEnumerable<KeyValuePair<string, GroupModel>> EditableGroupEnumerator => Groups.Where(group => !group.Key.StartsWith("?"));
 
 
         private readonly Dictionary<string, GroupModel> groups = new(StringComparer.InvariantCultureIgnoreCase);

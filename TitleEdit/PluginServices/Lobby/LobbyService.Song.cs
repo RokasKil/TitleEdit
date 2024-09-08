@@ -17,6 +17,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private Hook<PlayMusicDelegate> playMusicHook = null!;
 
+        // Used to know if we should reset music between reloads or not
         private string? lastBgmPath;
 
         private void HookSong()
@@ -25,23 +26,22 @@ namespace TitleEdit.PluginServices.Lobby
             playMusicHook = Hook<PlayMusicDelegate>("E8 ?? ?? ?? ?? 48 89 47 18 89 5F 20", PlayMusicDetour);
         }
 
+        // Sets songIndex to None and allows the game itself to restart music when it's appropiate
         private void ResetSongIndex()
         {
             Services.Log.Debug("ResetSongIndex");
             LobbyInfo->CurrentLobbyMusicIndex = LobbySong.None;
         }
 
+        // Sets songIndex to None and calls the PickSong method to start playing
         private void ForcePlaySongIndex(LobbySong song)
         {
             LobbyInfo->CurrentLobbyMusicIndex = LobbySong.None;
             PickSong(song);
         }
 
-        private void PickSong(LobbySong songIndex)
-        {
-            pickSongNative(lobbyStructAddress, (uint*)&songIndex);
-
-        }
+        // Picks the lobby bgm depending on the provided songIndex, won't do anything if it thinks this songIndex is already playing
+        private void PickSong(LobbySong songIndex) => pickSongNative(lobbyStructAddress, (uint*)&songIndex);
 
         // TODO: figure out looping on tracks that don't loop
         private nint PlayMusicDetour(nint self, string filename, float volume, uint fadeTime)

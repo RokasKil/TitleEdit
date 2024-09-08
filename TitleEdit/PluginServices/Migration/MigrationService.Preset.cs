@@ -58,7 +58,6 @@ namespace TitleEdit.PluginServices.Migration
             {
                 PresetModel preset = new();
                 preset.Name = oldPreset.Name;
-                preset.Author = "Imported from TitleScreen V2";
                 if (oldPreset.DisplayLogo == null || !oldPreset.DisplayLogo.Value)
                 {
                     preset.LocationModel.TitleScreenLogo = TitleScreenLogo.None;
@@ -90,6 +89,9 @@ namespace TitleEdit.PluginServices.Migration
                 preset.LocationModel.BgmPath = oldPreset.BgmPath;
                 preset.LocationModel.BgmId = Services.BgmService.BgmPathsReverse.GetValueOrDefault(oldPreset.BgmPath);
                 preset.LocationModel.TitleScreenOverride = oldPreset.TitleOverride;
+                preset.LocationModel.SaveLayout = false;
+                preset.LocationModel.UseVfx = true;
+                preset.LocationModel.SaveFestivals = false;
 
                 // Fail if we can't find TerritoryTypeId or BgmId?
                 return preset;

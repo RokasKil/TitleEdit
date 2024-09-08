@@ -86,7 +86,7 @@ namespace TitleEdit.PluginServices.Migration
                             return (string?)$"{(included ? "?/" : "")}{presetName}.json";
                         }).Where((presetPath) => Services.PresetService.TryGetPreset(presetPath!, out _, LocationType.TitleScreen))
                         .ToList(),
-                        FileName = "random_custom.jsom"
+                        FileName = "random_custom.json"
                     };
                     if (groupModel.PresetFileNames.Count > 0)
                     {

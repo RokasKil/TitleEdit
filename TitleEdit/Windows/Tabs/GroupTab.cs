@@ -57,7 +57,7 @@ namespace TitleEdit.Windows.Tabs
                     ImGui.PopStyleColor();
                     stylePopped = true;
                 }
-                foreach (var entry in Services.GroupService.Groups)
+                foreach (var entry in Services.GroupService.EditableGroupEnumerator)
                 {
                     if (GuiUtils.FilterSelectable($"{GetGroupEntryName(entry.Value)}##{Title}##{entry.Key}", entry.Key == currentGroup))
                     {

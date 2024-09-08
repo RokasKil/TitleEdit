@@ -141,9 +141,15 @@ namespace TitleEdit.PluginServices
 
                             refreshLayout = false;
                         }
+                        locationModel.SaveLayout = true;
+                        locationModel.SaveFestivals = true;
+                        locationModel.UseVfx = true;
                     }
                     else
                     {
+                        locationModel.SaveLayout = false;
+                        locationModel.SaveFestivals = false;
+                        locationModel.UseVfx = false;
                         locationModel.Active.Clear();
                         locationModel.Inactive.Clear();
                         locationModel.VfxTriggerIndexes.Clear();
@@ -212,7 +218,7 @@ namespace TitleEdit.PluginServices
 
         public unsafe void SetLayout(ref LocationModel locationModel)
         {
-
+            Services.Log.Debug("SetLayout called");
             HashSet<ulong> active = [];
             HashSet<ulong> inactive = [];
             Dictionary<ulong, short> vfxTriggerIndexes = [];

@@ -26,7 +26,8 @@ public class ConfigurationService
     public CameraFollowMode CameraFollowMode = CameraFollowMode.ModelPosition;
     public CharacterDisplayTypeOption GlobalDisplayType = new()
     {
-        Type = CharacterDisplayType.LastLocation
+        Type = CharacterDisplayType.Preset,
+        PresetPath = "?/AetherialSea.json"
     };
     public CharacterDisplayTypeOption NoCharacterDisplayType = new()
     {

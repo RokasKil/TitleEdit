@@ -29,14 +29,19 @@ namespace TitleEdit.PluginServices.Lobby
         public Character* CurrentCharacter => CharaSelectCharacterList.GetCurrentCharacter();
         public ulong CurrentContentId => AgentLobby->HoveredCharacterContentId;
 
-
+        // A flag if we should modify CreateBattleCharacter behaviour to forcefully include mounts and set position
         private bool creatingCharSelectGameObjects = false;
+
+        // Used to check if character switched in UpdateCharacter method
         private ulong lastContentId;
 
+        // Used to restore relative character rotation after switching scenes, rendering new characters
         private float lastCharacterRotation = 0;
 
         private void HookCharacter()
         {
+            // Called every frame and is responsible for switching out currently selected character
+            // We had proper methods to hook but they got inlined with release of DT so now we're polling
             updateCharaSelectDisplayHook = Hook<UpdateCharaSelectDisplayDelegate>("E8 ?? ?? ?? ?? 84 C0 74 ?? C6 86 ?? ?? ?? ?? ?? 48 8B 8C 24", UpdateCharaSelectDisplayDetour);
 
             // Called when the game is making a new character - if set by other hooks we force the flag to include a companionObject so we can display a mount
@@ -51,6 +56,7 @@ namespace TitleEdit.PluginServices.Lobby
             charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? 49 8B CD E8 ?? ?? ?? ?? 41 0F B6 85", CharSelectWorldPreviewEventHandlerDetour);
         }
 
+        // Called every frame and is responsible for switching out currently selected character
         private void UpdateCharaSelectDisplayDetour(nint agentLobby, byte p2, byte p3)
         {
             //Services.Log.Debug($"UpdateCharaSelectDisplayDetour {p2}, {p3}");
@@ -67,9 +73,9 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // We do polling cause it's simpler than figuring when exactly are mounts and stuff are good to draw
         private void CharacterTick()
         {
-            // We do polling cause it's simpler than figuring when exactly are mounts and stuff are good to draw
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 if (CurrentCharacter != null)
@@ -79,6 +85,7 @@ namespace TitleEdit.PluginServices.Lobby
                     {
                         lastCharacterRotation = Utils.NormalizeAngle(CurrentCharacter->Rotation - characterSelectLocationModel.Rotation);
                     }
+                    // if needed we force draw character and mount cause they're weird sometimes
                     if (CurrentCharacter->GameObject.RenderFlags != 0 && CurrentCharacter->GameObject.RenderFlags != 0x40 && CurrentCharacter->GameObject.IsReadyToDraw())
                     {
                         Services.Log.Debug($"Drawing character {(nint)CurrentCharacter:X} {CurrentCharacter->GameObject.RenderFlags:X}");
@@ -93,6 +100,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Get currently loaded character select characters to store for use in configuration window
         public Dictionary<ulong, string> GetCurrentCharacterNames()
         {
             Dictionary<ulong, string> result = [];
@@ -113,6 +121,7 @@ namespace TitleEdit.PluginServices.Lobby
             return result;
         }
 
+        // Called when you select a new world in character select or cancel selection so it reload the current
         private void SetCharSelectCurrentWorldDetour(ulong p1)
         {
             creatingCharSelectGameObjects = true;
@@ -132,11 +141,11 @@ namespace TitleEdit.PluginServices.Lobby
             RotateCharacter();
         }
 
+        // When loading a new scene force all character positions to the new location to avoid some camera jank when switching selected characters
         private void SetAllCharacterPostions()
         {
             var charaSelectCharacterList = CharaSelectCharacterList.Instance();
             var clientObjectManager = ClientObjectManager.Instance();
-
 
             for (int i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
             {
@@ -153,6 +162,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Restores character rotation on scene loads or newly created character objects
         private void RotateCharacter()
         {
             if (CurrentCharacter != null)
@@ -185,7 +195,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
-
+        // Load the Nothing selected location
         private void NothingSelected()
         {
             Services.Log.Debug("Nothing selected");
@@ -200,6 +210,8 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // When hovering over world this method creates the newly shown character 
+        // temporarily set creatingCharSelectGameObjects to true so CreateBattleCharacterDetour activates
         private void CharSelectWorldPreviewEventHandlerDetour(ulong p1, ulong p2, ulong p3, uint p4)
         {
             creatingCharSelectGameObjects = true;
@@ -207,6 +219,7 @@ namespace TitleEdit.PluginServices.Lobby
             creatingCharSelectGameObjects = false;
         }
 
+        // Make sure characters are created with companion slot (for mounts) and positioned properly
         private nint CreateBattleCharacterDetour(nint objectManager, uint index, bool assignCompanion)
         {
             var result = createBattleCharacterHook.Original(objectManager, index, assignCompanion || creatingCharSelectGameObjects);
@@ -241,6 +254,8 @@ namespace TitleEdit.PluginServices.Lobby
             return null;
         }
 
+        // New character is being shown or the current one needs an update
+        // Sets position, rotation, mount checks if a new location needs to be picked and reloads it
         private void UpdateCharacter(bool forced = false)
         {
             if (CurrentCharacter != null)
@@ -276,6 +291,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Setup mount for character by calling native method
         private void SetupMount(Character* character, ulong contentId, LocationModel location)
         {
             var mount = location.Mount.LastLocationMount ? Services.LocationService.GetLocationModel(0).Mount : location.Mount;

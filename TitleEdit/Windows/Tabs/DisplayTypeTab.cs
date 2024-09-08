@@ -264,7 +264,7 @@ namespace TitleEdit.Windows.Tabs
                     }
                     GuiUtils.DrawDisplayTypeTooltip(CharacterDisplayType.Preset, entry.Key);
                 }
-                foreach (var entry in Services.GroupService.CharacterSelectPresetEnumerator)
+                foreach (var entry in Services.GroupService.CharacterSelectGroupEnumerator)
                 {
                     if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == CharacterDisplayType.Random && entry.Key == value.PresetPath))
                     {
@@ -342,7 +342,7 @@ namespace TitleEdit.Windows.Tabs
                     GuiUtils.DrawDisplayTypeTooltip(TitleDisplayType.Preset, entry.Key);
 
                 }
-                foreach (var entry in Services.GroupService.TitleScreenPresetEnumerator)
+                foreach (var entry in Services.GroupService.TitleScreenGroupEnumerator)
                 {
                     if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == TitleDisplayType.Random && entry.Key == value.PresetPath))
                     {

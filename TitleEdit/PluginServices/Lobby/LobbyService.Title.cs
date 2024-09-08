@@ -15,18 +15,26 @@ namespace TitleEdit.PluginServices.Lobby
         [Signature("E8 ?? ?? ?? ?? 48 8D 4F ?? 44 89 77")]
         private readonly delegate* unmanaged<ScheduleManagement*, IntPtr, void> cancelScheduledTask = null!;
 
+        //Some struct holding information about title screen cutscene that plays on DT title
         private IntPtr titleCutsceneStructAddress;
 
+        // Was cutscene loaded/loading last frame
         private bool lastCutsceneStatus = false;
 
+        // what title screen we overrode with current location model
+        // Used to restore on exit or when idling triggers a movie
         private TitleScreenExpansion? overridenTitleScreenType = null;
 
+        // Have we loaded something yet, should we modify camera and other stuff
         private bool titleScreenLoaded = false;
 
+        // Called to check if we need to modify anything, if TitleScreenOverride is set we let the game handle things
         private bool ShouldModifyTitleScreen => titleScreenLoaded && titleScreenLocationModel.TitleScreenOverride == null;
 
+        // Are we reloading title screen
         private bool reloadingTitleScreen = false;
 
+        // Should we reload once we hit LobbyUIStage.TitleScreenOnLoadingStage2 since it's not safe to do so on TitleScreenOnLoadingStage1
         private bool shouldReloadTitleScreenOnLoadingStage2 = false;
 
         private Queue<Action> cutsceneStoppedActions = [];
@@ -37,7 +45,7 @@ namespace TitleEdit.PluginServices.Lobby
             //LobbyUiStage.LoadingTitleScreen1,
             LobbyUiStage.LoadingTitleScreen2,
             LobbyUiStage.TitleScreen,
-            LobbyUiStage.LoadingDataCenter,
+            //LobbyUiStage.LoadingDataCenter,
             LobbyUiStage.TitleScreenMovies,
             LobbyUiStage.TitleScreenOptions,
             LobbyUiStage.TitleScreenLicense,
@@ -127,16 +135,17 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 Services.Log.Debug("[ReloadTitleScreen] reloading");
                 reloadingTitleScreen = true;
-                OnTitleMenuFinalize(() =>
+                OnCutsceneStopped(() =>
                 {
                     Services.Log.Debug("[OnTitleMenuFinalize] OnTitleMenuFinalize");
-                    OnCutsceneStopped(ExecuteTitleScreenReload);
-                    Services.LobbyService.StopCutscene();
+                    OnTitleMenuFinalize(ExecuteTitleScreenReload);
+                    removeTitleScreenUi(AgentLobby);
                 });
-                removeTitleScreenUi(AgentLobby);
+                Services.LobbyService.StopCutscene();
             }
             else if (LobbyUiStage == LobbyUiStage.LoadingTitleScreen1)
             {
+                Services.Log.Debug("[ReloadTitleScreen] shouldReloadTitleScreenOnLoadingStage2 = true");
                 shouldReloadTitleScreenOnLoadingStage2 = true;
             }
         }

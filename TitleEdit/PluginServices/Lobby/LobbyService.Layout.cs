@@ -116,6 +116,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Sets vfx trigger index, some game objects stay the same except for the vfx
         private void SetIndex(VfxLayoutInstance* instance, LocationModel model)
         {
             if (model.VfxTriggerIndexes.TryGetValue(instance->ILayoutInstance.UUID(), out var index))

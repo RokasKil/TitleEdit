@@ -23,11 +23,14 @@ namespace TitleEdit.PluginServices.Lobby
 
         private Hook<PickTitleLogo> pickTitleLogoHook = null!;
 
+        // Should play dawntrail logo animation once everything loads 
         private bool shouldAnimateDawntrailLogo = false;
 
+        // Should advance title logo animation once everything loads, useful for Endwalker which shows up only after 10+ seconds
         private bool shouldAdvanceTitleLogoAnimation = false;
         private float advanceTitleLogoAnimationDuration = 0;
 
+        // Are we reloading title screen ui
         private bool reloadingTitleScreenUi = false;
 
         private Queue<Action> titleMenuFinalizeActions = [];
@@ -83,6 +86,8 @@ namespace TitleEdit.PluginServices.Lobby
                 Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, addon, RecolorablePostSetup);
             }
         }
+
+        // TitleScreen Logo has finished setup we animate/modify it if necessary
         private void TitleLogoPostSetup(AddonEvent type, AddonArgs args)
         {
             if (shouldAnimateDawntrailLogo)
@@ -106,6 +111,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // force set TitleScreen logo part id for shb logo
         private void SetTitleScreenLogoPartId()
         {
             // Iterating through all nodes cause there's like 5 image nodes used in the animation for shadowbringers
@@ -120,6 +126,7 @@ namespace TitleEdit.PluginServices.Lobby
             });
         }
 
+        // Calls AtkTimeline::PlayAnimation
         private void AnimateDawntrailLogo()
         {
             var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
@@ -130,6 +137,8 @@ namespace TitleEdit.PluginServices.Lobby
             // Values taken by observing what the game calls, no clue what they mean :)
             node->Timeline->PlayAnimation(AtkTimelineJumpBehavior.LoopForever, 0x65);
         }
+
+        // Advances AtkTimeline::FrameTime
         private void AdvanceTitleLogoAnimation()
         {
             var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
@@ -137,10 +146,11 @@ namespace TitleEdit.PluginServices.Lobby
             var node = addon->UldManager.NodeList[0];
             if (node == null) return;
             Services.Log.Debug($"Advancing timeline animation by {advanceTitleLogoAnimationDuration}");
-            // Values taken by observing what the game calls, no clue what they mean :)
+            // Just manually advance FrameTime to skip animation
             node->Timeline->FrameTime += advanceTitleLogoAnimationDuration;
         }
 
+        // A recolrable addon's setup is complete, we change it's color here
         private void RecolorablePostSetup(AddonEvent type, AddonArgs args)
         {
             if (ShouldModifyTitleScreen)
@@ -149,6 +159,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Modify TextNodes and NineGrids (title menu button highlight)
         private void RecolorAddon(AtkUnitBase* addon)
         {
             if (addon != null && addon->RootNode != null)
@@ -177,6 +188,8 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Selects whatever logo resource should be used
+        // We manipulate LobbyInfo values to make sure the correct one gets picked and then restore them
         private bool PickTitleLogoDetour(IntPtr atkUnit)
         {
             var addon = (AtkUnitBase*)atkUnit;
@@ -254,6 +267,7 @@ namespace TitleEdit.PluginServices.Lobby
             return result;
         }
 
+        // Attempt to reload just the Ui
         public void ReloadTitleScreenUi(bool force = false)
         {
             if ((CanReloadTitleScreen && !reloadingTitleScreenUi) || force)
@@ -265,6 +279,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Recolor ui
         public void RecolorTitleScreenUi(bool force = false)
         {
             if (CanReloadTitleScreen || force)
@@ -301,6 +316,7 @@ namespace TitleEdit.PluginServices.Lobby
             titleMenuFinalizeActions.Clear();
         }
 
+        // Reload UI by setting LobbyUiStage and letting the game handle it
         private void ExecuteTitleScreenUiReload()
         {
             LobbyUiStage = LobbyUiStage.LoadingTitleScreen2;

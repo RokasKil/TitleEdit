@@ -27,8 +27,13 @@ namespace TitleEdit.PluginServices.Lobby
         private Hook<LobbySceneLoadedDelegate> lobbySceneLoadedHook = null!;
         private Hook<LobbyCameraFixOn> lobbyCameraFixOnHook = null!;
 
+        private CameraFollowMode CameraFollowMode => characterSelectLocationModel.CameraFollowMode == CameraFollowMode.Inherit ?
+            Services.ConfigurationService.CameraFollowMode :
+            characterSelectLocationModel.CameraFollowMode;
+
         private LobbyCameraExpanded* LobbyCamera => (LobbyCameraExpanded*)(FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager.Instance()->LobbCamera);
 
+        // Recorded angles to reload when changing scenes in character select
         private float recordedYaw = 0;
         private float recordedPitch = 0;
         private float recordedDistance = 3.3f;
@@ -40,14 +45,16 @@ namespace TitleEdit.PluginServices.Lobby
         // Used when just loaded a new scene in character select and want to snap the camera's Y
         private bool shouldSetLookAtY = false;
 
+        // character select lookAt Y value offset calculated based on player models head position relative to it's regular position
         private float cameraYOffset = 0;
 
+        // Last curve and lookAt positions for use when nothing is selected
         private float lastLowPoint;
         private float lastMidPoint;
-
         private float lastHighPoint;
         private Vector3 lastLookAt;
 
+        // Is lobby camera max zoom modified
         private bool cameraModified = false;
 
         private void HookCamera()
@@ -85,15 +92,9 @@ namespace TitleEdit.PluginServices.Lobby
                 }
                 if (shouldSetLookAtY)
                 {
+                    // Reset camera lookAt Y position
                     shouldSetLookAtY = false;
-                    // Does some simpleish math which and I would rather call the native code for than rewrite into c#
-                    LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y = calculateLobbyCameraLookAtY(
-                        LobbyCamera,
-                        LobbyCamera->LobbyCamera.Distance,
-                        &LobbyCamera->LowPoint,
-                        &LobbyCamera->MidPoint,
-                        &LobbyCamera->HighPoint);
-                    Services.Log.Debug($"Set lookAtVectorY to {LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y} {LobbyCamera->LowPoint.Value} {LobbyCamera->MidPoint.Value} {LobbyCamera->HighPoint.Value}");
+                    ForceSetLookAtY();
                 }
 
             }
@@ -101,18 +102,18 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 if (ShouldModifyTitleScreen)
                 {
+                    // Set camera positions for title screen
                     CameraSetTitleScreenPosition();
                 }
             }
         }
 
+        // Sets LookAt and Curve values for character depending on current CameraFollowMode
         private void CameraFollowCharacter(Character* currentChar)
         {
-
             var drawObject = (CharacterBase*)currentChar->GameObject.GetDrawObject();
-            var cameraFollowMode = GetCameraFollowMode();
             Vector3 lookAt;
-            if (drawObject != null && drawObject->DrawObject.IsVisible && cameraFollowMode == CameraFollowMode.ModelPosition)
+            if (drawObject != null && drawObject->DrawObject.IsVisible && CameraFollowMode == CameraFollowMode.ModelPosition)
             {
                 lookAt = drawObject->Skeleton->Transform.Position;
             }
@@ -129,6 +130,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         }
 
+        // Sets default LookAt and Curve values for currently loaded chracter select location
         private void ResetLastCameraLookAtValues()
         {
             lastLowPoint = 1.4350828f + characterSelectLocationModel.Position.Y;
@@ -137,6 +139,7 @@ namespace TitleEdit.PluginServices.Lobby
             lastLookAt = characterSelectLocationModel.Position;
         }
 
+        // Sets Character select nothing selected LookAt vector
         private void CameraLookAtLastPosition()
         {
             LobbyCamera->LowPoint.Value = lastLowPoint;
@@ -145,6 +148,7 @@ namespace TitleEdit.PluginServices.Lobby
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = new(lastLookAt.X, LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y, lastLookAt.Z);
         }
 
+        // Sets TitleScreen coordinates and angles
         private void CameraSetTitleScreenPosition()
         {
             var lookAt = Utils.GetVectorFromAngles(titleScreenLocationModel.Yaw, titleScreenLocationModel.Pitch);
@@ -162,9 +166,22 @@ namespace TitleEdit.PluginServices.Lobby
         {
             ResetCameraRecordedRotation();
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = Vector3.Zero;
-
         }
 
+        // Used to reset LookAt vector's Y value in character select so the camera doesn't slide in vertically from previous position
+        // Does some simpleish math which and I would rather call the native code for than rewrite into c#
+        private void ForceSetLookAtY()
+        {
+            LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y = calculateLobbyCameraLookAtY(
+                LobbyCamera,
+                LobbyCamera->LobbyCamera.Distance,
+                &LobbyCamera->LowPoint,
+                &LobbyCamera->MidPoint,
+                &LobbyCamera->HighPoint);
+            Services.Log.Debug($"Set lookAtVectorY to {LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y} {LobbyCamera->LowPoint.Value} {LobbyCamera->MidPoint.Value} {LobbyCamera->HighPoint.Value}");
+        }
+
+        //Expands lobby camera max distance in case the user is using a big mount
         private void ModifyCamera()
         {
             LobbyCamera->LobbyCamera.Camera.MaxDistance = 20;
@@ -177,6 +194,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         }
 
+        //Restores default camera properties
         private void ClearCameraModifications()
         {
             if (cameraModified)
@@ -190,6 +208,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Record camera angles to restore it after a scene loads
         private void RecordCameraRotation()
         {
             // Prevent overwriting camera location when going through characters rapidly (switching while a scene is still loading)
@@ -203,6 +222,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Is called when a scene is loaded I think
         private void LobbySceneLoadedDetour(ulong p1, int p2, float p3, ushort p4, uint p5, uint p6, uint p7)
         {
             Services.Log.Debug($"[LobbySceneLoaded] {p1:X} {p2:X} {p3} {p4:X} {p5:X} {p6:X} {p7:X}");
@@ -214,6 +234,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        // Reset recorded angles when leaving character select
         private void ResetCameraRecordedRotation()
         {
             rotationJustRecorded = true;
@@ -223,6 +244,7 @@ namespace TitleEdit.PluginServices.Lobby
             lastCharacterRotation = 0;
         }
 
+        // Restore recoreded camera angles
         private void SetCameraRotation()
         {
             LobbyCamera->Yaw = Utils.NormalizeAngle(recordedYaw + characterSelectLocationModel.Rotation);
@@ -242,7 +264,7 @@ namespace TitleEdit.PluginServices.Lobby
         //SE's implenetation does nothing if Value is below 0 which breaks the camera when character is in negative Y
         private void SetCameraCurveMidPointDetour(LobbyCameraExpanded* self, float value)
         {
-            if (GetCameraFollowMode() == CameraFollowMode.ModelPosition)
+            if (CameraFollowMode == CameraFollowMode.ModelPosition)
             {
                 cameraYOffset = Services.BoneService.GetHeadOffset(CurrentCharacter);
             }
@@ -259,11 +281,8 @@ namespace TitleEdit.PluginServices.Lobby
             calculateCameraCurveLowAndHighPointHook.Original(self, value + cameraYOffset);
         }
 
-        private CameraFollowMode GetCameraFollowMode()
-        {
-            return characterSelectLocationModel.CameraFollowMode == CameraFollowMode.Inherit ? Services.ConfigurationService.CameraFollowMode : characterSelectLocationModel.CameraFollowMode; ;
-        }
-
+        // Called when camera locks on a specific point in title screen
+        // We use this to aditionally call CameraTick and reset that value to whatver it needs to be to prevent the 0 coordinage bug
         private void LobbyCameraFixOnDetour(LobbyCameraExpanded* self, Vector3 cameraPos, Vector3 focusPos, float fovY)
         {
             Services.Log.Debug($"LobbyCameraFixOnDetour {(IntPtr)self:X}, {self == LobbyCamera}, {cameraPos}, {focusPos}, {fovY}");
