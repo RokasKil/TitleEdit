@@ -1,5 +1,2 @@
-# TitleEdit
-
-Plugin replacing the default character select aether level with world levels by recording where your character logged out and using that
-
-### Special thanks to TitleEdit folks whose work was a great resource and starting point
+# Title Edit
+A plugin allowing for custom title and character select screens that you can create yourself. Please see the plugin installer in-game for more information.
