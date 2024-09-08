@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Data.Persistence.Migration;
 using TitleEdit.Utility;
@@ -137,7 +138,10 @@ namespace TitleEdit.PluginServices.Migration
             Services.PluginInterface.ConfigDirectory.Create();
             foreach (var file in Services.PluginInterface.ConfigDirectory.EnumerateFiles())
             {
-                if (file.Extension.Equals(".json", System.StringComparison.OrdinalIgnoreCase))
+                if (file.Extension.Equals(".json", System.StringComparison.OrdinalIgnoreCase) &&
+                    // Don't migrate old included presets
+                    !file.Name.StartsWith("TE_") &&
+                    !IncludedPresets.Contains(file.Name[..^5]))
                 {
                     Services.Log.Info($"Attempting to migrate {file.Name}");
                     var presetOpt = MigrateTitleScreenV2(File.ReadAllText(file.FullName));

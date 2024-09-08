@@ -201,6 +201,7 @@ namespace TitleEdit.PluginServices
             bgmPath = Services.BgmService.BgmPaths[bgmId];
             Services.Log.Debug($"BgmChanged {songId} {bgmPath}");
         }
+
         //Hook on whatever deletes stuff (and maybe adds) so we can get rid of the constant refreshing cause in solution 9 it might cause lag spikes
         private unsafe void LayoutInstanceSetActive(ILayoutInstance* layout, bool active)
         {
@@ -283,7 +284,7 @@ namespace TitleEdit.PluginServices
 
                 if ((DateTime.Now - lastSave).TotalSeconds > Services.ConfigurationService.SavePeriod)
                 {
-                    if (Services.ConfigurationService.SaveLayout && Services.ConfigurationService.PeriodicSaving && isLoggedIn)
+                    if (Services.ConfigurationService.TrackPlayerLocation && Services.ConfigurationService.PeriodicSaving && isLoggedIn)
                     {
                         Save(lastContentId);
                     }
