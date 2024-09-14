@@ -56,7 +56,7 @@ namespace TitleEdit.Windows.Tabs
             ImGui.Separator();
             SettingCheckbox($"Use the logged in character's name as default preset author name##{Title}", ref Services.ConfigurationService.UseCharacterNameAsAuthor);
             using (ImRaii.Disabled(Services.ConfigurationService.UseCharacterNameAsAuthor))
-                if (ImGui.InputText($"Default Author name##{Title}", ref Services.ConfigurationService.DefaultAuthorName, 256))
+                if (ImGui.InputText($"Default author name##{Title}", ref Services.ConfigurationService.DefaultAuthorName, 256))
                     Services.ConfigurationService.Save();
 
         }
