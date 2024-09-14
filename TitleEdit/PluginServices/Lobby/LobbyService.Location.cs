@@ -14,7 +14,19 @@ namespace TitleEdit.PluginServices.Lobby
 
         private LocationModel titleScreenLocationModel;
 
+        private string? characterSelectGroupModelPath;
+        private string? characterSelectGroupPresetPath;
+
         private Random random = new();
+
+
+        private void ClearCharacterSelectGroupCache()
+        {
+            if (characterSelectGroupModelPath != null)
+                Services.Log.Debug("[ClearCharacterSelectGroupCache]");
+            characterSelectGroupModelPath = null;
+            characterSelectGroupPresetPath = null;
+        }
 
         private LocationModel GetLocationForContentId(ulong contentId)
         {
@@ -70,6 +82,12 @@ namespace TitleEdit.PluginServices.Lobby
                 model = Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel;
             }
 
+            if (displayOption.Type != CharacterDisplayType.Random)
+            {
+                characterSelectGroupModelPath = null;
+                characterSelectGroupPresetPath = null;
+            }
+
             model.Position = OffsetPosition(model.Position);
             return model;
         }
@@ -98,6 +116,11 @@ namespace TitleEdit.PluginServices.Lobby
             else
             {
                 model = Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel;
+            }
+            if (displayOption.Type != CharacterDisplayType.Random)
+            {
+                characterSelectGroupModelPath = null;
+                characterSelectGroupPresetPath = null;
             }
             model.Position = OffsetPosition(model.Position);
             return model;
@@ -137,15 +160,31 @@ namespace TitleEdit.PluginServices.Lobby
             LocationModel model;
             if (groupPath != null && Services.GroupService.TryGetGroup(groupPath, out var group, type))
             {
+                string? path;
+                // if we have a character select location cached use that
                 if (group.PresetFileNames.Count > 0)
                 {
-                    model = GetPresetLocationModel(group.PresetFileNames[random.Next(group.PresetFileNames.Count)], type);
+                    path = group.PresetFileNames[random.Next(group.PresetFileNames.Count)];
                 }
                 else
                 {
                     var presets = Services.PresetService.Presets.Where(preset => preset.Value.LocationModel.LocationType == type);
-                    model = GetPresetLocationModel(presets.Skip(random.Next(presets.Count())).FirstOrDefault().Key, type);
+                    path = presets.Skip(random.Next(presets.Count())).FirstOrDefault().Key;
                 }
+
+                if (type == LocationType.CharacterSelect)
+                {
+                    if (characterSelectGroupModelPath == groupPath && characterSelectGroupPresetPath != null)
+                    {
+                        path = characterSelectGroupPresetPath;
+                    }
+                    else
+                    {
+                        characterSelectGroupModelPath = groupPath;
+                        characterSelectGroupPresetPath = path;
+                    }
+                }
+                model = GetPresetLocationModel(path, type);
             }
             else
             {

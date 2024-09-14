@@ -144,23 +144,28 @@ namespace TitleEdit.PluginServices.Lobby
             else if (CurrentLobbyMap != GameLobbyType.None)
             {
                 ClearCameraModifications();
+                ClearCharacterSelectGroupCache();
+
             }
             TickTitle();
         }
 
         // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
-        private int CreateSceneDetour(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7)
+        private int CreateSceneDetour(string territoryPath, uint territoryId, nint p3, uint layerFilterKey, nint p5, int p6, uint cfcId)
         {
             try
             {
                 var lobbyType = loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType;
                 Services.Log.Debug($"Loading Scene {lobbyType}");
+                Services.Log.Debug($"[CreateSceneDetour] {territoryPath} {territoryId} {p3} {layerFilterKey} {p5:X} {p6} {cfcId}");
                 if (lobbyType == GameLobbyType.CharaSelect)
                 {
                     ResetLastCameraLookAtValues();
                     territoryPath = characterSelectLocationModel.TerritoryPath;
+                    territoryId = characterSelectLocationModel.LayoutTerritoryTypeId;
+                    layerFilterKey = characterSelectLocationModel.LayoutLayerFilterKey;
                     Services.Log.Debug($"Loading char select screen: {territoryPath}");
-                    var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
+                    var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, cfcId);
                     if ((!characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != characterSelectLocationModel.BgmPath) ||
                         (characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel.BgmPath))
                     {
@@ -172,8 +177,10 @@ namespace TitleEdit.PluginServices.Lobby
                 else if (lobbyType == GameLobbyType.Title && ShouldModifyTitleScreen)
                 {
                     territoryPath = titleScreenLocationModel.TerritoryPath;
+                    territoryId = titleScreenLocationModel.LayoutTerritoryTypeId;
+                    layerFilterKey = titleScreenLocationModel.LayoutLayerFilterKey;
                     Services.Log.Debug($"Loading title screen: {territoryPath}");
-                    var returnVal = createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
+                    var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, cfcId);
                     return returnVal;
                 }
 
@@ -191,7 +198,7 @@ namespace TitleEdit.PluginServices.Lobby
                     }
 
                 }
-                return createSceneHook.Original(territoryPath, p2, p3, p4, p5, p6, p7);
+                return createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, cfcId);
             }
             finally
             {

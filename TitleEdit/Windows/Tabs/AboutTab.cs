@@ -1,5 +1,7 @@
 using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
+using System.Linq;
+using TitleEdit.Utility;
 
 namespace TitleEdit.Windows.Tabs
 {
@@ -16,6 +18,9 @@ namespace TitleEdit.Windows.Tabs
                               "would be valuable you can report it in the Dalamud's discord #plugin-testing channel or the Title Edit post in #plugin-help-forum. " +
                               "Don't forget to tag Speedas so I don't miss it!");
 
+            ImGui.TextWrapped("If you're looking for more presets head over to Dalamud's official discord and check out the #preset-sharing channel.");
+            ImGui.TextWrapped("If you're looking for more presets head over to Dalamud's official discord and check out the #preset-sharing channel.");
+
             if (ImGui.CollapsingHeader($"Tips and tricks##{Title}"))
             {
                 WrappedBulletText("You can ctrl+click most sliders/drag inputs to enter values manually");
@@ -28,15 +33,22 @@ namespace TitleEdit.Windows.Tabs
                 ImGui.TextWrapped("Unless specifically otherwise said, these issues only affect the character or title screen");
                 WrappedBulletText("World and character takes longer to load in when in housing zones");
                 WrappedBulletText("Certain BGM tracks will not loop");
-                WrappedBulletText("Certain zones with multiple layouts will not load the correct one e.g. Endwalker gatherer tribe subzone");
                 WrappedBulletText("With experimental layout enabled some VFX objects will play every time you load the scene often happening in instances");
                 WrappedBulletText("Experimental layout saving being janky in general");
+                if (Services.PluginInterface.InstalledPlugins.Any(plugin => plugin.InternalName == "Penumbra"))
+                {
+                    WrappedBulletText("[Penumbra] In character select screen indivdually assigned collections will not apply or apply to the wrong character " +
+                                      " when you have more than 1 character on that world. The issue has been reported to Penumbra and can only be fixed on their side," +
+                                      " if it bothers you, you can disable mods in character select by unchecking the \"Use Assigned Collections in Lobby\" under" +
+                                      " Penumbra's general settings until it gets fixed.");
+                }
             }
             if (ImGui.CollapsingHeader($"Planned Features##{Title}"))
             {
                 ImGui.TextWrapped("These are not confirmed or researched, or have any date planned. They're something I personally think would be nice to have");
                 WrappedBulletText("Character select companion support");
                 WrappedBulletText("Character select ornament support");
+                WrappedBulletText("Character select emote support");
                 WrappedBulletText("House and housing zone furnishing placement saving support for presets with layouts");
                 WrappedBulletText("Layout editor allowing you to turn off/on certain parts of the map");
                 WrappedBulletText("Festival selector for presets");

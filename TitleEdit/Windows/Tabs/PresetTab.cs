@@ -710,7 +710,7 @@ namespace TitleEdit.Windows.Tabs
             makingNewPreset = true;
             currentPreset = "";
             preset = new();
-            preset.Author = Services.ClientState.LocalPlayer!.Name.ToString();
+            preset.Author = Services.ConfigurationService.UseCharacterNameAsAuthor ? Services.ClientState.LocalPlayer!.Name.ToString() : Services.ConfigurationService.DefaultAuthorName;
             preset.LocationModel.LocationType = LocationType.TitleScreen;
             LoadCurrentTerritory();
             preset.LocationModel.WeatherId = Services.WeatherService.WeatherId;
@@ -739,6 +739,9 @@ namespace TitleEdit.Windows.Tabs
         {
             preset.LocationModel.TerritoryPath = Services.LocationService.TerritoryPath!;
             preset.LocationModel.TerritoryTypeId = Services.ClientState.TerritoryType;
+            preset.LocationModel.LayoutTerritoryTypeId = Services.LayoutService.LayoutTerritoryId;
+            preset.LocationModel.LayoutLayerFilterKey = Services.LayoutService.LayoutLayerFilterKey;
+
             Services.LocationService.SetLayout(ref preset.LocationModel);
             var weathers = Services.WeatherService.GetWeathers(preset.LocationModel.TerritoryPath);
             if (!weathers.Contains(preset.LocationModel.WeatherId))

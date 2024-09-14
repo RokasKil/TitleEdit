@@ -52,6 +52,8 @@ namespace TitleEdit.PluginServices
 
         private DirectoryInfo saveDirectory;
 
+        private Task? saveTask;
+
         public Dictionary<uint, string> TerritoryPaths { get; private set; }
         public Dictionary<string, uint> TerritoryPathsReverse { get; private set; }
 
@@ -81,7 +83,7 @@ namespace TitleEdit.PluginServices
             }
             TerritoryChanged(Services.ClientState.TerritoryType);
             BgmChanged(Services.BgmService.CurrentSongId);
-            Task.Run(SaveTask, cancellationToken.Token);
+            saveTask = Task.Run(SaveTask, cancellationToken.Token);
         }
 
         private unsafe void VfxLayoutInstanceSetVfxTriggerIndex(VfxLayoutInstance* instance, int index)
@@ -101,6 +103,8 @@ namespace TitleEdit.PluginServices
                 {
                     var locationModel = locations.ContainsKey(lastContentId) ? locations[lastContentId] : new();
                     locationModel.TerritoryTypeId = Services.ClientState.TerritoryType;
+                    locationModel.LayoutTerritoryTypeId = Services.LayoutService.LayoutTerritoryId;
+                    locationModel.LayoutLayerFilterKey = Services.LayoutService.LayoutLayerFilterKey;
                     locationModel.TerritoryPath = TerritoryPath;
                     locationModel.Position = Services.ClientState.LocalPlayer.Position;
                     locationModel.Rotation = Services.ClientState.LocalPlayer.Rotation;
@@ -280,8 +284,6 @@ namespace TitleEdit.PluginServices
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken.Token);
-
                 if ((DateTime.Now - lastSave).TotalSeconds > Services.ConfigurationService.SavePeriod)
                 {
                     if (Services.ConfigurationService.TrackPlayerLocation && Services.ConfigurationService.PeriodicSaving && isLoggedIn)
@@ -290,13 +292,8 @@ namespace TitleEdit.PluginServices
                     }
                     lastSave = DateTime.Now;
                 }
-                else
-                {
-                    continue;
-                }
-
+                await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken.Token);
             }
-
         }
 
         private void LoadSavedLocations()
@@ -370,7 +367,15 @@ namespace TitleEdit.PluginServices
                 Services.LayoutService.OnLayoutInstanceSetActive -= LayoutInstanceSetActive;
             }
             cancellationToken.Cancel();
-            cancellationToken.Dispose();
+            try
+            {
+                saveTask?.Wait(-1, cancellationToken.Token);
+            }
+            catch (OperationCanceledException) { }
+            finally
+            {
+                cancellationToken.Dispose();
+            }
         }
     }
 }

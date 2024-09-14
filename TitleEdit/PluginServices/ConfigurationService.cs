@@ -49,6 +49,8 @@ public class ConfigurationService
     public bool SettingsMigrated = false;
     public UiColorModel TitleScreenColor = UiColors.Dawntrail;
     public bool OverridePresetTitleScreenColor = false;
+    public bool UseCharacterNameAsAuthor = true;
+    public string DefaultAuthorName = "";
 
     [NonSerialized]
     private string filePath = null!;

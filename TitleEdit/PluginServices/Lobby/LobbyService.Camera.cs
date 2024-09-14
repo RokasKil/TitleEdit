@@ -1,5 +1,4 @@
 using Dalamud.Hooking;
-using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Common.Math;
@@ -13,19 +12,17 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-
-        [Signature("48 83 EC ?? F3 41 0F 10 01 0F 28 D1")]
-        private readonly delegate* unmanaged<LobbyCameraExpanded*, float, CurvePoint*, CurvePoint*, CurvePoint*, float> calculateLobbyCameraLookAtY = null!;
-
         private delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void CalculateCameraCurveLowAndHighPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void LobbySceneLoadedDelegate(ulong p1, int p2, float p3, ushort p4, uint p5, uint p6, uint p7);
-        private delegate void LobbyCameraFixOn(LobbyCameraExpanded* self, Vector3 cameraPos, Vector3 focusPos, float fovY);
+        private delegate void LobbyCameraFixOnDelegate(LobbyCameraExpanded* self, Vector3 cameraPos, Vector3 focusPos, float fovY);
+        private delegate float CalculateLobbyCameraLookAtYDelegate(LobbyCameraExpanded* self, float distance, CurvePoint* lowPoint, CurvePoint* midPoint, CurvePoint* highPoint);
 
         private Hook<SetCameraCurveMidPointDelegate> setCameraCurveMidPointHook = null!;
         private Hook<CalculateCameraCurveLowAndHighPointDelegate> calculateCameraCurveLowAndHighPointHook = null!;
         private Hook<LobbySceneLoadedDelegate> lobbySceneLoadedHook = null!;
-        private Hook<LobbyCameraFixOn> lobbyCameraFixOnHook = null!;
+        private Hook<LobbyCameraFixOnDelegate> lobbyCameraFixOnHook = null!;
+        private Hook<CalculateLobbyCameraLookAtYDelegate> calculateLobbyCameraLookAtYHook = null!;
 
         private CameraFollowMode CameraFollowMode => characterSelectLocationModel.CameraFollowMode == CameraFollowMode.Inherit ?
             Services.ConfigurationService.CameraFollowMode :
@@ -72,7 +69,9 @@ namespace TitleEdit.PluginServices.Lobby
             // Called when the game needs to set LookAt of the lobbyCamera but we override that every frame so it's not needed for that purpose
             // We use this to additionaly override camera position cause it will set stuff to 0, 0, 0 and if the title screen and character select use the same level
             // this ight cause the loud sound bug
-            lobbyCameraFixOnHook = Hook<LobbyCameraFixOn>("E8 ?? ?? ?? ?? 89 9C 24 ?? ?? ?? ?? E8", LobbyCameraFixOnDetour);
+            lobbyCameraFixOnHook = Hook<LobbyCameraFixOnDelegate>("E8 ?? ?? ?? ?? 89 9C 24 ?? ?? ?? ?? E8", LobbyCameraFixOnDetour);
+
+            calculateLobbyCameraLookAtYHook = Hook<CalculateLobbyCameraLookAtYDelegate>("48 83 EC ?? F3 41 0F 10 01 0F 28 D1", calculateLobbyCameraLookAtYDetour);
         }
 
         private void CameraTick()
@@ -172,7 +171,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Does some simpleish math which and I would rather call the native code for than rewrite into c#
         private void ForceSetLookAtY()
         {
-            LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y = calculateLobbyCameraLookAtY(
+            LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y = calculateLobbyCameraLookAtYDetour(
                 LobbyCamera,
                 LobbyCamera->LobbyCamera.Distance,
                 &LobbyCamera->LowPoint,
@@ -181,17 +180,18 @@ namespace TitleEdit.PluginServices.Lobby
             Services.Log.Debug($"Set lookAtVectorY to {LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y} {LobbyCamera->LowPoint.Value} {LobbyCamera->MidPoint.Value} {LobbyCamera->HighPoint.Value}");
         }
 
+        private float calculateLobbyCameraLookAtYDetour(LobbyCameraExpanded* self, float distance, CurvePoint* lowPoint, CurvePoint* midPoint, CurvePoint* highPoint)
+        {
+            // Clamp the distance value to the highpoint to keep vanilla curve and avoid weird behaviour when going past it with extended zoom
+            return calculateLobbyCameraLookAtYHook.Original(self, MathF.Min(distance, highPoint->Position), lowPoint, midPoint, highPoint);
+        }
+
+
         //Expands lobby camera max distance in case the user is using a big mount
         private void ModifyCamera()
         {
             LobbyCamera->LobbyCamera.Camera.MaxDistance = 20;
-            if (!cameraModified)
-            {
-                LobbyCamera->MidPoint.Position = 10;
-                LobbyCamera->HighPoint.Position = 20;
-                cameraModified = true;
-            }
-
+            cameraModified = true;
         }
 
         //Restores default camera properties
@@ -199,8 +199,6 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (cameraModified)
             {
-                LobbyCamera->MidPoint.Position = 3.3f;
-                LobbyCamera->HighPoint.Position = 5.5f;
                 LobbyCamera->LobbyCamera.Camera.MaxDistance = 5.5f;
                 cameraModified = false;
 

@@ -44,6 +44,8 @@ namespace TitleEdit.Utility
 
         private static List<AbstractService> ServiceList = [];
 
+        private static bool disposed = false;
+
         public static void ConstructServices(IDalamudPluginInterface pluginInterface, Plugin plugin)
         {
             pluginInterface.Create<Services>();
@@ -100,6 +102,11 @@ namespace TitleEdit.Utility
 
         public static void Dispose()
         {
+            if (disposed)
+            {
+                return;
+            }
+            disposed = true;
             ServiceList.ForEach(service => service.Dispose());
         }
     }

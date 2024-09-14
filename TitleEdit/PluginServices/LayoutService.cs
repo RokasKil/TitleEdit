@@ -17,17 +17,21 @@ namespace TitleEdit.PluginServices
     // This needs rewriting/optimizing
     public class LayoutService : AbstractService
     {
-        public unsafe LayoutManager* LayoutManager => LayoutWorld.Instance()->ActiveLayout;
-        public unsafe bool LayoutInitialized => LayoutManager->InitState == 7;
-
         public unsafe delegate void LayoutInstanceSetActiveDelegate(ILayoutInstance* instance, bool active);
         public unsafe delegate void VfxLayoutInstanceSetVfxTriggerIndexDelegate(VfxLayoutInstance* vfxInstance, int index);
+        public unsafe delegate void LayoutWorldInitManagerDelegate(IntPtr p1, uint p2, IntPtr p3, uint p4, uint p5, IntPtr p6, uint p7);
 
         private Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate> vfxLayoutInstanceSetVfxTriggerIndexHook = null!;
+        private Hook<LayoutWorldInitManagerDelegate> layoutWorldInitManagerHook = null!;
 
         public unsafe event LayoutInstanceSetActiveDelegate? OnLayoutInstanceSetActive;
         public unsafe event VfxLayoutInstanceSetVfxTriggerIndexDelegate? OnVfxLayoutInstanceSetVfxTriggerIndex;
         public event Action? OnLayoutChange;
+
+        public unsafe LayoutManager* LayoutManager => LayoutWorld.Instance()->ActiveLayout;
+        public unsafe bool LayoutInitialized => LayoutManager->InitState == 7;
+        public unsafe uint LayoutTerritoryId => LayoutManager->TerritoryTypeId;
+        public unsafe uint LayoutLayerFilterKey => LayoutManager->LayerFilterKey;
 
         private bool territoryChanged;
         public Dictionary<IntPtr, Hook<LayoutInstanceSetActiveDelegate>> ActiveHooks { get; set; } = [];
@@ -57,14 +61,20 @@ namespace TitleEdit.PluginServices
             unsafe
             {
                 vfxLayoutInstanceSetVfxTriggerIndexHook = Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate>("48 89 5C 24 ?? 57 48 83 EC ?? 8B FA 48 8B D9 83 FA ?? 75", SetVfxLayoutInstanceVfxTriggerIndexDetour);
+                layoutWorldInitManagerHook = Hook<LayoutWorldInitManagerDelegate>("E8 ?? ?? ?? ?? 8B 4C 24 ?? 33 DB", LayoutWorldInitManagerDetour);
+
             }
             Services.Framework.Update += Tick;
             Services.ClientState.Logout += OnLogout;
-            Services.ClientState.TerritoryChanged += TerritoryChanged;
-            TerritoryChanged(Services.ClientState.TerritoryType);
+            TerritoryChanged();
             EnableHooks();
         }
 
+        private unsafe void LayoutWorldInitManagerDetour(nint p1, uint p2, nint p3, uint p4, uint p5, nint p6, uint p7)
+        {
+            layoutWorldInitManagerHook.Original(p1, p2, p3, p4, p5, p6, p7);
+            TerritoryChanged();
+        }
 
         private unsafe void SetVfxLayoutInstanceVfxTriggerIndexDetour(VfxLayoutInstance* vfxInstance, int index)
         {
@@ -88,8 +98,9 @@ namespace TitleEdit.PluginServices
 #endif
         }
 
-        private void TerritoryChanged(ushort territoryId)
+        private void TerritoryChanged()
         {
+            Services.Log.Debug($"[TerritoryChanged]");
             territoryChanged = true;
             OnLayoutChange?.Invoke();
         }
@@ -212,7 +223,6 @@ namespace TitleEdit.PluginServices
             ClearSetActiveHooks();
             Services.Framework.Update -= Tick;
             Services.ClientState.Logout -= OnLogout;
-            Services.ClientState.TerritoryChanged -= TerritoryChanged;
         }
     }
 }

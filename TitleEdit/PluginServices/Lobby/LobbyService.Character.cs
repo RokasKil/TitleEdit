@@ -204,9 +204,8 @@ namespace TitleEdit.PluginServices.Lobby
             if (!newLocationModel.Equals(characterSelectLocationModel))
             {
                 previousCharacterSelectModelRotation = characterSelectLocationModel.Rotation;
-                characterSelectLocationModel = GetNothingSelectedLocation();
+                characterSelectLocationModel = newLocationModel;
                 resetCharacterSelectScene = true;
-
             }
         }
 

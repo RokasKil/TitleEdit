@@ -53,6 +53,12 @@ namespace TitleEdit.Windows.Tabs
             ImGui.Separator();
             SettingCheckbox($"Add a button to character select screen that opens this window##{Title}", ref Services.ConfigurationService.DrawCharacterSelectButton);
             SettingCheckbox($"Display the name of the current screen when loaded##{Title}", ref Services.ConfigurationService.DisplayTitleToast);
+            ImGui.Separator();
+            SettingCheckbox($"Use the logged in character's name as default preset author name##{Title}", ref Services.ConfigurationService.UseCharacterNameAsAuthor);
+            using (ImRaii.Disabled(Services.ConfigurationService.UseCharacterNameAsAuthor))
+                if (ImGui.InputText($"Default Author name##{Title}", ref Services.ConfigurationService.DefaultAuthorName, 256))
+                    Services.ConfigurationService.Save();
+
         }
 
         private bool SettingCheckbox(string label, ref bool value, bool save = true)
