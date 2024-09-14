@@ -151,13 +151,13 @@ namespace TitleEdit.PluginServices.Lobby
         }
 
         // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
-        private int CreateSceneDetour(string territoryPath, uint territoryId, nint p3, uint layerFilterKey, nint p5, int p6, uint cfcId)
+        private int CreateSceneDetour(string territoryPath, uint territoryId, nint p3, uint layerFilterKey, nint p5, int p6, uint contentFinderConditionId)
         {
             try
             {
                 var lobbyType = loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType;
                 Services.Log.Debug($"Loading Scene {lobbyType}");
-                Services.Log.Debug($"[CreateSceneDetour] {territoryPath} {territoryId} {p3} {layerFilterKey} {p5:X} {p6} {cfcId}");
+                Services.Log.Debug($"[CreateSceneDetour] {territoryPath} {territoryId} {p3} {layerFilterKey} {p5:X} {p6} {contentFinderConditionId}");
                 if (lobbyType == GameLobbyType.CharaSelect)
                 {
                     ResetLastCameraLookAtValues();
@@ -165,7 +165,7 @@ namespace TitleEdit.PluginServices.Lobby
                     territoryId = characterSelectLocationModel.LayoutTerritoryTypeId;
                     layerFilterKey = characterSelectLocationModel.LayoutLayerFilterKey;
                     Services.Log.Debug($"Loading char select screen: {territoryPath}");
-                    var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, cfcId);
+                    var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
                     if ((!characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != characterSelectLocationModel.BgmPath) ||
                         (characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel.BgmPath))
                     {
@@ -180,7 +180,7 @@ namespace TitleEdit.PluginServices.Lobby
                     territoryId = titleScreenLocationModel.LayoutTerritoryTypeId;
                     layerFilterKey = titleScreenLocationModel.LayoutLayerFilterKey;
                     Services.Log.Debug($"Loading title screen: {territoryPath}");
-                    var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, cfcId);
+                    var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
                     return returnVal;
                 }
 
@@ -198,7 +198,7 @@ namespace TitleEdit.PluginServices.Lobby
                     }
 
                 }
-                return createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, cfcId);
+                return createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
             }
             finally
             {
