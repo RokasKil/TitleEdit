@@ -19,7 +19,6 @@ namespace TitleEdit.Windows.Tabs
                               "Don't forget to tag Speedas so I don't miss it!");
 
             ImGui.TextWrapped("If you're looking for more presets head over to Dalamud's official discord and check out the #preset-sharing channel.");
-            ImGui.TextWrapped("If you're looking for more presets head over to Dalamud's official discord and check out the #preset-sharing channel.");
 
             if (ImGui.CollapsingHeader($"Tips and tricks##{Title}"))
             {

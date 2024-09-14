@@ -71,6 +71,8 @@ namespace TitleEdit.PluginServices.Lobby
             // this ight cause the loud sound bug
             lobbyCameraFixOnHook = Hook<LobbyCameraFixOnDelegate>("E8 ?? ?? ?? ?? 89 9C 24 ?? ?? ?? ?? E8", LobbyCameraFixOnDetour);
 
+            // Called in character select to decide the Y coordinate of the lookAt vector based on the current distance and 3 points
+            // We clamp the distance to the final point so the camera doesn't go haywire with our extended zoom but still keeps the vanilla curve
             calculateLobbyCameraLookAtYHook = Hook<CalculateLobbyCameraLookAtYDelegate>("48 83 EC ?? F3 41 0F 10 01 0F 28 D1", calculateLobbyCameraLookAtYDetour);
         }
 
