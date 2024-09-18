@@ -9,6 +9,9 @@ namespace TitleEdit.Utility
 {
     public static class Utils
     {
+        public static readonly float RadToDegreeRatio = 180f / MathF.PI;
+        public static readonly float DegreeToRadRatio = MathF.PI / 180f;
+
         public static string Truncate(this string value, int maxLength)
         {
             if (string.IsNullOrEmpty(value))

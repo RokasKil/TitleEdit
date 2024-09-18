@@ -53,6 +53,11 @@ namespace TitleEdit.Windows.Tabs
             ImGui.Separator();
             SettingCheckbox($"Add a button to character select screen that opens this window##{Title}", ref Services.ConfigurationService.DrawCharacterSelectButton);
             SettingCheckbox($"Display the name of the current screen when loaded##{Title}", ref Services.ConfigurationService.DisplayTitleToast);
+            if (SettingCheckbox($"Hide character names in character select##{Title}", ref Services.ConfigurationService.HideCharacterSelectNames))
+            {
+                Services.LobbyService.HideCharacterSelectNamesSettingUpdated();
+            }
+            ImGuiComponents.HelpMarker("To hide your name when sharing character select presets");
             ImGui.Separator();
             SettingCheckbox($"Use the logged in character's name as default preset author name##{Title}", ref Services.ConfigurationService.UseCharacterNameAsAuthor);
             using (ImRaii.Disabled(Services.ConfigurationService.UseCharacterNameAsAuthor))

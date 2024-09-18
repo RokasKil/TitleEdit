@@ -1,5 +1,4 @@
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Common.Math;
 using System.Runtime.InteropServices;
 
 namespace TitleEdit.Data.Camera
@@ -10,8 +9,6 @@ namespace TitleEdit.Data.Camera
         [FieldOffset(0x00)]
         public LobbyCamera LobbyCamera;
         //Yaw and Pitch is part of Client::Game::Camera
-        [FieldOffset(0x130)]
-        public Vector3 Orientation;
         [FieldOffset(0x130)]
         public float Yaw;
         [FieldOffset(0x134)]

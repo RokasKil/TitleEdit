@@ -45,9 +45,9 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted($"Current MountId {location.Mount.MountId}");
             ImGui.TextUnformatted($"Update time {Services.LayoutService.UpdateTime}");
             ImGui.SliderAngle($"test", ref test1, -360, 360);
-            ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle(test1) / Math.PI * 180}");
+            ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle(test1) * Utils.RadToDegreeRatio}");
             ImGui.SliderFloat($"Testing normalizer", ref test2, -720, 720);
-            ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle((float)(test2 / 180 * Math.PI)) / Math.PI * 180}");
+            ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle((float)(test2 * Utils.DegreeToRadRatio)) * Utils.RadToDegreeRatio}");
             if (ImGui.Button("Remigrate title screens"))
             {
                 Services.MigrationService.MigrateTitleScreenV2Presets();

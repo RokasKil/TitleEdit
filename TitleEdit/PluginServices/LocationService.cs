@@ -34,7 +34,7 @@ namespace TitleEdit.PluginServices
             {
                 long etS = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->ClientTime.EorzeaTime;
                 var et = DateTimeOffset.FromUnixTimeSeconds(etS);
-                return (ushort)((et.Hour * 100) + Math.Round(et.Minute * 100f / 60f));
+                return (ushort)((et.Hour * 100) + et.Minute);
             }
         }
 

@@ -51,6 +51,7 @@ public class ConfigurationService
     public bool OverridePresetTitleScreenColor = false;
     public bool UseCharacterNameAsAuthor = true;
     public string DefaultAuthorName = "";
+    public bool HideCharacterSelectNames = false;
 
     [NonSerialized]
     private string filePath = null!;

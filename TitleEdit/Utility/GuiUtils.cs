@@ -139,10 +139,10 @@ namespace TitleEdit.Utility
 
         public static bool AngleSlider(string title, ref float value)
         {
-            var rotation = value / (float)Math.PI * 180.0f;
+            var rotation = value * Utils.RadToDegreeRatio;
             if (ImGui.SliderFloat(title, ref rotation, -180, 180, "%.2f", ImGuiSliderFlags.AlwaysClamp))
             {
-                value = rotation / 180.0f * (float)Math.PI;
+                value = rotation * Utils.DegreeToRadRatio;
                 return true;
             }
             return false;
@@ -150,10 +150,10 @@ namespace TitleEdit.Utility
 
         public static bool AngleDrag(string title, ref float value)
         {
-            var rotation = Utils.NormalizeAngle(value) / MathF.PI * 180.0f;
+            var rotation = Utils.NormalizeAngle(value) * Utils.RadToDegreeRatio;
             if (ImGui.DragFloat(title, ref rotation, 1, float.NegativeInfinity, float.PositiveInfinity, rotation.ToString("0.00")))
             {
-                value = Utils.NormalizeAngle(rotation / 180.0f * MathF.PI);
+                value = Utils.NormalizeAngle(rotation * Utils.DegreeToRadRatio);
                 return true;
             }
             return false;

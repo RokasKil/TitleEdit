@@ -273,7 +273,7 @@ namespace TitleEdit.Windows.Tabs
                 {
                     preset.LocationModel.TimeOffset = (ushort)currentTime;
                 }
-                GuiUtils.HoverTooltip($"Current time: {time / 60:00}:{(time % 60):00}");
+                GuiUtils.HoverTooltip($"Current time: {currentTime / 100:00}:{(currentTime % 100):00}");
             }
 
             // Song
@@ -361,7 +361,7 @@ namespace TitleEdit.Windows.Tabs
                     {
                         preset.LocationModel.Rotation = Services.ClientState.LocalPlayer!.Rotation;
                     }
-                    GuiUtils.HoverTooltip($"Current rotation: {Services.ClientState.LocalPlayer!.Rotation / (float)Math.PI * 180.0f:F2}");
+                    GuiUtils.HoverTooltip($"Current rotation: {Services.ClientState.LocalPlayer!.Rotation * Utils.RadToDegreeRatio:F2}");
                 }
 
                 // Character MovementMode
@@ -495,19 +495,34 @@ namespace TitleEdit.Windows.Tabs
                     ImGui.SetCursorPosX(buttonPosX);
                     unsafe
                     {
+                        var (yaw, pitch) = Utils.GetAnglesFromVector(Services.CameraService.CurrentCamera->Camera.SceneCamera.LookAtVector - Services.CameraService.CurrentCamera->Camera.SceneCamera.Position);
+
                         if (ImGui.Button($"Apply current##{Title}##Camera Orientation"))
                         {
-                            preset.LocationModel.Yaw = Services.CameraService.CurrentCamera->Yaw;
-                            preset.LocationModel.Pitch = Services.CameraService.CurrentCamera->Pitch;
+                            preset.LocationModel.Yaw = yaw;
+                            preset.LocationModel.Pitch = pitch;
                             preset.LocationModel.Roll = Services.CameraService.CurrentCamera->Roll;
                         }
-                        var orientation = Services.CameraService.CurrentCamera->Orientation;
-                        GuiUtils.HoverTooltip($"Current camera Orientation: ({orientation.X:F2}; {orientation.Y:F2}; {orientation.Z:F2}) ");
+                        GuiUtils.HoverTooltip($"Current camera Orientation: ({yaw * Utils.RadToDegreeRatio:F2}; {pitch * Utils.RadToDegreeRatio:F2}; {Services.CameraService.CurrentCamera->Roll * Utils.RadToDegreeRatio:F2}");
                     }
                 }
                 if (ImGui.SliderFloat($"FOV##{Title}", ref preset.LocationModel.Fov, 0.01f, 3f))
                 {
                     UpdateLiveEdit();
+                }
+                if (Services.ClientState.LocalPlayer != null)
+                {
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(buttonPosX);
+                    unsafe
+                    {
+                        if (ImGui.Button($"Apply current##{Title}##FOV"))
+                        {
+                            preset.LocationModel.Fov = Services.CameraService.CurrentCamera->Camera.SceneCamera.RenderCamera->FoV;
+                        }
+
+                        GuiUtils.HoverTooltip($"Current camera FOV: {Services.CameraService.CurrentCamera->Camera.SceneCamera.RenderCamera->FoV:F2}");
+                    }
                 }
                 if (GuiUtils.Combo($"Logo##{Title}", ref preset.LocationModel.TitleScreenLogo))
                 {
@@ -719,17 +734,18 @@ namespace TitleEdit.Windows.Tabs
             preset.LocationModel.BgmPath = Services.DataManager.GetExcelSheet<BGM>()!.GetRow((uint)Services.BgmService.CurrentSongId)?.File.ToString();
             preset.LocationModel.Position = Services.ClientState.LocalPlayer!.Position;
             preset.LocationModel.Rotation = Services.ClientState.LocalPlayer!.Rotation;
-            preset.LocationModel.Fov = 1;
             preset.LocationModel.TitleScreenLogo = TitleScreenLogo.Dawntrail;
             unsafe
             {
+                preset.LocationModel.Fov = Services.CameraService.CurrentCamera->Camera.SceneCamera.RenderCamera->FoV;
                 var character = (CharacterExpanded*)Services.ClientState.LocalPlayer!.Address;
                 preset.LocationModel.MovementMode = character->MovementMode;
                 Services.LocationService.SetMount(ref preset.LocationModel, &character->Character);
 
                 preset.LocationModel.CameraPosition = Services.CameraService.CurrentCamera->Camera.SceneCamera.Position;
-                preset.LocationModel.Yaw = Services.CameraService.CurrentCamera->Yaw;
-                preset.LocationModel.Pitch = Services.CameraService.CurrentCamera->Pitch;
+                var (yaw, pitch) = Utils.GetAnglesFromVector(Services.CameraService.CurrentCamera->Camera.SceneCamera.LookAtVector - Services.CameraService.CurrentCamera->Camera.SceneCamera.Position);
+                preset.LocationModel.Yaw = yaw;
+                preset.LocationModel.Pitch = pitch;
                 preset.LocationModel.Roll = Services.CameraService.CurrentCamera->Roll;
             }
             StopLiveEdit();

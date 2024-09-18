@@ -80,10 +80,64 @@ namespace TitleEdit.PluginServices.Lobby
             // To animate/skip animation of title logo
             Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_TitleLogo", TitleLogoPostSetup);
 
+            // To hide character select names
+            HideCharacterSelectNamesSettingUpdated();
+
             // Register UI stuff we want to recolor
             foreach (var addon in recolorableAddons)
             {
                 Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, addon, RecolorablePostSetup);
+            }
+        }
+
+        // Hiding names on update, only subscribed if the setting is on
+        private void CharaSelectInfoUpdate(AddonEvent type, AddonArgs args) => SetCharaSelectInfoVisibilty(false);
+        private void CharaSelectListMenuUpdate(AddonEvent type, AddonArgs args) => SetCharaSelectListMenuVisibilty(false);
+
+        // Set _CharaSelectInfo text node visiblity
+        private void SetCharaSelectInfoVisibilty(bool visible)
+        {
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_CharaSelectInfo");
+            if (addon == null) return;
+            var node = addon->UldManager.SearchNodeById(3);
+            if (node == null) return;
+            node->ToggleVisibility(visible);
+        }
+
+
+        // Set _CharaSelectListMenu list text node visiblity
+        private void SetCharaSelectListMenuVisibilty(bool visible)
+        {
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_CharaSelectListMenu");
+            if (addon == null) return;
+            var node = addon->UldManager.SearchNodeById(13);
+            if (node == null) return;
+            var listComponent = node->GetAsAtkComponentList();
+            if (listComponent == null) return;
+            for (var listItem = listComponent->ItemRendererList; listItem != listComponent->ItemRendererList + listComponent->ListLength; listItem++)
+            {
+                var listItemTextNode = listItem->AtkComponentListItemRenderer->UldManager.SearchNodeById(6);
+                if (listItemTextNode != null)
+                {
+                    listItemTextNode->ToggleVisibility(visible);
+                }
+            }
+        }
+
+        public void HideCharacterSelectNamesSettingUpdated()
+        {
+
+            if (Services.ConfigurationService.HideCharacterSelectNames)
+            {
+                Services.AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, "_CharaSelectInfo", CharaSelectInfoUpdate);
+                Services.AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, "_CharaSelectListMenu", CharaSelectListMenuUpdate);
+            }
+            else
+            {
+                Services.AddonLifecycle.UnregisterListener(CharaSelectInfoUpdate);
+                Services.AddonLifecycle.UnregisterListener(CharaSelectListMenuUpdate);
+                SetCharaSelectInfoVisibilty(true);
+                SetCharaSelectListMenuVisibilty(true);
             }
         }
 
@@ -111,12 +165,18 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
+        private AtkResNode* GetTitleScreenLogoResNode()
+        {
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
+            if (addon == null) return null;
+            return addon->RootNode;
+        }
+
         // force set TitleScreen logo part id for shb logo
         private void SetTitleScreenLogoPartId()
         {
             // Iterating through all nodes cause there's like 5 image nodes used in the animation for shadowbringers
-            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
-            Utils.IterateNodes(addon->RootNode, node =>
+            Utils.IterateNodes(GetTitleScreenLogoResNode(), node =>
             {
                 if (node->Type == NodeType.Image)
                 {
@@ -126,12 +186,11 @@ namespace TitleEdit.PluginServices.Lobby
             });
         }
 
+
         // Calls AtkTimeline::PlayAnimation
         private void AnimateDawntrailLogo()
         {
-            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
-            if (addon == null || addon->UldManager.NodeListCount < 2) return;
-            var node = addon->UldManager.NodeList[0];
+            var node = GetTitleScreenLogoResNode();
             if (node == null) return;
             Services.Log.Debug("Animating dawntrail logo");
             // Values taken by observing what the game calls, no clue what they mean :)
@@ -141,9 +200,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Advances AtkTimeline::FrameTime
         private void AdvanceTitleLogoAnimation()
         {
-            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
-            if (addon == null || addon->UldManager.NodeListCount < 2) return;
-            var node = addon->UldManager.NodeList[0];
+            var node = GetTitleScreenLogoResNode();
             if (node == null) return;
             Services.Log.Debug($"Advancing timeline animation by {advanceTitleLogoAnimationDuration}");
             // Just manually advance FrameTime to skip animation
@@ -192,28 +249,6 @@ namespace TitleEdit.PluginServices.Lobby
         // We manipulate LobbyInfo values to make sure the correct one gets picked and then restore them
         private bool PickTitleLogoDetour(IntPtr atkUnit)
         {
-            var addon = (AtkUnitBase*)atkUnit;
-            if (!(addon->UldManager.NodeListCount < 3))
-            {
-
-                var node = (AtkImageNode*)addon->UldManager.NodeList[2];
-                if (!(node == null))
-                {
-                    Services.Log.Debug($"TitleLogo image PickTitleLogoDetour part id {node->PartId}");
-                }
-                else
-                {
-                    Services.Log.Debug($"no image node PickTitleLogoDetour");
-
-                }
-
-            }
-            else
-            {
-                Services.Log.Debug($"no addon {addon->UldManager.NodeListCount}");
-
-            }
-
             // have to set it to false or some logos won't load because ???
             LobbyInfo->PreDawntrailLogoFlag = false;
             Services.Log.Debug($"[PickTitleLogoDetour] {atkUnit:X}");
@@ -328,6 +363,8 @@ namespace TitleEdit.PluginServices.Lobby
             Services.AddonLifecycle.UnregisterListener(TitleMenuFinalize);
             Services.AddonLifecycle.UnregisterListener(RecolorablePostSetup);
             Services.AddonLifecycle.UnregisterListener(TitleLogoPostSetup);
+            Services.AddonLifecycle.UnregisterListener(CharaSelectInfoUpdate);
+            Services.AddonLifecycle.UnregisterListener(CharaSelectListMenuUpdate);
         }
     }
 }
