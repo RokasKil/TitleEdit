@@ -96,7 +96,26 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnCommand(string command, string args)
     {
-        ToggleConfigUI();
+        if (args == "migrate presets")
+        {
+            var migratedCount = Services.MigrationService.MigrateTitleScreenV2Presets();
+            Services.ChatGui.Print($"Migrated {migratedCount} presets", "Title Edit");
+        }
+        else if (args == "migrate settings")
+        {
+            if (Services.MigrationService.MigrateTitleScreenV2Configuration())
+            {
+                Services.ChatGui.Print($"Migrated v2 config", "Title Edit");
+            }
+            else
+            {
+                Services.ChatGui.Print($"Couldn't find v2 config", "Title Edit");
+            }
+        }
+        else
+        {
+            ToggleConfigUI();
+        }
     }
 
     private void DrawUI()

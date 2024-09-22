@@ -13,7 +13,7 @@ namespace TitleEdit.Windows.Tabs
         {
             base.Draw();
             using var textWrapPos = ImRaii.TextWrapPos(ImGui.GetFontSize() * 28);
-            ImGui.TextWrapped("Welcome to Title Edit V3, this is a testing release, while it hasn't caused any crashes in my personal testing, expect to see some issues.");
+            ImGui.TextWrapped("Welcome to Title Edit V3, a full remake of the original plugin.");
             ImGui.TextWrapped("If you encounter any issues that are not listed in the Known Issues or have information about them that you feel " +
                               "would be valuable you can report it in the Dalamud's discord #plugin-testing channel or the Title Edit post in #plugin-help-forum. " +
                               "Don't forget to tag Speedas so I don't miss it!");
@@ -61,13 +61,10 @@ namespace TitleEdit.Windows.Tabs
                 WrappedBulletText("goat - being a caprine individual");
 
             }
-            ImGui.PopTextWrapPos();
-
         }
 
         private void WrappedBulletText(string text)
         {
-
             ImGui.Bullet();
             ImGui.TextWrapped(text);
         }

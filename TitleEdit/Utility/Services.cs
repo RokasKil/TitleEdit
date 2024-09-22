@@ -26,6 +26,7 @@ namespace TitleEdit.Utility
         [PluginService] public static ITitleScreenMenu TitleScreenMenu { get; set; } = null!;
         [PluginService] public static IKeyState KeyState { get; set; } = null!;
         [PluginService] public static INotificationManager NotificationManager { get; set; } = null!;
+        [PluginService] public static IChatGui ChatGui { get; set; } = null!;
         public static IDalamudPluginInterface PluginInterface { get; set; } = null!;
         public static ConfigurationService ConfigurationService { get; set; } = null!;
         public static LayoutService LayoutService { get; set; } = null!;

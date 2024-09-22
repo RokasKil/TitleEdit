@@ -591,7 +591,7 @@ namespace TitleEdit.Windows.Tabs
 
         public void DrawPresetActions()
         {
-            ImGui.BeginDisabled(!makingNewPreset && currentPreset == "");
+            using var buttonsDisabled = ImRaii.Disabled(!makingNewPreset && currentPreset == "");
             if (ImGui.Button($"Save##{Title}"))
             {
                 try
@@ -613,25 +613,26 @@ namespace TitleEdit.Windows.Tabs
             }
 
             ImGui.SameLine();
-            ImGui.BeginDisabled(((preset.LocationModel.LocationType == LocationType.TitleScreen && !Services.LobbyService.CanReloadTitleScreen) ||
-                (preset.LocationModel.LocationType == LocationType.CharacterSelect && Services.LobbyService.CurrentLobbyMap != GameLobbyType.CharaSelect)));
-
-            if (!liveEditing && ImGui.Button($"Live edit##{Title}"))
+            using (var disabled = ImRaii.Disabled(
+                (preset.LocationModel.LocationType == LocationType.TitleScreen && !Services.LobbyService.CanReloadTitleScreen) ||
+                (preset.LocationModel.LocationType == LocationType.CharacterSelect && Services.LobbyService.CurrentLobbyMap != GameLobbyType.CharaSelect)))
             {
-                Services.LobbyService.StartLiveEdit(preset);
-                liveEditing = true;
-                liveEditingLocationType = preset.LocationModel.LocationType;
+                if (!liveEditing)
+                {
+                    if (ImGui.Button($"Live edit##{Title}"))
+                    {
+                        Services.LobbyService.StartLiveEdit(preset);
+                        liveEditing = true;
+                        liveEditingLocationType = preset.LocationModel.LocationType;
+                    }
+                    if (disabled.Success && !buttonsDisabled.Success)
+                    {
+                        using (ImRaii.Enabled())
+                            GuiUtils.HoverTooltip($"Only works in title or character select screen depending on the selected preset", ImGuiHoveredFlags.AllowWhenDisabled);
+                    }
+                }
             }
-            ImGui.EndDisabled();
 
-            if (liveEditing && (
-                    (preset.LocationModel.LocationType == LocationType.TitleScreen && !Services.LobbyService.CanReloadTitleScreen) ||
-                    (preset.LocationModel.LocationType == LocationType.CharacterSelect && Services.LobbyService.CurrentLobbyMap != GameLobbyType.CharaSelect)
-                ))
-            {
-
-                GuiUtils.HoverTooltip($"Only works in title or character select screen depending on the selected preset");
-            }
             if (liveEditing && ImGui.Button($"Stop live edit##{Title}"))
             {
                 StopLiveEdit();
@@ -653,8 +654,6 @@ namespace TitleEdit.Windows.Tabs
                     SetupDeleteConfirmation();
                 }
             }
-
-            ImGui.EndDisabled();
         }
 
         public void ExportPreset(bool confirmed, string path)

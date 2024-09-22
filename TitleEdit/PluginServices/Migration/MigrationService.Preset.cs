@@ -153,6 +153,10 @@ namespace TitleEdit.PluginServices.Migration
                         migrated++;
                     }
                 }
+                else
+                {
+                    Services.Log.Info($"Ignoring file {file.Name}");
+                }
             }
             return migrated;
         }

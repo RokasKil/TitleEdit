@@ -9,6 +9,16 @@ namespace TitleEdit.PluginServices.Preset
         private void LoadBasePresets()
         {
             // Title screens
+            AddVanillaTitleScreenPresets();
+            AddTitleScreenPresets();
+
+            //Character select
+            AddVanillaCharacterSelectPresets();
+            AddCharacterSelectPresets();
+        }
+
+        private void AddVanillaTitleScreenPresets()
+        {
             AddPreset(new()
             {
                 Name = "A Realm Reborn",
@@ -76,6 +86,10 @@ namespace TitleEdit.PluginServices.Preset
                     TitleScreenOverride = TitleScreenExpansion.Dawntrail
                 }
             });
+        }
+        private void AddTitleScreenPresets()
+        {
+
             AddPreset(new()
             {
                 Name = "TE_Amaurot 2",
@@ -534,7 +548,10 @@ namespace TitleEdit.PluginServices.Preset
                     UiColor = UiColors.Dawntrail
                 }
             });
+        }
 
+        private void AddVanillaCharacterSelectPresets()
+        {
             // Character select
             AddPreset(new()
             {
@@ -553,7 +570,164 @@ namespace TitleEdit.PluginServices.Preset
                     ToastNotificationText = "Now displaying: Atherial Sea"
                 }
             });
+        }
 
+        private void AddCharacterSelectPresets()
+        {
+            AddPreset(new()
+            {
+                Name = "TE_Candy Store",
+                FileName = "?/TE_Candy Store.json",
+                Author = "Thorian",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.CharacterSelect,
+                    TerritoryPath = "ex3/01_nvt_n4/evt/n4e9/level/n4e9",
+                    TerritoryTypeId = 892,
+                    LayoutTerritoryTypeId = 892,
+                    LayoutLayerFilterKey = 0,
+                    Position = new(77.35472f, 0.15887594f, 50.74012f),
+                    Rotation = -0.7853982f,
+                    WeatherId = 2,
+                    TimeOffset = 1228,
+                    BgmId = 719,
+                    BgmPath = "music/ex3/BGM_EX3_BanFort_Fairy_Good.scd",
+                    SaveLayout = false,
+                    SaveFestivals = false
+                }
+            });
+            AddPreset(new()
+            {
+                Name = "TE_Convocation",
+                FileName = "?/TE_Convocation.json",
+                Author = "bot_",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.CharacterSelect,
+                    TerritoryPath = "ffxiv/zon_z1/evt/z1e7/level/z1e7",
+                    TerritoryTypeId = 0,
+                    LayoutTerritoryTypeId = 0,
+                    LayoutLayerFilterKey = 0,
+                    Position = new(0.0f, 0.0f, -0.3f),
+                    Rotation = 0.0f,
+                    WeatherId = 2,
+                    TimeOffset = 1200,
+                    BgmId = 58,
+                    BgmPath = "music/ffxiv/BGM_Field_Danger2.scd",
+                    SaveLayout = false,
+                    SaveFestivals = false
+                }
+            });
+            AddPreset(new()
+            {
+                Name = "TE_Elysion",
+                FileName = "?/TE_Elysion.json",
+                Author = "Speedas",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.CharacterSelect,
+                    TerritoryPath = "ex4/04_uvs_u5/evt/u5e3/level/u5e3",
+                    TerritoryTypeId = 1073,
+                    LayoutTerritoryTypeId = 0,
+                    LayoutLayerFilterKey = 268557,
+                    Position = new(91.0f, 497.26218f, -8.9f),
+                    Rotation = -1.5707964f,
+                    WeatherId = 2,
+                    TimeOffset = 2205,
+                    BgmId = 929,
+                    BgmPath = "music/ex4/BGM_EX4_BanFort_Omi_Good.scd",
+                    SaveLayout = false,
+                    SaveFestivals = false
+                }
+            });
+            AddPreset(new()
+            {
+                Name = "TE_Jungle",
+                FileName = "?/TE_Jungle.json",
+                Author = "Thorian",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.CharacterSelect,
+                    TerritoryPath = "ffxiv/sea_s1/dun/s1d5/level/s1d5",
+                    TerritoryTypeId = 361,
+                    LayoutTerritoryTypeId = 0,
+                    LayoutLayerFilterKey = 0,
+                    Position = new(263.6f, 63.237f, 160.25f),
+                    Rotation = 3.1415927f,
+                    WeatherId = 2,
+                    TimeOffset = 1126,
+                    BgmId = 742,
+                    BgmPath = "music/ex3/BGM_EX3_Event_20.scd",
+                    SaveLayout = false,
+                    SaveFestivals = false
+                }
+            });
+            AddPreset(new()
+            {
+                Name = "TE_Nightbloom",
+                FileName = "?/TE_Nightbloom.json",
+                Author = "Kamgigari",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.CharacterSelect,
+                    TerritoryPath = "ex2/02_est_e3/fld/e3fd/level/e3fd",
+                    TerritoryTypeId = 778,
+                    LayoutTerritoryTypeId = 0,
+                    LayoutLayerFilterKey = 0,
+                    Position = new(100.0f, 0.0f, 100.0f),
+                    Rotation = 0.0f,
+                    WeatherId = 99,
+                    TimeOffset = 0,
+                    BgmId = 542,
+                    BgmPath = "music/ex2/BGM_EX2_Ban_17.scd",
+                    SaveLayout = false,
+                    SaveFestivals = false
+                }
+            });
+            AddPreset(new()
+            {
+                Name = "TE_The Dancing Plague",
+                FileName = "?/TE_The Dancing Plague.json",
+                Author = "Speedas",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.CharacterSelect,
+                    TerritoryPath = "ex3/01_nvt_n4/fld/n4fa/level/n4fa",
+                    TerritoryTypeId = 845,
+                    LayoutTerritoryTypeId = 845,
+                    LayoutLayerFilterKey = 0,
+                    Position = new(100.0f, 0.0f, 100.0f),
+                    Rotation = 0.0f,
+                    WeatherId = 122,
+                    TimeOffset = 0,
+                    BgmId = 683,
+                    BgmPath = "music/ex3/BGM_EX3_Ban_01.scd",
+                    SaveLayout = false,
+                    SaveFestivals = false
+                }
+            });
+            AddPreset(new()
+            {
+                Name = "TE_Zero Domain",
+                FileName = "?/TE_Zero Domain.json",
+                Author = "bot_",
+                LocationModel = new()
+                {
+                    LocationType = LocationType.CharacterSelect,
+                    TerritoryPath = "ex4/05_zon_z5/evt/z5e4/level/z5e4",
+                    TerritoryTypeId = 1077,
+                    LayoutTerritoryTypeId = 0,
+                    LayoutLayerFilterKey = 0,
+                    Position = new(0.0f, -0.393f, -20.05f),
+                    Rotation = 3.1415927f,
+                    WeatherId = 171,
+                    TimeOffset = 716,
+                    BgmId = 928,
+                    BgmPath = "music/ex4/BGM_EX4_Event_28.scd",
+                    SaveLayout = false,
+                    SaveFestivals = false
+                }
+            });
         }
 
         private void AddPreset(PresetModel preset)
