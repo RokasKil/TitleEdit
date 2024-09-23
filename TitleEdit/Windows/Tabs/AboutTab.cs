@@ -15,8 +15,7 @@ namespace TitleEdit.Windows.Tabs
             using var textWrapPos = ImRaii.TextWrapPos(ImGui.GetFontSize() * 28);
             ImGui.TextWrapped("Welcome to Title Edit V3, a full remake of the original plugin.");
             ImGui.TextWrapped("If you encounter any issues that are not listed in the Known Issues or have information about them that you feel " +
-                              "would be valuable you can report it in the Dalamud's discord #plugin-testing channel or the Title Edit post in #plugin-help-forum. " +
-                              "Don't forget to tag Speedas so I don't miss it!");
+                              "would be valuable you can report it via the feedback button in the Plugin Installer or the Title Edit post in #plugin-help-forum.");
 
             ImGui.TextWrapped("If you're looking for more presets head over to Dalamud's official discord and check out the #preset-sharing channel.");
 
