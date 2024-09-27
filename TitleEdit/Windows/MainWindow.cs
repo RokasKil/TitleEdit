@@ -1,4 +1,6 @@
 using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using ImGuiNET;
 using System;
 using System.Numerics;
@@ -65,6 +67,17 @@ public class MainWindow : Window, IDisposable
             if (ImGui.Button("Reload title screen"))
             {
                 Services.LobbyService.ReloadTitleScreen();
+            }
+            ImGui.TextUnformatted($"Available expansion {UIState.Instance()->PlayerState.MaxExpansion}");
+            if (ImGui.CollapsingHeader("Versions"))
+            {
+                var framework = Framework.Instance();
+                ImGui.TextUnformatted($"Game version: {framework->GameVersionString} {framework->GameVersionString.Length}");
+                ImGui.TextUnformatted($"Heavensward: {framework->Ex1VersionString} {framework->Ex1VersionString.Length}");
+                ImGui.TextUnformatted($"Stormblood: {framework->Ex2VersionString} {framework->Ex2VersionString.Length}");
+                ImGui.TextUnformatted($"Shadowbringers: {framework->Ex3VersionString} {framework->Ex3VersionString.Length}");
+                ImGui.TextUnformatted($"Endwalker: {framework->Ex4VersionString} {framework->Ex4VersionString.Length}");
+                ImGui.TextUnformatted($"Dawntrail: {framework->Ex5VersionString} {framework->Ex5VersionString.Length}");
             }
         }
     }

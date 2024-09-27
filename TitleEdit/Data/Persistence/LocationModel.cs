@@ -40,6 +40,7 @@ namespace TitleEdit.Data.Persistence
         public bool SaveLayout = false;
         public bool UseVfx = true;
         public bool SaveFestivals = true;
+        // Used to force the title screen expansion to specific one and let the game handle the scene loading natively
         public TitleScreenExpansion? TitleScreenOverride = null;
         public UiColorModel UiColor = UiColors.Dawntrail;
 

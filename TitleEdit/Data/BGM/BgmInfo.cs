@@ -7,6 +7,7 @@ namespace TitleEdit.Data.BGM
         public string FilePath;
         public string AdditionalInfo;
         public uint RowId;
+        public bool Available;
         public readonly string DisplayName { get => $"{RowId} - {Title}"; }
     }
 

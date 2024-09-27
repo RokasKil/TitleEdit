@@ -128,7 +128,8 @@ namespace TitleEdit.PluginServices
                     FilePath = path,
                     Location = locations,
                     AdditionalInfo = addtlInfo,
-                    RowId = id
+                    RowId = id,
+                    Available = path.IsNullOrEmpty() ? true : Services.DataManager.FileExists(path)
                 };
                 Bgms[id] = bgm;
             }

@@ -1,6 +1,7 @@
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Hooking;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Utility.Numerics;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -19,9 +20,14 @@ namespace TitleEdit.PluginServices.Lobby
         private readonly delegate* unmanaged<AgentLobby*, void> removeTitleScreenUi = null!;
         private readonly string[] recolorableAddons = { "_TitleRights", "_TitleMenu", "_TitleRevision" };
 
-        private delegate bool PickTitleLogo(IntPtr atkUnit);
+        private delegate bool PickTitleLogo(AtkUnitBase* atkUnit);
+        private delegate int TitleLogoRefresh(AtkUnitBase* atkUnit, ulong p2, AtkValue* atkValue);
+        private delegate int ShowAddon(AtkUnitBase* atkUnit, byte p2, int p3);
 
         private Hook<PickTitleLogo> pickTitleLogoHook = null!;
+        private Hook<TitleLogoRefresh> titleLogoRefreshHook = null!;
+        private Hook<ShowAddon> showAddonHook = null!;
+
 
         // Should play dawntrail logo animation once everything loads 
         private bool shouldAnimateDawntrailLogo = false;
@@ -30,10 +36,22 @@ namespace TitleEdit.PluginServices.Lobby
         private bool shouldAdvanceTitleLogoAnimation = false;
         private float advanceTitleLogoAnimationDuration = 0;
 
+        // Should hide the whole TitleLogo addon, we reenable it when dawntrail cutscene or going to character select triggers an animation
+        private bool shouldHideTitleLogoAddon = false;
+
         // Are we reloading title screen ui
         private bool reloadingTitleScreenUi = false;
 
+        // Did DT cutscene trigger logo animation used 
+        private bool cutsceneAnimatedTitleLogo = false;
+
         private Queue<Action> titleMenuFinalizeActions = [];
+
+
+        // Called to check if we need to modify title screen logo we always handle things because free trial client will always want to show free trial logo
+        private bool ShouldModifyTitleScreenLogo => titleScreenLoaded;
+        // Called to check if we need to modify title screen ui colors we handle things when not using a vanilla screen or the colors need to overriden globally
+        private bool ShouldModifyTitleScreenUiColors => titleScreenLoaded && (titleScreenLocationModel.TitleScreenOverride == null || Services.ConfigurationService.OverridePresetTitleScreenColor);
 
         //These might be inneficient but we don't call them often so maybe it's fine or maybe it's smart and caches but I doubt
         private UiColorModel TitleScreenColors
@@ -72,8 +90,16 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void HookUi()
         {
+            // Called to pick what logo to display for the _TitleLogo addon (one of the vfuncs)
             pickTitleLogoHook = Hook<PickTitleLogo>("40 57 48 83 EC ?? 48 8B F9 E8 ?? ?? ?? ?? 80 78", PickTitleLogoDetour);
 
+            // Called to play animations for the _TitleLogo addon (one of the vfuncs)
+            titleLogoRefreshHook = Hook<TitleLogoRefresh>("48 89 5C 24 ?? 56 48 83 EC ?? F6 81 ?? ?? ?? ?? ?? 49 8B F0 48 8B D9 0F 84 ?? ?? ?? ?? 49 8B C8 48 89 7C 24 ?? E8 ?? ?? ?? ?? 8B F8 A8 ?? 74 ?? 48 8B 8B ?? ?? ?? ?? BA ?? ?? ?? ?? C7 83", TitleLogoRefreshDetour);
+
+            // Common method that is called when setting an addon to be visible, used to hide _TitleLogo when using dawntrail title screen
+            // so it can be shown when TitleLogoRefresh gets called to trigger the logo animation
+            // if we don't do this non DT logos will show at the start and then flash when animation triggers
+            showAddonHook = Hook<ShowAddon>("E8 ?? ?? ?? ?? 80 A3 ?? ?? ?? ?? ?? 40 80 E7", ShowAddonDetour);
 
             // Used when unloading TitleScreen menu
             Services.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_TitleMenu", TitleMenuFinalize);
@@ -88,6 +114,38 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, addon, RecolorablePostSetup);
             }
+        }
+
+        private int ShowAddonDetour(AtkUnitBase* atkUnit, byte p2, int p3)
+        {
+            var result = showAddonHook.Original(atkUnit, p2, p3);
+            if (shouldHideTitleLogoAddon && atkUnit->NameString == "_TitleLogo")
+            {
+                Services.Log.Debug("[ShowAddonDetour] Hiding _TitleLogo");
+                atkUnit->IsVisible = false;
+                shouldHideTitleLogoAddon = false;
+            }
+            return result;
+        }
+
+        private int TitleLogoRefreshDetour(AtkUnitBase* atkUnit, ulong p2, AtkValue* atkValue)
+        {
+            Services.Log.Debug($"[TitleLogoRefreshDetour] {(IntPtr)atkUnit:X} {p2:X} {(IntPtr)atkValue:X} {atkValue->UInt} {atkValue->Bool}");
+            var result = titleLogoRefreshHook.Original(atkUnit, p2, atkValue);
+            if (atkValue->UInt == 32 || atkValue->UInt == 1)
+            {
+                if (atkValue->UInt == 32)
+                {
+                    cutsceneAnimatedTitleLogo = true;
+                }
+                atkUnit->IsVisible = true;
+            }
+            if (shouldAdvanceTitleLogoAnimation && atkValue->UInt == 32)
+            {
+                AdvanceTitleLogoAnimation();
+                shouldAdvanceTitleLogoAnimation = false;
+            }
+            return result;
         }
 
         // Hiding names on update, only subscribed if the setting is on
@@ -149,7 +207,9 @@ namespace TitleEdit.PluginServices.Lobby
                 AnimateDawntrailLogo();
                 shouldAnimateDawntrailLogo = false;
             }
-            if (shouldAdvanceTitleLogoAnimation)
+            // Don't advance animations when shouldHideTitleLogoAddon is true
+            // We'll do that when Addon is visible again
+            if (shouldAdvanceTitleLogoAnimation && !shouldHideTitleLogoAddon)
             {
                 AdvanceTitleLogoAnimation();
                 shouldAdvanceTitleLogoAnimation = false;
@@ -159,7 +219,7 @@ namespace TitleEdit.PluginServices.Lobby
             // but shb one won't if the title isn't set to shb
             // it's set from some updateAnimation call somewhere in the setup process
             // we just manually set it here because I didn't want to figure that out
-            if (ShouldModifyTitleScreen && TitleScreenLogoOption == TitleScreenLogo.Shadowbringers)
+            if (ShouldModifyTitleScreenLogo && TitleScreenLogoOption == TitleScreenLogo.Shadowbringers)
             {
                 SetTitleScreenLogoPartId();
             }
@@ -207,10 +267,10 @@ namespace TitleEdit.PluginServices.Lobby
             node->Timeline->FrameTime += advanceTitleLogoAnimationDuration;
         }
 
-        // A recolrable addon's setup is complete, we change it's color here
+        // A recolerable addon's setup is complete, we change it's color here
         private void RecolorablePostSetup(AddonEvent type, AddonArgs args)
         {
-            if (ShouldModifyTitleScreen)
+            if (ShouldModifyTitleScreenUiColors)
             {
                 RecolorAddon((AtkUnitBase*)args.Addon);
             }
@@ -247,12 +307,15 @@ namespace TitleEdit.PluginServices.Lobby
 
         // Selects whatever logo resource should be used
         // We manipulate LobbyInfo values to make sure the correct one gets picked and then restore them
-        private bool PickTitleLogoDetour(IntPtr atkUnit)
+        private bool PickTitleLogoDetour(AtkUnitBase* atkUnit)
         {
+            shouldHideTitleLogoAddon = false;
+            shouldAdvanceTitleLogoAnimation = false;
+            shouldAnimateDawntrailLogo = false;
             // have to set it to false or some logos won't load because ???
             LobbyInfo->PreDawntrailLogoFlag = false;
-            Services.Log.Debug($"[PickTitleLogoDetour] {atkUnit:X}");
-            if (!ShouldModifyTitleScreen)
+            Services.Log.Debug($"[PickTitleLogoDetour] {(IntPtr)atkUnit:X} {atkUnit->IsVisible}");
+            if (!ShouldModifyTitleScreenLogo)
             {
                 return pickTitleLogoHook.Original(atkUnit);
             }
@@ -269,6 +332,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
             else
             {
+                LobbyInfo->FreeTrial = false;
                 LobbyInfo->CurrentTitleScreenType = TitleScreenLogoOption switch
                 {
                     TitleScreenLogo.ARealmReborn => TitleScreenExpansion.ARealmReborn,
@@ -279,20 +343,41 @@ namespace TitleEdit.PluginServices.Lobby
                     TitleScreenLogo.Dawntrail => TitleScreenExpansion.Dawntrail,
                     _ => LobbyInfo->CurrentTitleScreenType
                 };
-                if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Stormblood)
+                if (!LobbyInfo->CurrentTitleScreenType.IsInAvailableExpansion())
                 {
-                    shouldAdvanceTitleLogoAnimation = true;
-                    advanceTitleLogoAnimationDuration = 1.2f;
+                    Services.Log.Warning($"[PickTitleLogoDetour] Tried to load missing {LobbyInfo->CurrentTitleScreenType.ToText()} logo");
+                    Services.NotificationManager.AddNotification(new()
+                    {
+                        Content = $"Tried to load missing {LobbyInfo->CurrentTitleScreenType.ToText()} logo, adjust your settings or download the full game",
+                        Title = "Missing files",
+                        Type = NotificationType.Error,
+                        Minimized = false
+                    });
+                    LobbyInfo->CurrentTitleScreenType = TitleScreenExpansion.ARealmReborn;
                 }
-                else if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Endwalker)
+                // Advance and handle animations if it doesn't match the TitleScreenOverride
+                // Make an exception for dawntrial because we hide it until it animates and it won't animate by itself if the game is past that point in the cutscene (only relevant when flipping through options)
+                if (titleScreenLocationModel.TitleScreenOverride != LobbyInfo->CurrentTitleScreenType || titleScreenLocationModel.TitleScreenOverride == TitleScreenExpansion.Dawntrail)
                 {
-                    shouldAdvanceTitleLogoAnimation = true;
-                    advanceTitleLogoAnimationDuration = 9.8f;
+                    if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Stormblood)
+                    {
+                        shouldAdvanceTitleLogoAnimation = true;
+                        advanceTitleLogoAnimationDuration = 1.2f;
+                    }
+                    else if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Endwalker)
+                    {
+                        shouldAdvanceTitleLogoAnimation = true;
+                        advanceTitleLogoAnimationDuration = 9.8f;
+                    }
+                    else if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Dawntrail)
+                    {
+                        shouldAnimateDawntrailLogo = true;
+                    }
                 }
-                else if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Dawntrail)
-                {
-                    shouldAnimateDawntrailLogo = true;
-                }
+            }
+            if (titleScreenLocationModel.TitleScreenOverride == TitleScreenExpansion.Dawntrail && !cutsceneAnimatedTitleLogo)
+            {
+                shouldHideTitleLogoAddon = true;
             }
 
             Services.Log.Debug($"[PickTitleLogoDetour] set {LobbyInfo->CurrentTitleScreenType} {LobbyInfo->FreeTrial}");

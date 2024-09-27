@@ -38,6 +38,14 @@ namespace TitleEdit.Utility
                 .SingleOrDefault() is not EnumTranslationAttribute attribute ? null : attribute.Tooltip;
         }
 
+        public static bool IsInAvailableExpansion(this Enum value)
+        {
+            return value.GetType()?
+                .GetField(value.ToString())?
+                .GetCustomAttributes(typeof(EnumExpansionAttribute), false)
+                .SingleOrDefault() is not EnumExpansionAttribute attribute ? true : Services.ExpansionService.HasExpansion(attribute.expansion);
+        }
+
         public static float NormalizeAngle(float angle)
         {
             var normalized = angle % (MathF.PI * 2);

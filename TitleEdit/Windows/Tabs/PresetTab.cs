@@ -283,17 +283,19 @@ namespace TitleEdit.Windows.Tabs
 
                 foreach (var entry in Services.BgmService.Bgms)
                 {
-                    if (GuiUtils.FilterSelectable($"{entry.Value.DisplayName}##{Title}##{entry.Key}", entry.Key == bgmId))
+                    if (entry.Value.Available)
                     {
-                        preset.LocationModel.BgmId = entry.Key;
-                        preset.LocationModel.BgmPath = entry.Value.FilePath;
+                        if (GuiUtils.FilterSelectable($"{entry.Value.DisplayName}##{Title}##{entry.Key}", entry.Key == bgmId))
+                        {
+                            preset.LocationModel.BgmId = entry.Key;
+                            preset.LocationModel.BgmPath = entry.Value.FilePath;
 
-                        UpdateLiveEdit();
-                        Services.LobbyService.UpdateLiveEditBgm(liveEditingLocationType);
-                        return true;
+                            UpdateLiveEdit();
+                            Services.LobbyService.UpdateLiveEditBgm(liveEditingLocationType);
+                            return true;
+                        }
+                        DrawBgmTooltip(entry.Value);
                     }
-                    DrawBgmTooltip(entry.Value);
-
                 }
                 return false;
 

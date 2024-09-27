@@ -1,5 +1,5 @@
-using TitleEdit.Data.Camera;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using TitleEdit.Data.Camera;
 
 namespace TitleEdit.PluginServices
 {
@@ -12,11 +12,6 @@ namespace TitleEdit.PluginServices
         public CameraService()
         {
 
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
         }
     }
 }

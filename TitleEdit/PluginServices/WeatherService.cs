@@ -54,10 +54,5 @@ namespace TitleEdit.PluginServices
                 return [];
             }
         }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-        }
     }
 }

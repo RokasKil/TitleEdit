@@ -118,7 +118,7 @@ namespace TitleEdit.Utility
                 using var id = ImRaii.PushId(title); // I only discovered this exists after pretty much all of the UI is done, I should go and redo everything one day
                 foreach (T enumValue in Enum.GetValues(typeof(T)))
                 {
-                    if (filter == null || filter.Invoke(enumValue))
+                    if ((filter == null || filter.Invoke(enumValue)) && enumValue.IsInAvailableExpansion())
                     {
                         if (ImGui.Selectable(enumValue.ToText(), value.Equals(enumValue)))
                         {

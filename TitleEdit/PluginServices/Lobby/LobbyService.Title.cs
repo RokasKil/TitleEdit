@@ -1,3 +1,4 @@
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.System.Scheduler;
 using System;
@@ -28,7 +29,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Have we loaded something yet, should we modify camera and other stuff
         private bool titleScreenLoaded = false;
 
-        // Called to check if we need to modify anything, if TitleScreenOverride is set we let the game handle things
+        // Called to check if we need to modify game level, if TitleScreenOverride is set we let the game handle things
         private bool ShouldModifyTitleScreen => titleScreenLoaded && titleScreenLocationModel.TitleScreenOverride == null;
 
         // Are we reloading title screen
@@ -85,6 +86,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void EnteringTitleScreen()
         {
+            cutsceneAnimatedTitleLogo = false;
             titleScreenLocationModel = GetTitleLocation();
             titleScreenLoaded = true;
             Services.Log.Debug($"[EnteringTitleScreen] Got title screen {titleScreenLocationModel.TerritoryPath}");
@@ -96,7 +98,7 @@ namespace TitleEdit.PluginServices.Lobby
             else if (LobbyInfo->CurrentTitleScreenType == TitleScreenExpansion.Dawntrail)
             {
                 overridenTitleScreenType = LobbyInfo->CurrentTitleScreenType;
-                LobbyInfo->CurrentTitleScreenType = TitleScreenExpansion.Endwalker;
+                LobbyInfo->CurrentTitleScreenType = TitleScreenExpansion.ARealmReborn;
             }
         }
 
@@ -121,6 +123,18 @@ namespace TitleEdit.PluginServices.Lobby
                             TitleScreenExpansion.Dawntrail => TitleScreenMovie.Dawntrail,
                             _ => TitleScreenMovie.ARealmReborn
                         };
+                        if (!LobbyInfo->CurrentTitleScreenMovieType.IsInAvailableExpansion())
+                        {
+                            Services.Log.Warning($"[LeavingTitleScreen] Tried to load missing {LobbyInfo->CurrentTitleScreenMovieType.ToText()} movie");
+                            Services.NotificationManager.AddNotification(new()
+                            {
+                                Content = $"Tried to load missing {LobbyInfo->CurrentTitleScreenMovieType.ToText()} movie, adjust your settings or download the full game",
+                                Title = "Missing files",
+                                Type = NotificationType.Error,
+                                Minimized = false
+                            });
+                            LobbyInfo->CurrentTitleScreenMovieType = TitleScreenMovie.ARealmReborn;
+                        }
                         Services.Log.Debug($"[LeavingTitleScreen] set current movie to {LobbyInfo->CurrentTitleScreenMovieType}");
                     }
                 }

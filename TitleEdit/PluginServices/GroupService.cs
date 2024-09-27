@@ -179,10 +179,5 @@ namespace TitleEdit.PluginServices
         {
             groups.Add(group.FileName, group);
         }
-        public override void Dispose()
-        {
-            base.Dispose();
-        }
-
     }
 }

@@ -339,13 +339,20 @@ namespace TitleEdit.PluginServices
             {
                 throw new($"Location Version is not valid {LocationModel.CurrentVersion}");
             }
-            if (!Services.DataManager.FileExists($"bg/{locationModel.TerritoryPath}.lvb"))
+            if (locationModel.TitleScreenOverride == null)
             {
-                throw new("Game scene file not found");
+                if (!Services.DataManager.FileExists($"bg/{locationModel.TerritoryPath}.lvb"))
+                {
+                    throw new($"Game scene file '{locationModel.TerritoryPath}' not found");
+                }
+                if (!locationModel.BgmPath.IsNullOrEmpty() && !Services.DataManager.FileExists(locationModel.BgmPath))
+                {
+                    throw new($"BGM file '{locationModel.BgmPath}' not found");
+                }
             }
-            if (!locationModel.BgmPath.IsNullOrEmpty() && !Services.DataManager.FileExists(locationModel.BgmPath))
+            else if (!locationModel.TitleScreenOverride.IsInAvailableExpansion())
             {
-                throw new("BGM file not found");
+                throw new($"Expansion '{locationModel.TitleScreenOverride}' is not available");
             }
         }
 

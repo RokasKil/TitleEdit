@@ -237,11 +237,5 @@ namespace TitleEdit.PluginServices.Preset
                 _ => throw new() // should never hit
             };
         }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-        }
-
     }
 }

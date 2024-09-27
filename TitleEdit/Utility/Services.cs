@@ -41,11 +41,12 @@ namespace TitleEdit.Utility
         public static MigrationService MigrationService { get; set; } = null!;
         public static CameraService CameraService { get; set; } = null!;
         public static GroupService GroupService { get; set; } = null!;
+        public static ExpansionService ExpansionService { get; set; } = null!;
         public static Plugin Plugin { get; set; } = null!;
 
         private static List<AbstractService> ServiceList = [];
 
-        private static bool disposed = false;
+        private static bool Disposed = false;
 
         public static void ConstructServices(IDalamudPluginInterface pluginInterface, Plugin plugin)
         {
@@ -66,6 +67,7 @@ namespace TitleEdit.Utility
                 ServiceList.Add(MigrationService = new());
                 ServiceList.Add(CameraService = new());
                 ServiceList.Add(GroupService = new());
+                ServiceList.Add(ExpansionService = new());
             }
             catch
             {
@@ -103,11 +105,11 @@ namespace TitleEdit.Utility
 
         public static void Dispose()
         {
-            if (disposed)
+            if (Disposed)
             {
                 return;
             }
-            disposed = true;
+            Disposed = true;
             ServiceList.ForEach(service => service.Dispose());
         }
     }

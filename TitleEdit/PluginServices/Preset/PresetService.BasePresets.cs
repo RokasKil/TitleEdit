@@ -1,6 +1,8 @@
+using System;
 using System.Numerics;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
+using TitleEdit.Utility;
 
 namespace TitleEdit.PluginServices.Preset
 {
@@ -28,7 +30,9 @@ namespace TitleEdit.PluginServices.Preset
                 {
                     LocationType = LocationType.TitleScreen,
                     TitleScreenOverride = TitleScreenExpansion.ARealmReborn,
-                    ToastNotificationText = "Now displaying: A Realm Reborn"
+                    ToastNotificationText = "Now displaying: A Realm Reborn",
+                    TitleScreenLogo = TitleScreenLogo.ARealmReborn,
+                    UiColor = UiColors.ARealmReborn
                 }
             });
             AddPreset(new()
@@ -39,7 +43,9 @@ namespace TitleEdit.PluginServices.Preset
                 LocationModel = new()
                 {
                     LocationType = LocationType.TitleScreen,
-                    TitleScreenOverride = TitleScreenExpansion.Heavensward
+                    TitleScreenOverride = TitleScreenExpansion.Heavensward,
+                    TitleScreenLogo = TitleScreenLogo.Heavensward,
+                    UiColor = UiColors.Heavensward
                 }
             });
             AddPreset(new()
@@ -50,7 +56,9 @@ namespace TitleEdit.PluginServices.Preset
                 LocationModel = new()
                 {
                     LocationType = LocationType.TitleScreen,
-                    TitleScreenOverride = TitleScreenExpansion.Stormblood
+                    TitleScreenOverride = TitleScreenExpansion.Stormblood,
+                    TitleScreenLogo = TitleScreenLogo.Stormblood,
+                    UiColor = UiColors.Stormblood
                 }
             });
             AddPreset(new()
@@ -61,7 +69,9 @@ namespace TitleEdit.PluginServices.Preset
                 LocationModel = new()
                 {
                     LocationType = LocationType.TitleScreen,
-                    TitleScreenOverride = TitleScreenExpansion.Shadowbringers
+                    TitleScreenOverride = TitleScreenExpansion.Shadowbringers,
+                    TitleScreenLogo = TitleScreenLogo.Shadowbringers,
+                    UiColor = UiColors.Shadowbringers
                 }
             });
             AddPreset(new()
@@ -72,7 +82,9 @@ namespace TitleEdit.PluginServices.Preset
                 LocationModel = new()
                 {
                     LocationType = LocationType.TitleScreen,
-                    TitleScreenOverride = TitleScreenExpansion.Endwalker
+                    TitleScreenOverride = TitleScreenExpansion.Endwalker,
+                    TitleScreenLogo = TitleScreenLogo.Endwalker,
+                    UiColor = UiColors.Endwalker
                 }
             });
             AddPreset(new()
@@ -83,10 +95,13 @@ namespace TitleEdit.PluginServices.Preset
                 LocationModel = new()
                 {
                     LocationType = LocationType.TitleScreen,
-                    TitleScreenOverride = TitleScreenExpansion.Dawntrail
+                    TitleScreenOverride = TitleScreenExpansion.Dawntrail,
+                    TitleScreenLogo = TitleScreenLogo.Dawntrail,
+                    UiColor = UiColors.Dawntrail
                 }
             });
         }
+
         private void AddTitleScreenPresets()
         {
 
@@ -732,6 +747,15 @@ namespace TitleEdit.PluginServices.Preset
 
         private void AddPreset(PresetModel preset)
         {
+            try
+            {
+                Validate(preset);
+            }
+            catch (Exception e)
+            {
+                Services.Log.Warning($"Failed to base preset '{preset.FileName}' with error: {e.Message}");
+                return;
+            }
             presets.Add(preset.FileName, preset);
         }
     }
