@@ -10,7 +10,7 @@ namespace TitleEdit.Data.Persistence
     // Could seperate these into title screen and character select but I kinda want to allow users to easily convert between the two maybe (also am lazy)
     public struct LocationModel
     {
-        public readonly static int CurrentVersion = 4;
+        public readonly static int CurrentVersion = 5;
 
         public int Version = CurrentVersion;
         public LocationType LocationType = LocationType.TitleScreen;
@@ -43,6 +43,7 @@ namespace TitleEdit.Data.Persistence
         // Used to force the title screen expansion to specific one and let the game handle the scene loading natively
         public TitleScreenExpansion? TitleScreenOverride = null;
         public UiColorModel UiColor = UiColors.Dawntrail;
+        public TitleScreenMovie TitleScreenMovie = TitleScreenMovie.Unspecified;
 
         // Only set when used with a preset
         [NonSerialized]

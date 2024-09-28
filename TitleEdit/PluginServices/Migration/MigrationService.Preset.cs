@@ -37,6 +37,9 @@ namespace TitleEdit.PluginServices.Migration
                     goto case 3;
                 case 3:
                     preset = MigrateV3(preset.Value);
+                    goto case 4;
+                case 4:
+                    preset = MigrateV4(preset.Value);
                     break;
                 default:
                     break;
@@ -129,6 +132,14 @@ namespace TitleEdit.PluginServices.Migration
                 preset.LocationModel.Mount = new() { LastLocationMount = true };
             }
 #pragma warning restore CS0612 // Type or member is obsolete
+            return preset;
+        }
+
+        private PresetModel MigrateV4(PresetModel preset)
+        {
+            Services.Log.Info($"Migrating preset to v5 {preset.Name}");
+            preset.Version = 5;
+            preset.LocationModel = MigrateV4(preset.LocationModel);
             return preset;
         }
 

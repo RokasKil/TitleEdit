@@ -32,7 +32,8 @@ namespace TitleEdit.PluginServices.Preset
                     TitleScreenOverride = TitleScreenExpansion.ARealmReborn,
                     ToastNotificationText = "Now displaying: A Realm Reborn",
                     TitleScreenLogo = TitleScreenLogo.ARealmReborn,
-                    UiColor = UiColors.ARealmReborn
+                    UiColor = UiColors.ARealmReborn,
+                    TitleScreenMovie = TitleScreenMovie.ARealmReborn
                 }
             });
             AddPreset(new()
@@ -45,7 +46,8 @@ namespace TitleEdit.PluginServices.Preset
                     LocationType = LocationType.TitleScreen,
                     TitleScreenOverride = TitleScreenExpansion.Heavensward,
                     TitleScreenLogo = TitleScreenLogo.Heavensward,
-                    UiColor = UiColors.Heavensward
+                    UiColor = UiColors.Heavensward,
+                    TitleScreenMovie = TitleScreenMovie.Heavensward
                 }
             });
             AddPreset(new()
@@ -58,7 +60,8 @@ namespace TitleEdit.PluginServices.Preset
                     LocationType = LocationType.TitleScreen,
                     TitleScreenOverride = TitleScreenExpansion.Stormblood,
                     TitleScreenLogo = TitleScreenLogo.Stormblood,
-                    UiColor = UiColors.Stormblood
+                    UiColor = UiColors.Stormblood,
+                    TitleScreenMovie = TitleScreenMovie.Stormblood
                 }
             });
             AddPreset(new()
@@ -71,7 +74,8 @@ namespace TitleEdit.PluginServices.Preset
                     LocationType = LocationType.TitleScreen,
                     TitleScreenOverride = TitleScreenExpansion.Shadowbringers,
                     TitleScreenLogo = TitleScreenLogo.Shadowbringers,
-                    UiColor = UiColors.Shadowbringers
+                    UiColor = UiColors.Shadowbringers,
+                    TitleScreenMovie = TitleScreenMovie.Shadowbringers
                 }
             });
             AddPreset(new()
@@ -84,7 +88,8 @@ namespace TitleEdit.PluginServices.Preset
                     LocationType = LocationType.TitleScreen,
                     TitleScreenOverride = TitleScreenExpansion.Endwalker,
                     TitleScreenLogo = TitleScreenLogo.Endwalker,
-                    UiColor = UiColors.Endwalker
+                    UiColor = UiColors.Endwalker,
+                    TitleScreenMovie = TitleScreenMovie.Endwalker
                 }
             });
             AddPreset(new()
@@ -97,7 +102,8 @@ namespace TitleEdit.PluginServices.Preset
                     LocationType = LocationType.TitleScreen,
                     TitleScreenOverride = TitleScreenExpansion.Dawntrail,
                     TitleScreenLogo = TitleScreenLogo.Dawntrail,
-                    UiColor = UiColors.Dawntrail
+                    UiColor = UiColors.Dawntrail,
+                    TitleScreenMovie = TitleScreenMovie.Dawntrail
                 }
             });
         }

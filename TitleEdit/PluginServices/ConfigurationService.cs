@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 
@@ -52,6 +53,10 @@ public class ConfigurationService
     public bool UseCharacterNameAsAuthor = true;
     public string DefaultAuthorName = "";
     public bool HideCharacterSelectNames = false;
+    public TitleScreenMovie TitleScreenMovie = TitleScreenMovie.Dawntrail;
+    public bool OverridePresetTitleScreenMovie = false;
+    public string? LastExportLocation;
+    public string? LastImportLocation;
 
     [NonSerialized]
     private string filePath = null!;

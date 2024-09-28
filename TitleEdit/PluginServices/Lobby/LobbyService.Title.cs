@@ -60,6 +60,21 @@ namespace TitleEdit.PluginServices.Lobby
             set => Marshal.WriteInt32(titleCutsceneStructAddress, 0x98, value ? 1 : 0);
         }
 
+        private TitleScreenMovie TitleScreenMovieOption
+        {
+            get
+            {
+                if (titleScreenLocationModel.TitleScreenMovie == TitleScreenMovie.Unspecified || (Services.ConfigurationService.OverridePresetTitleScreenMovie && !liveEditTitleScreen))
+                {
+                    return Services.ConfigurationService.TitleScreenMovie;
+                }
+                else
+                {
+                    return titleScreenLocationModel.TitleScreenMovie;
+                }
+            }
+        }
+
         private void ScanTitleAddressess()
         {
             //Some struct holding information about title screen cutscene that plays on DT title
@@ -111,34 +126,25 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     Services.Log.Debug($"[LeavingTitleScreen] restoring {overridenTitleScreenType}, {AgentLobby->IdleTime}");
                     LobbyInfo->CurrentTitleScreenType = overridenTitleScreenType.Value;
-                    if (idled)
-                    {
-                        LobbyInfo->CurrentTitleScreenMovieType = LobbyInfo->CurrentTitleScreenType switch
-                        {
-                            TitleScreenExpansion.ARealmReborn => TitleScreenMovie.ARealmReborn,
-                            TitleScreenExpansion.Heavensward => TitleScreenMovie.Heavensward,
-                            TitleScreenExpansion.Stormblood => TitleScreenMovie.Stormblood,
-                            TitleScreenExpansion.Shadowbringers => TitleScreenMovie.Shadowbringers,
-                            TitleScreenExpansion.Endwalker => TitleScreenMovie.Endwalker,
-                            TitleScreenExpansion.Dawntrail => TitleScreenMovie.Dawntrail,
-                            _ => TitleScreenMovie.ARealmReborn
-                        };
-                        if (!LobbyInfo->CurrentTitleScreenMovieType.IsInAvailableExpansion())
-                        {
-                            Services.Log.Warning($"[LeavingTitleScreen] Tried to load missing {LobbyInfo->CurrentTitleScreenMovieType.ToText()} movie");
-                            Services.NotificationManager.AddNotification(new()
-                            {
-                                Content = $"Tried to load missing {LobbyInfo->CurrentTitleScreenMovieType.ToText()} movie, adjust your settings or download the full game",
-                                Title = "Missing files",
-                                Type = NotificationType.Error,
-                                Minimized = false
-                            });
-                            LobbyInfo->CurrentTitleScreenMovieType = TitleScreenMovie.ARealmReborn;
-                        }
-                        Services.Log.Debug($"[LeavingTitleScreen] set current movie to {LobbyInfo->CurrentTitleScreenMovieType}");
-                    }
                 }
                 overridenTitleScreenType = null;
+            }
+            if (idled)
+            {
+                LobbyInfo->CurrentTitleScreenMovieType = TitleScreenMovieOption;
+                if (!LobbyInfo->CurrentTitleScreenMovieType.IsInAvailableExpansion())
+                {
+                    Services.Log.Warning($"[LeavingTitleScreen] Tried to load missing {LobbyInfo->CurrentTitleScreenMovieType.ToText()} movie");
+                    Services.NotificationManager.AddNotification(new()
+                    {
+                        Content = $"Tried to load missing {LobbyInfo->CurrentTitleScreenMovieType.ToText()} movie, adjust your settings or get the full game",
+                        Title = "Missing files",
+                        Type = NotificationType.Error,
+                        Minimized = false
+                    });
+                    LobbyInfo->CurrentTitleScreenMovieType = TitleScreenMovie.ARealmReborn;
+                }
+                Services.Log.Debug($"[LeavingTitleScreen] set current movie to {LobbyInfo->CurrentTitleScreenMovieType}");
             }
         }
 

@@ -6,6 +6,7 @@ using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using TitleEdit.Data.BGM;
@@ -146,7 +147,7 @@ namespace TitleEdit.Windows.Tabs
             ImGui.SameLine();
             if (ImGui.Button($"Export to file##{Title}"))
             {
-                fileDialogManager.SaveFileDialog($"Export preset##{Title}", ".json", preset.FileName, ".json", ExportPreset, null, true);
+                fileDialogManager.SaveFileDialog($"Export preset##{Title}", ".json", preset.FileName, ".json", ExportPreset, Services.ConfigurationService.LastExportLocation, true);
             }
             ImGui.EndDisabled();
             if (ImGui.Button($"Import from clipboard##{Title}"))
@@ -164,7 +165,7 @@ namespace TitleEdit.Windows.Tabs
             ImGui.SameLine();
             if (ImGui.Button($"Import from file##{Title}"))
             {
-                fileDialogManager.OpenFileDialog($"Import preset##{Title}", ".json", ImportPreset, 1, null, true);
+                fileDialogManager.OpenFileDialog($"Import preset##{Title}", ".json", ImportPreset, 1, Services.ConfigurationService.LastImportLocation, true);
             }
         }
 
@@ -543,6 +544,11 @@ namespace TitleEdit.Windows.Tabs
                         Services.LobbyService.RecolorTitleScreenUi();
                     }
                 }
+                if (GuiUtils.Combo($"Title screen movie##{Title}", ref preset.LocationModel.TitleScreenMovie))
+                {
+                    UpdateLiveEdit();
+                }
+                ImGuiComponents.HelpMarker("Defines the cinematic that plays when idling in title screen for 60 seconds");
 
             }
 
@@ -670,7 +676,8 @@ namespace TitleEdit.Windows.Tabs
                 {
                     SetupError(ex);
                 }
-
+                Services.ConfigurationService.LastExportLocation = Path.GetDirectoryName(path);
+                Services.ConfigurationService.Save();
             }
         }
         public void ImportPreset(bool confirmed, List<string> path)
@@ -686,7 +693,8 @@ namespace TitleEdit.Windows.Tabs
                 {
                     SetupError(ex);
                 }
-
+                Services.ConfigurationService.LastImportLocation = Path.GetDirectoryName(path[0]);
+                Services.ConfigurationService.Save();
             }
         }
 

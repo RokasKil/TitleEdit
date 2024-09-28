@@ -54,7 +54,7 @@ namespace TitleEdit.PluginServices.Lobby
         private bool ShouldModifyTitleScreenUiColors => titleScreenLoaded && (titleScreenLocationModel.TitleScreenOverride == null || Services.ConfigurationService.OverridePresetTitleScreenColor);
 
         //These might be inneficient but we don't call them often so maybe it's fine or maybe it's smart and caches but I doubt
-        private UiColorModel TitleScreenColors
+        private UiColorModel TitleScreenColorsOption
         {
             get
             {
@@ -285,16 +285,16 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     if (node->Type == NodeType.Text)
                     {
-                        Services.Log.Debug($"[RecolorablePostSetup] Recoloring text {(IntPtr)node:X} to {TitleScreenColors.Color} {TitleScreenColors.EdgeColor}");
+                        Services.Log.Debug($"[RecolorablePostSetup] Recoloring text {(IntPtr)node:X} to {TitleScreenColorsOption.Color} {TitleScreenColorsOption.EdgeColor}");
                         var textNode = (AtkTextNode*)node;
-                        textNode->TextColor = TitleScreenColors.Color.ToByteColor();
-                        textNode->EdgeColor = TitleScreenColors.EdgeColor.ToByteColor();
+                        textNode->TextColor = TitleScreenColorsOption.Color.ToByteColor();
+                        textNode->EdgeColor = TitleScreenColorsOption.EdgeColor.ToByteColor();
                     }
                     else if (node->Type == NodeType.NineGrid)
                     {
                         var nineGridNode = (AtkNineGridNode*)node;
-                        Services.Log.Debug($"[RecolorablePostSetup] Recoloring ninegrid {(IntPtr)node:X} to {TitleScreenColors.HighlightColor}");
-                        var color = TitleScreenColors.HighlightColor - UiColors.HighlightColorApproximation;
+                        Services.Log.Debug($"[RecolorablePostSetup] Recoloring ninegrid {(IntPtr)node:X} to {TitleScreenColorsOption.HighlightColor}");
+                        var color = TitleScreenColorsOption.HighlightColor - UiColors.HighlightColorApproximation;
                         nineGridNode->AddRed = nineGridNode->AddRed_2 = (short)(color.X * 255);
                         nineGridNode->AddGreen = nineGridNode->AddGreen_2 = (short)(color.Y * 255);
                         nineGridNode->AddBlue = nineGridNode->AddBlue_2 = (short)(color.Z * 255);
@@ -348,7 +348,7 @@ namespace TitleEdit.PluginServices.Lobby
                     Services.Log.Warning($"[PickTitleLogoDetour] Tried to load missing {LobbyInfo->CurrentTitleScreenType.ToText()} logo");
                     Services.NotificationManager.AddNotification(new()
                     {
-                        Content = $"Tried to load missing {LobbyInfo->CurrentTitleScreenType.ToText()} logo, adjust your settings or download the full game",
+                        Content = $"Tried to load missing {LobbyInfo->CurrentTitleScreenType.ToText()} logo, adjust your settings or get the full game",
                         Title = "Missing files",
                         Type = NotificationType.Error,
                         Minimized = false

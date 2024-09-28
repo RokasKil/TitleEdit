@@ -47,6 +47,15 @@ namespace TitleEdit.Windows.Tabs
                 Services.LobbyService.RecolorTitleScreenUi();
             }
 
+            if (GuiUtils.Combo($"Default title screen movie##{Title}", ref Services.ConfigurationService.TitleScreenMovie, filter: (entry) => entry != TitleScreenMovie.Unspecified))
+            {
+                Services.ConfigurationService.Save();
+            }
+            ImGuiComponents.HelpMarker("Defines the cinematic that plays when idling in title screen for 60 seconds");
+            if (ImGui.Checkbox($"Override preset title screen movie setting##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenMovie))
+            {
+                Services.ConfigurationService.Save();
+            }
             ImGui.Separator();
             ImGui.TextUnformatted("Character select screen");
             DrawSelectPresetCombo($"Nothing selected setting##{Title}", Services.ConfigurationService.NoCharacterDisplayType, (result) =>

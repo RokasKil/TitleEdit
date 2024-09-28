@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System.Linq;
+using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 
@@ -24,6 +25,9 @@ namespace TitleEdit.PluginServices.Migration
                     goto case 3;
                 case 3:
                     location = MigrateV3(location);
+                    goto case 4;
+                case 4:
+                    location = MigrateV4(location);
                     break;
                 default:
                     changed = false;
@@ -58,6 +62,14 @@ namespace TitleEdit.PluginServices.Migration
             location.VfxTriggerIndexes ??= [];
             location.SaveFestivals = location.Festivals.Length == 4 && location.Festivals.Where(festival => festival != 0).Any();
             location.SaveLayout = location.UseVfx = (location.Active.Count > 0 || location.Inactive.Count > 0);
+            return location;
+        }
+
+        private LocationModel MigrateV4(LocationModel location)
+        {
+            Services.Log.Info($"Migrating location to v5");
+            location.Version = 5;
+            location.TitleScreenMovie = TitleScreenMovie.Unspecified;
             return location;
         }
     }

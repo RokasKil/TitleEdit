@@ -4,6 +4,8 @@ namespace TitleEdit.Data.Lobby
 {
     public enum TitleScreenMovie : int
     {
+        [EnumTranslation("Unspecified")]
+        Unspecified = -1,
         [EnumExpansion(TitleScreenExpansion.ARealmReborn)]
         [EnumTranslation("A Realm Reborn")]
         ARealmReborn = 1,
