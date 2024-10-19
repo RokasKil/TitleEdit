@@ -135,7 +135,6 @@ namespace TitleEdit.PluginServices.Lobby
             Services.CharactersService.SaveCharacters();
 
             *CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter = GetCurrentHoveredCharacter();
-
             Services.Log.Debug($"Set current char to {(nint)(*CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter):X}");
             UpdateCharacter(true);
             RotateCharacter();

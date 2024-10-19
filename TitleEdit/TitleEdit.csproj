@@ -2,7 +2,7 @@
 <Project Sdk="Dalamud.NET.Sdk/10.0.0">
 
     <PropertyGroup>
-        <Version>3.0.2.1</Version>
+        <Version>3.0.2.2</Version>
         <PackageProjectUrl>https://github.com/RokasKil/TitleEdit</PackageProjectUrl>
     </PropertyGroup>
 
@@ -18,7 +18,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
         <Reference Include="InteropGenerator.Runtime" Private="false" />
     </ItemGroup>
     <ItemGroup>

@@ -576,8 +576,8 @@ namespace TitleEdit.PluginServices.Preset
             // Character select
             AddPreset(new()
             {
-                Name = "Atherial Sea",
-                Tooltip = "Vanilla Atherial Sea character select screen",
+                Name = "Aetherial Sea",
+                Tooltip = "Vanilla Aetherial Sea character select screen",
                 FileName = "?/AetherialSea.json",
                 LocationModel = new()
                 {
@@ -588,7 +588,7 @@ namespace TitleEdit.PluginServices.Preset
                     WeatherId = 2,
                     TimeOffset = 0,
                     BgmPath = "music/ffxiv/BGM_System_Chara.scd",
-                    ToastNotificationText = "Now displaying: Atherial Sea"
+                    ToastNotificationText = "Now displaying: Aetherial Sea"
                 }
             });
         }

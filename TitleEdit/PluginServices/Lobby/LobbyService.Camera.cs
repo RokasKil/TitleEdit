@@ -1,4 +1,5 @@
 using Dalamud.Hooking;
+using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Common.Math;
@@ -12,6 +13,9 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
+        [Signature("E8 ?? ?? ?? ?? 0F B6 15 ?? ?? ?? ?? 48 8D 0C")]
+        private readonly delegate* unmanaged<void> lobbyCameraCharacterSelectedNative = null!;
+
         private delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void CalculateCameraCurveLowAndHighPointDelegate(LobbyCameraExpanded* self, float value);
         private delegate void LobbySceneLoadedDelegate(ulong p1, int p2, float p3, ushort p4, uint p5, uint p6, uint p7);
@@ -68,7 +72,7 @@ namespace TitleEdit.PluginServices.Lobby
 
             // Called when the game needs to set LookAt of the lobbyCamera but we override that every frame so it's not needed for that purpose
             // We use this to additionaly override camera position cause it will set stuff to 0, 0, 0 and if the title screen and character select use the same level
-            // this ight cause the loud sound bug
+            // this might cause the loud sound bug
             lobbyCameraFixOnHook = Hook<LobbyCameraFixOnDelegate>("E8 ?? ?? ?? ?? 89 9C 24 ?? ?? ?? ?? E8", LobbyCameraFixOnDetour);
 
             // Called in character select to decide the Y coordinate of the lookAt vector based on the current distance and 3 points
@@ -122,6 +126,14 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 lookAt = currentChar->GameObject.Position;
             }
+            // If drawobject is already made but curve is not enabled that means the game skipped telling camera that we have a character selected
+            // because of SetCharSelectCurrentWorldDetour setting the character pointer directly, should figure out how to do this properly,
+            // but it's an inlined hell and I don't really want to
+            if (!LobbyCamera->CameraCurveEnabled && drawObject != null && drawObject->DrawObject.IsVisible)
+            {
+                lobbyCameraCharacterSelectedNative();
+            }
+            //Services.Log.Verbose($"[CameraFollowCharacter] {currentChar->GameObject.IsReadyToDraw()} {currentChar->GameObject.RenderFlags} {(drawObject != null ? drawObject->DrawObject.IsVisible : null)}");
             lookAt.Y = LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(lookAt);
             lastLowPoint = LobbyCamera->LowPoint.Value;
@@ -134,9 +146,9 @@ namespace TitleEdit.PluginServices.Lobby
         // Sets default LookAt and Curve values for currently loaded chracter select location
         private void ResetLastCameraLookAtValues()
         {
-            lastLowPoint = 1.4350828f + characterSelectLocationModel.Position.Y;
-            lastMidPoint = 0.85870504f + characterSelectLocationModel.Position.Y;
-            lastHighPoint = 0.6742642f + characterSelectLocationModel.Position.Y;
+            lastLowPoint = LookAtCurveMagicNumbers.X + characterSelectLocationModel.Position.Y;
+            lastMidPoint = LookAtCurveMagicNumbers.Y + characterSelectLocationModel.Position.Y;
+            lastHighPoint = LookAtCurveMagicNumbers.Z + characterSelectLocationModel.Position.Y;
             lastLookAt = characterSelectLocationModel.Position;
         }
 
@@ -165,8 +177,13 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void ResetCameraLookAtOnExitCharacterSelect()
         {
+            Services.Log.Debug($"[ResetCameraLookAtOnExitCharacterSelect]");
             ResetCameraRecordedRotation();
+            LobbyCamera->LowPoint.Value = LookAtCurveMagicNumbers.X;
+            LobbyCamera->MidPoint.Value = LookAtCurveMagicNumbers.Y;
+            LobbyCamera->HighPoint.Value = LookAtCurveMagicNumbers.Z;
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = Vector3.Zero;
+            LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.Vector_1 = new(0, 1, 0);
         }
 
         // Used to reset LookAt vector's Y value in character select so the camera doesn't slide in vertically from previous position

@@ -5,6 +5,7 @@ using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System;
+using System.Numerics;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
@@ -14,6 +15,9 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService : AbstractService
     {
+        // Magic numbers that we use for default look at curve values when character is not available or need to reset it
+        private readonly static Vector3 LookAtCurveMagicNumbers = new(1.4350828f, 0.85870504f, 0.6742642f);
+
         public AgentLobby* AgentLobby => FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLobby.Instance();
 
         private delegate int CreateSceneDelegate(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7);
@@ -153,9 +157,9 @@ namespace TitleEdit.PluginServices.Lobby
         // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
         private int CreateSceneDetour(string territoryPath, uint territoryId, nint p3, uint layerFilterKey, nint p5, int p6, uint contentFinderConditionId)
         {
+            var lobbyType = loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType;
             try
             {
-                var lobbyType = loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType;
                 Services.Log.Debug($"Loading Scene {lobbyType}");
                 Services.Log.Debug($"[CreateSceneDetour] {territoryPath} {territoryId} {p3} {layerFilterKey} {p5:X} {p6} {contentFinderConditionId}");
                 if (lobbyType == GameLobbyType.CharaSelect)
@@ -183,7 +187,6 @@ namespace TitleEdit.PluginServices.Lobby
                     var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
                     return returnVal;
                 }
-
                 if (lastSceneType == GameLobbyType.CharaSelect)
                 {
                     // always reset camera when leaving character select
@@ -202,7 +205,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
             finally
             {
-                lastSceneType = lastLobbyUpdateMapId;
+                lastSceneType = lobbyType;
                 loadingLobbyType = GameLobbyType.None;
             }
 
@@ -321,6 +324,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 ExecuteTitleScreenReload();
             }
+            ResetCameraLookAtOnExitCharacterSelect();
         }
     }
 }
