@@ -273,7 +273,7 @@ namespace TitleEdit.PluginServices.Lobby
                     {
                         RotateCharacter();
                     }
-                    Services.Log.Debug($"Setting character postion {(nint)CurrentCharacter:X}");
+                    Services.Log.Debug($"Setting character position {(nint)CurrentCharacter:X}");
                     CurrentCharacter->GameObject.SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
 
                     ((CharacterExpanded*)CurrentCharacter)->MovementMode = characterSelectLocationModel.MovementMode;
@@ -292,7 +292,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Setup mount for character by calling native method
         private void SetupMount(Character* character, ulong contentId, LocationModel location)
         {
-            var mount = location.Mount.LastLocationMount ? Services.LocationService.GetLocationModel(0).Mount : location.Mount;
+            var mount = location.Mount.LastLocationMount ? Services.LocationService.GetLocationModel(contentId).Mount : location.Mount;
             character->Mount.CreateAndSetupMount(
                 (short)mount.MountId,
                 mount.BuddyModelTop,

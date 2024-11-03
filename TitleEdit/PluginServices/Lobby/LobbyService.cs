@@ -21,8 +21,11 @@ namespace TitleEdit.PluginServices.Lobby
         public AgentLobby* AgentLobby => FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLobby.Instance();
 
         private delegate int CreateSceneDelegate(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7);
+
         private delegate byte LobbyUpdateDelegate(GameLobbyType mapId, int time);
+
         private delegate void LoadLobbyScene(GameLobbyType mapId);
+
         private delegate void UpdateLobbyUiStage(AgentLobby* agentLobby);
 
         private Hook<CreateSceneDelegate> createSceneHook = null!;
@@ -44,6 +47,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         // last and current LobbyUiStage, enum made based on my observation
         private LobbyUiStage lastLobbyUiStage = 0;
+
         public LobbyUiStage LobbyUiStage
         {
             get => (LobbyUiStage)AgentLobby->LobbyUIStage;
@@ -59,6 +63,8 @@ namespace TitleEdit.PluginServices.Lobby
 
         // Probably some lobby instance
         public LobbyInfo* LobbyInfo => (LobbyInfo*)lobbyStructAddress;
+
+        private bool initComplete;
 
         public LobbyService()
         {
@@ -105,6 +111,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 characterSelectLocationModel = GetNothingSelectedLocation();
             }
+
             titleScreenLocationModel = GetTitleLocation();
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
@@ -116,8 +123,8 @@ namespace TitleEdit.PluginServices.Lobby
             }
             // LobbyUiStage is CommonBaseStage (1) when splash screen is being shown for some reason so we look at the addon
             else if ((Services.GameGui.GetAddonByName("Logo") != IntPtr.Zero && LobbyUiStage == LobbyUiStage.CommonBaseStage) ||
-                LobbyUiStage == LobbyUiStage.EnteringTitleScreen ||
-                LobbyUiStage == LobbyUiStage.LoadingSplashScreen)
+                     LobbyUiStage == LobbyUiStage.EnteringTitleScreen ||
+                     LobbyUiStage == LobbyUiStage.LoadingSplashScreen)
             {
                 EnteringTitleScreen();
             }
@@ -125,6 +132,8 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 ReloadTitleScreen();
             }
+
+            initComplete = true;
         }
 
         // Called when going from title to char select or reverse
@@ -149,8 +158,8 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 ClearCameraModifications();
                 ClearCharacterSelectGroupCache();
-
             }
+
             TickTitle();
         }
 
@@ -170,11 +179,7 @@ namespace TitleEdit.PluginServices.Lobby
                     layerFilterKey = characterSelectLocationModel.LayoutLayerFilterKey;
                     Services.Log.Debug($"Loading char select screen: {territoryPath}");
                     var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
-                    if ((!characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != characterSelectLocationModel.BgmPath) ||
-                        (characterSelectLocationModel.BgmPath.IsNullOrEmpty() && lastBgmPath != Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel.BgmPath))
-                    {
-                        ResetSongIndex();
-                    }
+                    ResetSongIndex();
                     SetAllCharacterPostions();
                     return returnVal;
                 }
@@ -187,6 +192,7 @@ namespace TitleEdit.PluginServices.Lobby
                     var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
                     return returnVal;
                 }
+
                 if (lastSceneType == GameLobbyType.CharaSelect)
                 {
                     // always reset camera when leaving character select
@@ -199,16 +205,14 @@ namespace TitleEdit.PluginServices.Lobby
                         // Probably because it will already be playing the correct music
                         ForcePlaySongIndex(LobbySong.CharacterSelect);
                     }
-
                 }
+
                 return createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
-            }
-            finally
+            } finally
             {
                 lastSceneType = lobbyType;
                 loadingLobbyType = GameLobbyType.None;
             }
-
         }
 
         // Called every frame to process something in character select and on load for title screen
@@ -229,6 +233,7 @@ namespace TitleEdit.PluginServices.Lobby
                         lastCharacterRotation = 0;
                         characterSelectLocationModel = GetNothingSelectedLocation();
                     }
+
                     RecordCameraRotation();
                     CurrentLobbyMap = GameLobbyType.None;
                     resetCharacterSelectScene = false;
@@ -253,23 +258,27 @@ namespace TitleEdit.PluginServices.Lobby
             if (lastLobbyUiStage != LobbyUiStage)
             {
                 Services.Log.Debug($"LobbyUiStage updated {lastLobbyUiStage} to {LobbyUiStage}, {CurrentLobbyMap}, {lastSceneType}, {loadingLobbyType}");
-                if (LobbyUiStage == LobbyUiStage.EnteringTitleScreen || LobbyUiStage == LobbyUiStage.LoadingSplashScreen)
+                if (LobbyUiStage is LobbyUiStage.EnteringTitleScreen or LobbyUiStage.LoadingSplashScreen)
                 {
                     EnteringTitleScreen();
                 }
-                if (LobbyUiStage == LobbyUiStage.Movie || LobbyUiStage == LobbyUiStage.CharacterSelect)
+
+                if (LobbyUiStage is LobbyUiStage.Movie or LobbyUiStage.CharacterSelect)
                 {
                     LeavingTitleScreen(idling);
                 }
+
                 if (LobbyUiStage == LobbyUiStage.TitleScreen && lastLobbyUiStage == LobbyUiStage.LoadingTitleScreen2 && titleScreenLoaded)
                 {
                     ShowToastNotification(titleScreenLocationModel.ToastNotificationText);
                 }
+
                 if (LobbyUiStage == LobbyUiStage.LoadingTitleScreen2 && shouldReloadTitleScreenOnLoadingStage2)
                 {
                     shouldReloadTitleScreenOnLoadingStage2 = false;
                     ReloadTitleScreen();
                 }
+
                 lastLobbyUiStage = LobbyUiStage;
             }
         }
@@ -290,7 +299,6 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (Services.ConfigurationService.DisplayTitleToast)
             {
-
                 Services.NotificationManager.AddNotification(new()
                 {
                     Content = message,
@@ -298,33 +306,39 @@ namespace TitleEdit.PluginServices.Lobby
                     Title = "Scene loaded",
                     Type = NotificationType.Info
                 });
-
             }
         }
 
         public override void Dispose()
         {
+            DisableHooks();
+            Services.Framework.Update -= Tick;
+            if (initComplete)
+            {
+                // Resetting the character select thingy on unload
+                // If this thing causes any troubles we axe it and tell the users to not do it :)
+                if (CurrentLobbyMap == GameLobbyType.CharaSelect)
+                {
+                    //Techincally should be done from Agent Update but we can't have that here
+                    CurrentLobbyMap = GameLobbyType.None;
+                    ForcePlaySongIndex(LobbySong.CharacterSelect);
+                    ClearCameraModifications();
+                    ResetCharacters();
+                }
+
+                // Doing a scuffed title screen (Ui won't change) to prevent user from getting stuck in infinite loading screen
+                // because of the DT cutscene being unloaded and the plugin restoring selected title screen to dawntrail
+                if (CanReloadTitleScreen)
+                {
+                    ExecuteTitleScreenReload();
+                }
+
+                ResetCameraLookAtOnExitCharacterSelect();
+            }
+
             base.Dispose();
             DisposeTitle();
             DisposeUi();
-            Services.Framework.Update -= Tick;
-            // Resetting the character select thingy on unload
-            // If this thing causes any troubles we axe it and tell the users to not do it :)
-            if (CurrentLobbyMap == GameLobbyType.CharaSelect)
-            {
-                //Techincally should be done from Agent Update but we can't have that here
-                CurrentLobbyMap = GameLobbyType.None;
-                ForcePlaySongIndex(LobbySong.CharacterSelect);
-                ClearCameraModifications();
-                ResetCharacters();
-            }
-            // Doing a scuffed title screen (Ui won't change) to prevent user from getting stuck in infinite loading screen
-            // because of the DT cutscene being unloaded and the plugin restoring selected title screen to dawntrail
-            if (CanReloadTitleScreen)
-            {
-                ExecuteTitleScreenReload();
-            }
-            ResetCameraLookAtOnExitCharacterSelect();
         }
     }
 }
