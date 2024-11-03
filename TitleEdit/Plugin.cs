@@ -34,7 +34,8 @@ public sealed class Plugin : IDalamudPlugin
             Services.MigrationService.MigrateTitleScreenV2Presets();
             Services.MigrationService.MigrateTitleScreenV2Configuration();
         }
-        Services.Framework.RunOnFrameworkThread(Services.InitServices);
+
+        Services.Framework.RunOnFrameworkThread(Services.InitServices).ConfigureAwait(false).GetAwaiter().GetResult();
         // Load menu_icon.png from dll resources
         Services.PluginInterface.UiBuilder.RunWhenUiPrepared(() =>
         {
@@ -45,11 +46,7 @@ public sealed class Plugin : IDalamudPlugin
             if (!imageTask.IsFaulted)
             {
                 logoTexture = imageTask.Result;
-                Services.Framework.RunOnFrameworkThread(() =>
-                {
-                    Services.TitleScreenMenu.AddEntry("Title Edit Menu", logoTexture, ToggleConfigUI);
-                });
-
+                Services.Framework.RunOnFrameworkThread(() => Services.TitleScreenMenu.AddEntry("Title Edit Menu", logoTexture, ToggleConfigUI));
             }
         });
 
@@ -91,7 +88,6 @@ public sealed class Plugin : IDalamudPlugin
         Services.CommandManager.RemoveHandler(CommandNameAlias);
         Services.Dispose();
         logoTexture?.Dispose();
-
     }
 
     private void OnCommand(string command, string args)

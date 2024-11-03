@@ -57,6 +57,7 @@ public class ConfigurationService
     public bool OverridePresetTitleScreenMovie = false;
     public string? LastExportLocation;
     public string? LastImportLocation;
+    public bool DontInterruptMusicOnSceneSwitch = true;
 
     [NonSerialized]
     private string filePath = null!;

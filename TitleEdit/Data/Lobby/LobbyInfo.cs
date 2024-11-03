@@ -10,6 +10,8 @@ namespace TitleEdit.Data.Lobby
         // What cinematic in title screen is currently playing
         [FieldOffset(0x10)]
         public TitleScreenMovie CurrentTitleScreenMovieType;
+        [FieldOffset(0x18)]
+        public nint BgmPointer;
         [FieldOffset(0x20)]
         public LobbySong CurrentLobbyMusicIndex;
         [FieldOffset(0x34)]
