@@ -121,7 +121,7 @@ namespace TitleEdit.PluginServices
                     }
                     else
                     {
-                        locationModel.TimeOffset = 0;
+                        locationModel.TimeOffset = ushort.MaxValue;
                     }
                     if (Services.ConfigurationService.SaveBgm)
                     {
