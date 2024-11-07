@@ -73,7 +73,9 @@ namespace TitleEdit.PluginServices.Lobby
                 }
             }
             Services.WeatherService.WeatherId = model.WeatherId;
-            SetTime(model.TimeOffset);
+            ushort timetoset = (ushort)(model.TimeOffset == ushort.MaxValue ? Services.LocationService.TimeOffset : model.TimeOffset);
+            Services.Log.Debug($"Setting time to: {timetoset}");
+            SetTime(timetoset);
             Services.Log.Debug($"SetWeather to {Services.WeatherService.WeatherId}");
             if (model.SaveLayout && model.Active != null && model.Inactive != null)
             {
