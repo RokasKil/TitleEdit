@@ -1,7 +1,7 @@
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -12,13 +12,13 @@ namespace TitleEdit.PluginServices
 {
     public class MountService : AbstractService
     {
-
         private const int MountBitmaskArraySize = 37;
         public IReadOnlySet<uint> Mounts => mounts;
         private HashSet<uint> mounts = [];
 
         private readonly string filePath;
         private readonly byte[] lastMountBytes = new byte[MountBitmaskArraySize];
+
         public MountService()
         {
             filePath = Path.Join(ConfigurationService.GetBaseConfigDirectory().CreateSubdirectory(PersistanceConsts.DataFolder).FullName, PersistanceConsts.MountsName);
@@ -87,15 +87,12 @@ namespace TitleEdit.PluginServices
             {
                 Services.Log.Error(e, e.Message);
             }
-
         }
 
         public unsafe void RefreshMounts()
         {
-
             if (Services.ClientState.LocalPlayer != null)
             {
-
                 var playerState = PlayerState.Instance();
                 if (playerState != null)
                 {
@@ -108,6 +105,7 @@ namespace TitleEdit.PluginServices
                     }
                 }
             }
+
             SaveMounts();
         }
 

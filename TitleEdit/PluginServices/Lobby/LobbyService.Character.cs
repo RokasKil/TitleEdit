@@ -45,7 +45,8 @@ namespace TitleEdit.PluginServices.Lobby
         {
             // Called every frame and is responsible for switching out currently selected character
             // We had proper methods to hook but they got inlined with release of DT so now we're polling
-            updateCharaSelectDisplayHook = Hook<UpdateCharaSelectDisplayDelegate>("E8 ?? ?? ?? ?? 84 C0 74 ?? C6 86 ?? ?? ?? ?? ?? 48 8B 8C 24", UpdateCharaSelectDisplayDetour);
+            // Client::UI::Agent::AgentLobby.UpdateCharaSelectDisplay
+            updateCharaSelectDisplayHook = Hook<UpdateCharaSelectDisplayDelegate>("E8 ?? ?? ?? ?? 84 C0 74 ?? C6 86 ?? ?? ?? ?? ?? 80 BE", UpdateCharaSelectDisplayDetour);
 
             // Called when the game is making a new character - if set by other hooks we force the flag to include a companionObject so we can display a mount
             createBattleCharacterHook = Hook<CreateBattleCharacterDelegate>("E8 ?? ?? ?? ?? 8B D0 41 89 44", CreateBattleCharacterDetour);
@@ -53,7 +54,7 @@ namespace TitleEdit.PluginServices.Lobby
             // Called when you select a new world in character select or cancel selection so it reload the current
             // we use it make sure characters get created with a companion slots,
             // set the selected character cause SE doesn't do that (???) and initialize it
-            setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 49 8B CD 4C 8B 74 24", SetCharSelectCurrentWorldDetour);
+            setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 8B 44 24 ?? 4C 8B 64 24 ?? 83 F8", SetCharSelectCurrentWorldDetour);
 
             // Happens on world list hover when loading a world - we use it make sure characters get created with a companion slots (maybe makes selectCharacter2Hook redundant)
             charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? 49 8B CD E8 ?? ?? ?? ?? 41 0F B6 85", CharSelectWorldPreviewEventHandlerDetour);
@@ -244,14 +245,14 @@ namespace TitleEdit.PluginServices.Lobby
         {
             var charaSelectCharacterList = CharaSelectCharacterList.Instance();
             var clientObjectManager = ClientObjectManager.Instance();
-            if (AgentLobby->HoveredCharacterContentId == 0)
+            if (CurrentContentId == 0)
             {
                 return null;
             }
 
             for (var i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
             {
-                if (charaSelectCharacterList->CharacterMapping[i].ContentId == AgentLobby->HoveredCharacterContentId)
+                if (charaSelectCharacterList->CharacterMapping[i].ContentId == CurrentContentId)
                 {
                     return (Character*)clientObjectManager->GetObjectByIndex((ushort)charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
                 }

@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Lumina.Excel.Sheets;
 using TitleEdit.Utility;
 
 namespace TitleEdit.PluginServices
@@ -29,18 +30,20 @@ namespace TitleEdit.PluginServices
         {
             if (Services.ClientState.LocalPlayer != null)
             {
-                PutCharacter(Services.ClientState.LocalContentId, $"{Services.ClientState.LocalPlayer.Name}@{Services.ClientState.LocalPlayer.HomeWorld.GetWithLanguage(ClientLanguage.English)!.Name}");
+                var world = Services.DataManager.GetExcelSheet<World>(ClientLanguage.English).GetRow(Services.ClientState.LocalPlayer.HomeWorld.RowId);
+                PutCharacter(Services.ClientState.LocalContentId, $"{Services.ClientState.LocalPlayer.Name}@{world.Name}");
             }
+
             foreach (var entry in Services.LobbyService.GetCurrentCharacterNames())
             {
                 PutCharacter(entry.Key, entry.Value);
             }
+
             SaveCharacters();
         }
 
         private void LoadCharacters()
         {
-
             try
             {
                 if (File.Exists(filePath))
@@ -53,7 +56,6 @@ namespace TitleEdit.PluginServices
             {
                 Services.Log.Error(e, e.Message);
             }
-
         }
 
 
@@ -82,6 +84,5 @@ namespace TitleEdit.PluginServices
                 changed = true;
             }
         }
-
     }
 }

@@ -21,7 +21,9 @@ namespace TitleEdit.PluginServices.Lobby
         private readonly string[] recolorableAddons = { "_TitleRights", "_TitleMenu", "_TitleRevision" };
 
         private delegate bool PickTitleLogo(AtkUnitBase* atkUnit);
+
         private delegate int TitleLogoRefresh(AtkUnitBase* atkUnit, ulong p2, AtkValue* atkValue);
+
         private delegate int ShowAddon(AtkUnitBase* atkUnit, byte p2, int p3);
 
         private Hook<PickTitleLogo> pickTitleLogoHook = null!;
@@ -50,6 +52,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         // Called to check if we need to modify title screen logo we always handle things because free trial client will always want to show free trial logo
         private bool ShouldModifyTitleScreenLogo => titleScreenLoaded;
+
         // Called to check if we need to modify title screen ui colors we handle things when not using a vanilla screen or the colors need to overriden globally
         private bool ShouldModifyTitleScreenUiColors => titleScreenLoaded && (titleScreenLocationModel.TitleScreenOverride == null || Services.ConfigurationService.OverridePresetTitleScreenColor);
 
@@ -68,6 +71,7 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     color = titleScreenLocationModel.UiColor;
                 }
+
                 return color.Expansion == UiColorExpansion.Custom ? color : UiColors.GetColorModelByExpansion(color.Expansion);
             }
         }
@@ -125,6 +129,7 @@ namespace TitleEdit.PluginServices.Lobby
                 atkUnit->IsVisible = false;
                 shouldHideTitleLogoAddon = false;
             }
+
             return result;
         }
 
@@ -138,13 +143,16 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     cutsceneAnimatedTitleLogo = true;
                 }
+
                 atkUnit->IsVisible = true;
             }
+
             if (shouldAdvanceTitleLogoAnimation && atkValue->UInt == 32)
             {
                 AdvanceTitleLogoAnimation();
                 shouldAdvanceTitleLogoAnimation = false;
             }
+
             return result;
         }
 
@@ -168,7 +176,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_CharaSelectListMenu");
             if (addon == null) return;
-            var node = addon->UldManager.SearchNodeById(13);
+            var node = addon->UldManager.SearchNodeById(12);
             if (node == null) return;
             var listComponent = node->GetAsAtkComponentList();
             if (listComponent == null) return;
@@ -184,7 +192,6 @@ namespace TitleEdit.PluginServices.Lobby
 
         public void HideCharacterSelectNamesSettingUpdated()
         {
-
             if (Services.ConfigurationService.HideCharacterSelectNames)
             {
                 Services.AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, "_CharaSelectInfo", CharaSelectInfoUpdate);
@@ -207,6 +214,7 @@ namespace TitleEdit.PluginServices.Lobby
                 AnimateDawntrailLogo();
                 shouldAnimateDawntrailLogo = false;
             }
+
             // Don't advance animations when shouldHideTitleLogoAddon is true
             // We'll do that when Addon is visible again
             if (shouldAdvanceTitleLogoAnimation && !shouldHideTitleLogoAddon)
@@ -214,6 +222,7 @@ namespace TitleEdit.PluginServices.Lobby
                 AdvanceTitleLogoAnimation();
                 shouldAdvanceTitleLogoAnimation = false;
             }
+
             // Title screen logos have two parts one with japanese subtitle and one without
             // They all default to part 1 which is the english version even on client set to JP language
             // but shb one won't if the title isn't set to shb
@@ -299,7 +308,6 @@ namespace TitleEdit.PluginServices.Lobby
                         nineGridNode->AddGreen = nineGridNode->AddGreen_2 = (short)(color.Y * 255);
                         nineGridNode->AddBlue = nineGridNode->AddBlue_2 = (short)(color.Z * 255);
                         nineGridNode->Color.A = (byte)(color.W * 255);
-
                     }
                 });
             }
@@ -319,6 +327,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 return pickTitleLogoHook.Original(atkUnit);
             }
+
             bool currentFreeTrial = LobbyInfo->FreeTrial;
             TitleScreenExpansion currentTitleScreenType = LobbyInfo->CurrentTitleScreenType;
             if (TitleScreenLogoOption == TitleScreenLogo.None)
@@ -355,6 +364,7 @@ namespace TitleEdit.PluginServices.Lobby
                     });
                     LobbyInfo->CurrentTitleScreenType = TitleScreenExpansion.ARealmReborn;
                 }
+
                 // Advance and handle animations if it doesn't match the TitleScreenOverride
                 // Make an exception for dawntrial because we hide it until it animates and it won't animate by itself if the game is past that point in the cutscene (only relevant when flipping through options)
                 if (titleScreenLocationModel.TitleScreenOverride != LobbyInfo->CurrentTitleScreenType || titleScreenLocationModel.TitleScreenOverride == TitleScreenExpansion.Dawntrail)
@@ -375,6 +385,7 @@ namespace TitleEdit.PluginServices.Lobby
                     }
                 }
             }
+
             if (titleScreenLocationModel.TitleScreenOverride == TitleScreenExpansion.Dawntrail && !cutsceneAnimatedTitleLogo)
             {
                 shouldHideTitleLogoAddon = true;
@@ -433,6 +444,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 action();
             }
+
             titleMenuFinalizeActions.Clear();
         }
 

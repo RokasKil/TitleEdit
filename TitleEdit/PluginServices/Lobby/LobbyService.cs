@@ -16,7 +16,7 @@ namespace TitleEdit.PluginServices.Lobby
     public unsafe partial class LobbyService : AbstractService
     {
         // Magic numbers that we use for default look at curve values when character is not available or need to reset it
-        private readonly static Vector3 LookAtCurveMagicNumbers = new(1.4350828f, 0.85870504f, 0.6742642f);
+        private static readonly Vector3 LookAtCurveMagicNumbers = new(1.4350828f, 0.85870504f, 0.6742642f);
 
         public AgentLobby* AgentLobby => FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLobby.Instance();
 
@@ -71,7 +71,8 @@ namespace TitleEdit.PluginServices.Lobby
             Services.GameInteropProvider.InitializeFromAttributes(this);
 
             // Points to a struct with a value that indicates the current lobby bgm and current title screen type (among other things)
-            lobbyStructAddress = Services.SigScanner.GetStaticAddressFromSig("66 0F 7F 05 ?? ?? ?? ?? 4C 89 35");
+            // No direct usages left, signature points to the getter and offset is to the LEA call
+            lobbyStructAddress = Services.SigScanner.GetStaticAddressFromSig("E8 ?? ?? ?? ?? 33 ED BF", 0x60);
 
             // Points to a Value that says what Type of lobby map is being displayer
             lobbyCurrentMapAddress = (GameLobbyType*)Services.SigScanner.GetStaticAddressFromSig("0F B7 05 ?? ?? ?? ?? 48 8B CE");

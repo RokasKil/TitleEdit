@@ -26,6 +26,18 @@ namespace TitleEdit.PluginServices
             return hook;
         }
 
+        protected Hook<T> HookFromFunctionPointerVariable<T>(nint address, T detour) where T : Delegate
+        {
+            var hook = Services.GameInteropProvider.HookFromFunctionPointerVariable(address, detour);
+            if (hook == null)
+            {
+                throw new Exception($"Failed to hookFromFunctionPointerVariable '{address:X}'");
+            }
+
+            hooks.Add(new HookWrapper<T>(hook));
+            return hook;
+        }
+
         protected void EnableHooks() => hooks.ForEach(hook => hook.Enable());
 
         protected void DisableHooks() => hooks.ForEach(hook => hook.Disable());

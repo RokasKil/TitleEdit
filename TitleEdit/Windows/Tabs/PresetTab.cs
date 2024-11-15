@@ -3,12 +3,12 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using Lumina.Excel.Sheets;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Lobby;
@@ -31,7 +31,7 @@ namespace TitleEdit.Windows.Tabs
         private readonly Dictionary<uint, string> mounts;
         private readonly Dictionary<byte, string> weathers;
 
-        private FileDialogManager fileDialogManager = new();
+        private readonly FileDialogManager fileDialogManager = new();
 
         public PresetTab()
         {
@@ -42,7 +42,7 @@ namespace TitleEdit.Windows.Tabs
                     return "0 - None";
                 }
 
-                return $"{mount.RowId} - " + string.Join(" ", mount.Singular.RawString.Split().Select(part =>
+                return $"{mount.RowId} - " + string.Join(" ", mount.Singular.ExtractText().Split().Select(part =>
                 {
                     if (part.Length > 0)
                     {
@@ -53,7 +53,7 @@ namespace TitleEdit.Windows.Tabs
                 }));
             });
 
-            weathers = Services.DataManager.GetExcelSheet<Weather>()!.ToDictionary(weather => (byte)weather.RowId, weather => $"{weather.RowId} - {(!string.IsNullOrEmpty(weather.Name) ? weather.Name : "Unknown")}");
+            weathers = Services.DataManager.GetExcelSheet<Weather>()!.ToDictionary(weather => (byte)weather.RowId, weather => $"{weather.RowId} - {(!string.IsNullOrEmpty(weather.Name.ExtractText()) ? weather.Name : "Unknown")}");
         }
 
         public override void Draw()
@@ -196,10 +196,9 @@ namespace TitleEdit.Windows.Tabs
 
             // World stuff
             // Zone
-            var territory = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(preset.LocationModel.TerritoryTypeId);
-            if (territory != null)
+            if (Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(preset.LocationModel.TerritoryTypeId, out var territory))
             {
-                ImGui.TextUnformatted($"Zone: {territory.RowId} - {territory.PlaceNameRegion.Value?.Name} > {territory.PlaceName.Value?.Name}");
+                ImGui.TextUnformatted($"Zone: {territory.RowId} - {territory.PlaceNameRegion.Value.Name} > {territory.PlaceName.Value.Name}");
             }
             else
             {
@@ -215,11 +214,9 @@ namespace TitleEdit.Windows.Tabs
                     LoadCurrentTerritory();
                 }
 
-                var currentTerritory = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType);
-
-                if (currentTerritory != null)
+                if (Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(Services.ClientState.TerritoryType, out var currentTerritory))
                 {
-                    GuiUtils.HoverTooltip($"Current zone: {currentTerritory.RowId} - {currentTerritory.PlaceNameRegion.Value?.Name} > {currentTerritory.PlaceName.Value?.Name}");
+                    GuiUtils.HoverTooltip($"Current zone: {currentTerritory.RowId} - {currentTerritory.PlaceNameRegion.Value.Name} > {currentTerritory.PlaceName.Value.Name}");
                 }
                 else
                 {
@@ -336,7 +333,7 @@ namespace TitleEdit.Windows.Tabs
                 if (ImGui.Button($"Apply current##{Title}##BGM"))
                 {
                     preset.LocationModel.BgmId = Services.BgmService.CurrentSongId;
-                    preset.LocationModel.BgmPath = Services.DataManager.GetExcelSheet<BGM>()!.GetRow((uint)Services.BgmService.CurrentSongId)?.File.ToString();
+                    preset.LocationModel.BgmPath = Services.DataManager.GetExcelSheet<BGM>().TryGetRow((uint)Services.BgmService.CurrentSongId, out var row) ? row.File.ToString() : null;
                 }
 
                 if (Services.BgmService.Bgms.TryGetValue(Services.BgmService.CurrentSongId, out var bgm))
@@ -796,7 +793,7 @@ namespace TitleEdit.Windows.Tabs
             preset.LocationModel.WeatherId = Services.WeatherService.WeatherId;
             preset.LocationModel.TimeOffset = Services.LocationService.TimeOffset;
             preset.LocationModel.BgmId = Services.BgmService.CurrentSongId;
-            preset.LocationModel.BgmPath = Services.DataManager.GetExcelSheet<BGM>()!.GetRow((uint)Services.BgmService.CurrentSongId)?.File.ToString();
+            preset.LocationModel.BgmPath = Services.DataManager.GetExcelSheet<BGM>().TryGetRow((uint)Services.BgmService.CurrentSongId, out var row) ? row.File.ToString() : null;
             preset.LocationModel.Position = Services.ClientState.LocalPlayer!.Position;
             preset.LocationModel.Rotation = Services.ClientState.LocalPlayer!.Rotation;
             preset.LocationModel.TitleScreenLogo = TitleScreenLogo.Dawntrail;

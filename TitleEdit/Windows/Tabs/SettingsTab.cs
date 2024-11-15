@@ -53,7 +53,7 @@ namespace TitleEdit.Windows.Tabs
                 SettingCheckbox($"Save mount##{Title}", ref Services.ConfigurationService.SaveMount);
                 SettingCheckbox($"Save song##{Title}", ref Services.ConfigurationService.SaveBgm);
                 SettingCheckbox($"Save Eorzea time##{Title}", ref Services.ConfigurationService.SaveTime);
-                ImGuiComponents.HelpMarker("Check to remember what in-game time your location was recorded, will use in-game time if unchecked");
+                ImGuiComponents.HelpMarker("If unchecked in-game time will be used instead of the time you logged off at.");
             }
 
             ImGui.Separator();

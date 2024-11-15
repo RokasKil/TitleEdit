@@ -13,7 +13,7 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-        [Signature("40 53 48 83 EC ?? 44 0F BF C1")]
+        [Signature("40 53 48 83 EC ?? 44 0F B7 C1")]
         private readonly delegate* unmanaged<ushort, void> setTimeNative = null!;
 
         private delegate void CharSelectSetWeatherDelegate();

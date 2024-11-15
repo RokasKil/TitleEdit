@@ -2,7 +2,7 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -34,6 +34,7 @@ namespace TitleEdit.Utility
                 {
                     ImGui.PopStyleColor();
                 }
+
                 selected = elementsAction.Invoke(!OpenCombos.GetValueOrDefault(title));
                 OpenCombos[title] = true;
                 ImGui.EndCombo();
@@ -44,8 +45,10 @@ namespace TitleEdit.Utility
                 {
                     ImGui.PopStyleColor();
                 }
+
                 OpenCombos[title] = false;
             }
+
             return selected;
         }
 
@@ -62,6 +65,7 @@ namespace TitleEdit.Utility
                     ImGui.SetKeyboardFocusHere();
                     ComboFilters[title] = "";
                 }
+
                 string filter = ComboFilters[title];
                 ImGui.InputText($"Search##{title}", ref filter, 256);
                 ComboFilters[title] = filter;
@@ -75,9 +79,11 @@ namespace TitleEdit.Utility
                         selected = true;
                         ImGui.CloseCurrentPopup();
                     }
+
                     FilterComboTitle = null;
                     ImGui.EndChild();
                 }
+
                 return selected;
             }, flags | ImGuiComboFlags.HeightLargest, popStyleColor);
         }
@@ -93,6 +99,7 @@ namespace TitleEdit.Utility
                     return false;
                 }
             }
+
             FilterDrawSeperator = true;
             FilterDrawTooltip = true;
             return ImGui.Selectable(label, selected);
@@ -125,15 +132,18 @@ namespace TitleEdit.Utility
                             value = enumValue;
                             selected = true;
                         }
+
                         HoverTooltip(enumValue);
                     }
                 }
+
                 OpenCombos[title] = true;
             }
             else
             {
                 OpenCombos[title] = false;
             }
+
             return selected;
         }
 
@@ -145,6 +155,7 @@ namespace TitleEdit.Utility
                 value = rotation * Utils.DegreeToRadRatio;
                 return true;
             }
+
             return false;
         }
 
@@ -156,6 +167,7 @@ namespace TitleEdit.Utility
                 value = Utils.NormalizeAngle(rotation * Utils.DegreeToRadRatio);
                 return true;
             }
+
             return false;
         }
 
@@ -251,15 +263,15 @@ namespace TitleEdit.Utility
                 }
                 else
                 {
-                    var territory = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(preset.LocationModel.TerritoryTypeId);
-                    if (territory != null)
+                    if (Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(preset.LocationModel.TerritoryTypeId, out var territory))
                     {
-                        ImGui.TextWrapped($"Zone: {territory.RowId} - {territory.PlaceNameRegion.Value?.Name} > {territory.PlaceName.Value?.Name}");
+                        ImGui.TextWrapped($"Zone: {territory.RowId} - {territory.PlaceNameRegion.Value.Name} > {territory.PlaceName.Value.Name}");
                     }
                     else
                     {
                         ImGui.TextWrapped($"Zone: Unknown");
                     }
+
                     if (!string.IsNullOrEmpty(preset.Author))
                     {
                         ImGui.TextWrapped($"Author: {preset.Author.Replace("%", "%%")}");
@@ -299,26 +311,31 @@ namespace TitleEdit.Utility
             {
                 changed = true;
             }
+
             if (colorModel.Expansion == UiColorExpansion.Custom)
             {
                 if (ImGui.ColorEdit4($"Text color##{id}", ref colorModel.Color, ImGuiColorEditFlags.NoInputs))
                 {
                     changed = true;
                 }
+
                 if (ImGui.ColorEdit4($"Edge color##{id}", ref colorModel.EdgeColor, ImGuiColorEditFlags.NoInputs))
                 {
                     changed = true;
                 }
+
                 if (ImGui.ColorEdit4($"Button highlight color##{id}", ref colorModel.HighlightColor, ImGuiColorEditFlags.NoInputs))
                 {
                     changed = true;
                 }
+
                 ImGuiComponents.HelpMarker("The button highlight color will not be accurate, because the highlight image itself is blue, I tried to work around that by offsetting the color but it's not perfect");
                 var selection = UiColorPickerSelections.GetValueOrDefault(id, UiColorExpansion.Dawntrail);
                 if (Combo($"##{id}##selectExpansionToApply", ref selection, filter: (entry) => entry != UiColorExpansion.Unspecified && entry != UiColorExpansion.Custom))
                 {
                     UiColorPickerSelections[id] = selection;
                 }
+
                 ImGui.SameLine();
                 if (ImGui.Button($"Apply expansion colors##{id}"))
                 {
@@ -326,8 +343,8 @@ namespace TitleEdit.Utility
                     colorModel.Expansion = UiColorExpansion.Custom;
                     changed = true;
                 }
-
             }
+
             return changed;
         }
     }

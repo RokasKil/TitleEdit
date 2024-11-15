@@ -18,7 +18,9 @@ namespace TitleEdit.PluginServices
     public class LayoutService : AbstractService
     {
         public unsafe delegate void LayoutInstanceSetActiveDelegate(ILayoutInstance* instance, bool active);
+
         public unsafe delegate void VfxLayoutInstanceSetVfxTriggerIndexDelegate(VfxLayoutInstance* vfxInstance, int index);
+
         public unsafe delegate void LayoutWorldInitManagerDelegate(IntPtr p1, uint p2, IntPtr p3, uint p4, uint p5, IntPtr p6, uint p7);
 
         private Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate> vfxLayoutInstanceSetVfxTriggerIndexHook = null!;
@@ -32,15 +34,13 @@ namespace TitleEdit.PluginServices
         public unsafe bool LayoutInitialized => LayoutManager->InitState == 7;
         public unsafe uint LayoutTerritoryId => LayoutManager->TerritoryTypeId;
         public unsafe uint LayoutLayerFilterKey => LayoutManager->LayerFilterKey;
-
-        private bool territoryChanged;
         public Dictionary<IntPtr, Hook<LayoutInstanceSetActiveDelegate>> ActiveHooks { get; set; } = [];
 
         private bool ShouldEnableHooks => Services.ConfigurationService.TrackPlayerLocation &&
-            Services.ConfigurationService.SaveLayout &&
-            (!Services.Condition.Any(ConditionFlag.BoundByDuty) || Services.ConfigurationService.SaveLayoutInInstance);
+                                          Services.ConfigurationService.SaveLayout &&
+                                          (!Services.Condition.Any(ConditionFlag.BoundByDuty) || Services.ConfigurationService.SaveLayoutInInstance);
 
-        private List<InstanceType> instanceTypes =
+        private readonly List<InstanceType> instanceTypes =
         [
             InstanceType.BgPart,
             InstanceType.Light,
@@ -51,6 +51,7 @@ namespace TitleEdit.PluginServices
         private Stopwatch updateSW = new();
 #endif
         public double UpdateTime = 0;
+
         public LayoutService()
         {
             Services.GameInteropProvider.InitializeFromAttributes(this);
@@ -62,12 +63,31 @@ namespace TitleEdit.PluginServices
             {
                 vfxLayoutInstanceSetVfxTriggerIndexHook = Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate>("48 89 5C 24 ?? 57 48 83 EC ?? 8B FA 48 8B D9 83 FA ?? 75", SetVfxLayoutInstanceVfxTriggerIndexDetour);
                 layoutWorldInitManagerHook = Hook<LayoutWorldInitManagerDelegate>("E8 ?? ?? ?? ?? 8B 4C 24 ?? 33 DB", LayoutWorldInitManagerDetour);
-
             }
+
+#if CALC_LAYOUT_UPDATE
             Services.Framework.Update += Tick;
-            Services.ClientState.Logout += OnLogout;
+#endif
             TerritoryChanged();
             EnableHooks();
+            HookLayoutInstance("48 8D 0D ?? ?? ?? ?? 66 90 48 89 50");                                                          // BgPart
+            HookLayoutInstance("48 8D 0D ?? ?? ?? ?? 48 89 78 ?? 89 78");                                                       // Light
+            HookLayoutInstance("48 8D 05 ?? ?? ?? ?? 48 89 01 33 D2 48 89 51 ?? 48 89 51");                                     // Vfx
+            HookLayoutInstance("48 8D 05 ?? ?? ?? ?? 48 89 07 48 8D 05 ?? ?? ?? ?? 48 89 47 ?? 48 8D 05 ?? ?? ?? ?? 48 89 77"); // SharedGroup
+        }
+
+        private unsafe void HookLayoutInstance(string signature, int offset = 0)
+        {
+            // hooking 63th virtual function 
+            var address = Services.SigScanner.GetStaticAddressFromSig(signature, offset) + (63 * 8);
+            //Services.Log.Debug($"Hooking {signature} at 0x{address:X16}");
+            if (ActiveHooks.ContainsKey(address)) return;
+            var hook = HookFromFunctionPointerVariable<LayoutInstanceSetActiveDelegate>(address, (layout, active) => LayoutInstanceSetActiveDetour(address, layout, active));
+            ActiveHooks[address] = hook;
+            if (ShouldEnableHooks)
+            {
+                hook.Enable();
+            }
         }
 
         private unsafe void LayoutWorldInitManagerDetour(nint p1, uint p2, nint p3, uint p4, uint p5, nint p6, uint p7)
@@ -84,14 +104,6 @@ namespace TitleEdit.PluginServices
 
         private void Tick(IFramework framework)
         {
-            if (Services.ClientState.IsLoggedIn)
-            {
-                if (territoryChanged && LayoutInitialized)
-                {
-                    territoryChanged = false;
-                    MakeSetActiveHooks();
-                }
-            }
 #if CALC_LAYOUT_UPDATE
             UpdateTime = updateSW.Elapsed.TotalMilliseconds;
             updateSW.Reset();
@@ -101,48 +113,8 @@ namespace TitleEdit.PluginServices
         private void TerritoryChanged()
         {
             Services.Log.Debug($"[TerritoryChanged]");
-            territoryChanged = true;
             OnLayoutChange?.Invoke();
         }
-
-        public void OnLogout()
-        {
-            ClearSetActiveHooks();
-        }
-
-        public unsafe void MakeSetActiveHooks()
-        {
-            ClearSetActiveHooks();
-            var vTables = new HashSet<IntPtr>();
-
-            Services.Log.Debug($"[MakeSetActiveHooks] Got {(IntPtr)LayoutManager:X} layoutmanager {LayoutManager->InitState}");
-            ForEachInstance(instance => vTables.Add(*(IntPtr*)instance.Value));
-            Services.Log.Debug($"[MakeSetActiveHooks] Got {vTables.Count} vTables");
-            foreach (var pVTable in vTables)
-            {
-                var setActiveAddress = *(IntPtr*)(pVTable + 0x1f8);
-                var setActiveAddressVF54 = *(IntPtr*)(pVTable + 0x1b0);
-                Services.Log.Debug($"{pVTable:X} - {setActiveAddress:X} - {setActiveAddressVF54:X}");
-                if (ActiveHooks.ContainsKey(setActiveAddress)) continue;
-                var hook = Services.GameInteropProvider.HookFromAddress<LayoutInstanceSetActiveDelegate>(setActiveAddress, (layout, active) => LayoutInstanceSetActiveDetour(setActiveAddress, layout, active));
-                ActiveHooks[setActiveAddress] = hook;
-                if (ShouldEnableHooks)
-                {
-                    hook.Enable();
-                }
-            }
-        }
-
-        public void ClearSetActiveHooks()
-        {
-            foreach (var item in ActiveHooks)
-            {
-                item.Value.Dispose();
-            }
-            ActiveHooks.Clear();
-        }
-
-
 
         private unsafe void LayoutInstanceSetActiveDetour(IntPtr funcAddress, ILayoutInstance* instance, bool active)
         {
@@ -151,7 +123,6 @@ namespace TitleEdit.PluginServices
                 // SetActive might be outside of the main thread
                 Services.Framework.RunOnFrameworkThread(() =>
                 {
-
 #if CALC_LAYOUT_UPDATE
                     updateSW.Start();
 #endif
@@ -162,6 +133,7 @@ namespace TitleEdit.PluginServices
 #endif
                 });
             }
+
             ActiveHooks[funcAddress].Original(instance, active);
         }
 
@@ -220,9 +192,9 @@ namespace TitleEdit.PluginServices
         public override void Dispose()
         {
             base.Dispose();
-            ClearSetActiveHooks();
+#if CALC_LAYOUT_UPDATE
             Services.Framework.Update -= Tick;
-            Services.ClientState.Logout -= OnLogout;
+#endif
         }
     }
 }

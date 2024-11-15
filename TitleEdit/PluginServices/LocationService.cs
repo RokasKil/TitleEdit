@@ -4,7 +4,7 @@ using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using FFXIVClientStructs.Interop;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
@@ -194,7 +194,7 @@ namespace TitleEdit.PluginServices
             Services.Log.Debug($"TerritoryChanged: {TerritoryPath}");
         }
 
-        public void Logout()
+        public void Logout(int type, int code)
         {
             Save(lastContentId);
         }

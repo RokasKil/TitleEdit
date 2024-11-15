@@ -1,6 +1,6 @@
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,8 +18,6 @@ namespace TitleEdit.PluginServices
     // and slightly modified of course
     public class BgmService : AbstractService
     {
-
-
         private const string SheetPath = @"https://docs.google.com/spreadsheets/d/1qAkxPiXWF-EUHbIXdNcO-Ilo2AwLnqvdpW9tjKPitPY/gviz/tq?tqx=out:csv&sheet={0}";
         private const string SheetFileName = "xiv_bgm_{0}.csv";
         private readonly HttpClient client = new();
@@ -62,8 +60,7 @@ namespace TitleEdit.PluginServices
 
         public BgmService()
         {
-            baseAddress = Services.SigScanner.GetStaticAddressFromSig("48 8B 15 ?? ?? ?? ?? 0F B6 42");
-
+            baseAddress = Services.SigScanner.GetStaticAddressFromSig("48 8B 1D ?? ?? ?? ?? 8B F1");
             Bgms = [];
             BgmPaths = Services.DataManager.GetExcelSheet<BGM>()!.ToDictionary(r => r.RowId, r => r.File.ToString());
             BgmPathsReverse = BgmPaths.GroupBy(r => r.Value).ToDictionary(r => r.Key, r => r.First().Key); // is it worth to load this into memory just for migration?
@@ -129,16 +126,16 @@ namespace TitleEdit.PluginServices
                     Location = locations,
                     AdditionalInfo = addtlInfo,
                     RowId = id,
-                    Available = path.IsNullOrEmpty() ? true : Services.DataManager.FileExists(path)
+                    Available = path.IsNullOrEmpty() || Services.DataManager.FileExists(path)
                 };
                 Bgms[id] = bgm;
             }
+
             SaveLocalSheet(sheetText, code);
         }
 
         private unsafe void Tick(IFramework framework)
         {
-
             var bgms = (BgmScene*)BgmSceneList.ToPointer();
 
             for (int sceneIdx = 0; sceneIdx < SceneCount; sceneIdx++)
@@ -151,10 +148,10 @@ namespace TitleEdit.PluginServices
                     {
                         SongChanged(bgms[sceneIdx].BgmId);
                     }
+
                     break;
                 }
             }
-
         }
 
         private void SongChanged(uint songId)

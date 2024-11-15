@@ -8,7 +8,6 @@ namespace TitleEdit.Data.BGM
         public string AdditionalInfo;
         public uint RowId;
         public bool Available;
-        public readonly string DisplayName { get => $"{RowId} - {Title}"; }
+        public readonly string DisplayName => $"{RowId} - {Title}";
     }
-
 }
