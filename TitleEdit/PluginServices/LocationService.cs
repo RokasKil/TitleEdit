@@ -81,6 +81,7 @@ namespace TitleEdit.PluginServices
                 Services.LayoutService.OnLayoutInstanceSetActive += LayoutInstanceSetActive;
                 Services.LayoutService.OnVfxLayoutInstanceSetVfxTriggerIndex += VfxLayoutInstanceSetVfxTriggerIndex;
             }
+
             TerritoryChanged(Services.ClientState.TerritoryType);
             BgmChanged(Services.BgmService.CurrentSongId);
             saveTask = Task.Run(SaveTask, cancellationToken.Token);
@@ -115,14 +116,16 @@ namespace TitleEdit.PluginServices
                     {
                         SetMount(ref locationModel, &character->Character);
                     }
+
                     if (Services.ConfigurationService.SaveTime)
                     {
                         locationModel.TimeOffset = TimeOffset;
                     }
                     else
                     {
-                        locationModel.TimeOffset = ushort.MaxValue;
+                        locationModel.UseLiveTime = true;
                     }
+
                     if (Services.ConfigurationService.SaveBgm)
                     {
                         locationModel.BgmPath = bgmPath;
@@ -133,9 +136,9 @@ namespace TitleEdit.PluginServices
                         locationModel.BgmId = 0;
                         locationModel.BgmPath = null;
                     }
+
                     if (Services.ConfigurationService.SaveLayout && (!Services.Condition.Any(ConditionFlag.BoundByDuty) || Services.ConfigurationService.SaveLayoutInInstance))
                     {
-
                         if (Services.LayoutService.LayoutInitialized)
                         {
                             if (refreshLayout)
@@ -145,6 +148,7 @@ namespace TitleEdit.PluginServices
 
                             refreshLayout = false;
                         }
+
                         locationModel.SaveLayout = true;
                         locationModel.SaveFestivals = true;
                         locationModel.UseVfx = true;
@@ -159,6 +163,7 @@ namespace TitleEdit.PluginServices
                         locationModel.VfxTriggerIndexes.Clear();
                         locationModel.Festivals = [];
                     }
+
                     locations[lastContentId] = locationModel;
                 }
                 else
@@ -166,8 +171,8 @@ namespace TitleEdit.PluginServices
                     Services.Log.Debug("No territory path?");
                 }
             }
-            lastLocationCollection = DateTime.Now;
 
+            lastLocationCollection = DateTime.Now;
         }
 
         public unsafe void SetMount(ref LocationModel locationModel, Character* character)
@@ -237,6 +242,7 @@ namespace TitleEdit.PluginServices
                 {
                     inactive.Add(instance.Value->UUID());
                 }
+
                 if (instance.Value->Id.Type == InstanceType.Vfx)
                 {
                     var vfxInstance = (VfxLayoutInstance*)instance.Value;
@@ -260,7 +266,6 @@ namespace TitleEdit.PluginServices
             {
                 if (locations.TryGetValue(localContentId, out LocationModel locationModel))
                 {
-
                     Util.WriteAllTextSafe(
                         Path.Join(saveDirectory.FullName, $"{localContentId:X16}.json"),
                         JsonConvert.SerializeObject(locationModel)
@@ -290,8 +295,10 @@ namespace TitleEdit.PluginServices
                     {
                         Save(lastContentId);
                     }
+
                     lastSave = DateTime.Now;
                 }
+
                 await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken.Token);
             }
         }
@@ -319,7 +326,6 @@ namespace TitleEdit.PluginServices
                 else
                 {
                     Services.Log.Debug($"Unknown file in config directory {file.Name}");
-
                 }
             }
         }
@@ -330,6 +336,7 @@ namespace TitleEdit.PluginServices
             {
                 return locationModel;
             }
+
             return Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel;
         }
 
@@ -339,12 +346,14 @@ namespace TitleEdit.PluginServices
             {
                 throw new($"Location Version is not valid {LocationModel.CurrentVersion}");
             }
+
             if (locationModel.TitleScreenOverride == null)
             {
                 if (!Services.DataManager.FileExists($"bg/{locationModel.TerritoryPath}.lvb"))
                 {
                     throw new($"Game scene file '{locationModel.TerritoryPath}' not found");
                 }
+
                 if (!locationModel.BgmPath.IsNullOrEmpty() && !Services.DataManager.FileExists(locationModel.BgmPath))
                 {
                     throw new($"BGM file '{locationModel.BgmPath}' not found");
@@ -373,13 +382,13 @@ namespace TitleEdit.PluginServices
             {
                 Services.LayoutService.OnLayoutInstanceSetActive -= LayoutInstanceSetActive;
             }
+
             cancellationToken.Cancel();
             try
             {
                 saveTask?.Wait(-1, cancellationToken.Token);
             }
-            catch (OperationCanceledException) { }
-            finally
+            catch (OperationCanceledException) { } finally
             {
                 cancellationToken.Dispose();
             }

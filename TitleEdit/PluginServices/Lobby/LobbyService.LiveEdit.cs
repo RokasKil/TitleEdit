@@ -9,7 +9,6 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-
         private bool liveEditTitleScreen = false;
         private bool liveEditTitleScreenLoaded = false;
         private LocationModel? liveEditCharacterSelectLocationModel;
@@ -66,12 +65,11 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (locationType == LocationType.TitleScreen && ShouldLiveEditTitleScreen)
             {
-                SetTime(titleScreenLocationModel.TimeOffset);
+                SetTime(titleScreenLocationModel);
             }
             else if (locationType == LocationType.CharacterSelect && ShouldLiveEditCharacterSelect)
             {
-                SetTime(characterSelectLocationModel.TimeOffset);
-
+                SetTime(characterSelectLocationModel);
             }
         }
 
@@ -84,7 +82,6 @@ namespace TitleEdit.PluginServices.Lobby
             else if (locationType == LocationType.CharacterSelect && ShouldLiveEditCharacterSelect)
             {
                 Services.WeatherService.WeatherId = characterSelectLocationModel.WeatherId;
-
             }
         }
 
@@ -147,7 +144,6 @@ namespace TitleEdit.PluginServices.Lobby
                 liveEditCharacterSelectLocationModel = null;
                 ReloadCharacterSelect();
             }
-
         }
     }
 }

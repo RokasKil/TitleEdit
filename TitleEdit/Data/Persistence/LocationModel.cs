@@ -22,8 +22,8 @@ namespace TitleEdit.Data.Persistence
         public Vector3 Position;
         public Vector3 CameraPosition;
         public float Rotation;
-        public float Yaw; // side
-        public float Roll; // roll
+        public float Yaw;   // side
+        public float Roll;  // roll
         public float Pitch; // up/down
         public float Fov = 1;
         public byte WeatherId;
@@ -44,16 +44,17 @@ namespace TitleEdit.Data.Persistence
         public TitleScreenExpansion? TitleScreenOverride = null;
         public UiColorModel UiColor = UiColors.Dawntrail;
         public TitleScreenMovie TitleScreenMovie = TitleScreenMovie.Unspecified;
+        public bool UseLiveTime = false;
 
         // Only set when used with a preset
         [NonSerialized]
         public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;
+
         // What to say in the toast notification
         [NonSerialized]
         public string ToastNotificationText = "";
-        public LocationModel()
-        {
-        }
+
+        public LocationModel() { }
 
         public override bool Equals([NotNullWhen(true)] object? obj)
         {
@@ -61,29 +62,31 @@ namespace TitleEdit.Data.Persistence
             {
                 var other = (LocationModel)obj;
                 return Equals(Version, other.Version) &&
-                    Equals(LocationType, other.LocationType) &&
-                    Equals(TitleScreenLogo, other.TitleScreenLogo) &&
-                    Equals(TerritoryPath, other.TerritoryPath) &&
-                    Equals(TerritoryTypeId, other.TerritoryTypeId) &&
-                    Equals(Position, other.Position) &&
-                    Equals(CameraPosition, other.CameraPosition) &&
-                    Equals(Rotation, other.Rotation) &&
-                    Equals(Yaw, other.Yaw) &&
-                    Equals(Roll, other.Roll) &&
-                    Equals(Pitch, other.Pitch) &&
-                    Equals(Fov, other.Fov) &&
-                    Equals(WeatherId, other.WeatherId) &&
-                    Equals(TimeOffset, other.TimeOffset) &&
-                    Equals(BgmId, other.BgmId) &&
-                    Equals(BgmPath, other.BgmPath) &&
-                    Equals(MovementMode, other.MovementMode) &&
-                    Equals(Active, other.Active) &&
-                    Equals(Inactive, other.Inactive) &&
-                    Equals(VfxTriggerIndexes, other.VfxTriggerIndexes) &&
-                    Equals(Festivals, other.Festivals) &&
-                    Equals(TitleScreenOverride, other.TitleScreenOverride) &&
-                    Equals(UiColor, other.UiColor);
+                       Equals(LocationType, other.LocationType) &&
+                       Equals(TitleScreenLogo, other.TitleScreenLogo) &&
+                       Equals(TerritoryPath, other.TerritoryPath) &&
+                       Equals(TerritoryTypeId, other.TerritoryTypeId) &&
+                       Equals(Position, other.Position) &&
+                       Equals(CameraPosition, other.CameraPosition) &&
+                       Equals(Rotation, other.Rotation) &&
+                       Equals(Yaw, other.Yaw) &&
+                       Equals(Roll, other.Roll) &&
+                       Equals(Pitch, other.Pitch) &&
+                       Equals(Fov, other.Fov) &&
+                       Equals(WeatherId, other.WeatherId) &&
+                       Equals(TimeOffset, other.TimeOffset) &&
+                       Equals(BgmId, other.BgmId) &&
+                       Equals(BgmPath, other.BgmPath) &&
+                       Equals(MovementMode, other.MovementMode) &&
+                       Equals(Active, other.Active) &&
+                       Equals(Inactive, other.Inactive) &&
+                       Equals(VfxTriggerIndexes, other.VfxTriggerIndexes) &&
+                       Equals(Festivals, other.Festivals) &&
+                       Equals(TitleScreenOverride, other.TitleScreenOverride) &&
+                       Equals(UiColor, other.UiColor) &&
+                       Equals(UseLiveTime, other.UseLiveTime);
             }
+
             return false;
         }
 

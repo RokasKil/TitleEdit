@@ -13,7 +13,6 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-
         [Signature("40 53 48 83 EC ?? 44 0F BF C1")]
         private readonly delegate* unmanaged<ushort, void> setTimeNative = null!;
 
@@ -22,6 +21,7 @@ namespace TitleEdit.PluginServices.Lobby
         private Hook<CharSelectSetWeatherDelegate> lobbySetWeatherHook = null!;
 
         private bool forceUpdateCharacter;
+
         private void HookLayout()
         {
             // Called when game does some lobby weather setting - we use it as an indicator to set scene details like weather, time and layout
@@ -38,8 +38,8 @@ namespace TitleEdit.PluginServices.Lobby
                 UpdateCharacter(true);
                 forceUpdateCharacter = false;
             }
-            Services.Log.Debug($"LobbySetWeatherDetour {Services.WeatherService.WeatherId}");
 
+            Services.Log.Debug($"LobbySetWeatherDetour {Services.WeatherService.WeatherId}");
         }
 
         private void SetLayoutInfo()
@@ -57,7 +57,8 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 return;
             }
-            if (model.SaveFestivals && model.Festivals != null)
+
+            if (model is { SaveFestivals: true, Festivals: not null })
             {
                 fixed (uint* pFestivals = model.Festivals)
                 {
@@ -72,12 +73,11 @@ namespace TitleEdit.PluginServices.Lobby
                     Services.LayoutService.LayoutManager->SetActiveFestivals((GameMain.Festival*)pFestivals);
                 }
             }
+
             Services.WeatherService.WeatherId = model.WeatherId;
-            ushort timetoset = (ushort)(model.TimeOffset == ushort.MaxValue ? Services.LocationService.TimeOffset : model.TimeOffset);
-            Services.Log.Debug($"Setting time to: {timetoset}");
-            SetTime(timetoset);
+            SetTime(model);
             Services.Log.Debug($"SetWeather to {Services.WeatherService.WeatherId}");
-            if (model.SaveLayout && model.Active != null && model.Inactive != null)
+            if (model is { SaveLayout: true, Active: not null, Inactive: not null })
             {
                 List<ulong> unknownUUIDs = new();
                 Services.LayoutService.ForEachInstance(instance =>
@@ -125,6 +125,11 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 Services.LayoutService.SetVfxLayoutInstanceVfxTriggerIndex(instance, index);
             }
+        }
+
+        private void SetTime(LocationModel model)
+        {
+            SetTime(model.UseLiveTime ? Services.LocationService.TimeOffset : model.TimeOffset);
         }
 
         private void SetTime(ushort time) => setTimeNative(time);

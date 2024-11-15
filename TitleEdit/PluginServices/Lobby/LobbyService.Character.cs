@@ -4,21 +4,24 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Lumina.Excel.Sheets;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Extensions;
 using TitleEdit.Utility;
 using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
-using World = Lumina.Excel.GeneratedSheets.World;
 
 namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
         private delegate void UpdateCharaSelectDisplayDelegate(IntPtr agentLobby, byte p2, byte p3);
+
         private delegate nint CreateBattleCharacterDelegate(nint objectManager, uint index, bool assignCompanion);
+
         private delegate void SetCharSelectCurrentWorldDelegate(ulong p1);
+
         private delegate void CharSelectWorldPreviewEventHandlerDelegate(ulong p1, ulong p2, ulong p3, uint p4);
 
         private Hook<UpdateCharaSelectDisplayDelegate> updateCharaSelectDisplayHook = null!;
@@ -69,6 +72,7 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     Services.Log.Debug($"Reseting last character rotation {lastCharacterRotation}");
                 }
+
                 UpdateCharacter();
             }
         }
@@ -85,6 +89,7 @@ namespace TitleEdit.PluginServices.Lobby
                     {
                         lastCharacterRotation = Utils.NormalizeAngle(CurrentCharacter->Rotation - characterSelectLocationModel.Rotation);
                     }
+
                     // if needed we force draw character and mount cause they're weird sometimes
                     if (CurrentCharacter->GameObject.RenderFlags != 0 && CurrentCharacter->GameObject.RenderFlags != 0x40 && CurrentCharacter->GameObject.IsReadyToDraw())
                     {
@@ -110,8 +115,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 if (character.Value->ContentId != 0)
                 {
-                    var world = Services.DataManager.GetExcelSheet<World>()?.GetRow(character.Value->HomeWorldId);
-                    if (world != null)
+                    if (Services.DataManager.GetExcelSheet<World>().TryGetRow(character.Value->HomeWorldId, out var world))
                     {
                         result[character.Value->ContentId] = $"{Encoding.UTF8.GetString(character.Value->Name).TrimEnd('\0')}@{world.Name}";
                     }
@@ -132,6 +136,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 Services.CharactersService.PutCharacter(entry.Key, entry.Value);
             }
+
             Services.CharactersService.SaveCharacters();
 
             *CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter = GetCurrentHoveredCharacter();
@@ -152,6 +157,7 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     break;
                 }
+
                 var gameObject = clientObjectManager->GetObjectByIndex((ushort)charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
                 if (gameObject != null)
                 {
@@ -183,6 +189,7 @@ namespace TitleEdit.PluginServices.Lobby
                     {
                         break;
                     }
+
                     var clientObjectIndex = charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex;
                     var gameObject = clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
                     if (gameObject != null)
@@ -228,20 +235,20 @@ namespace TitleEdit.PluginServices.Lobby
                 Services.Log.Debug($"[CreateBattleCharacterDetour] setting assignCompanion {index:X} {result:X}");
                 ClientObjectManager.Instance()->GetObjectByIndex((ushort)result)->SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
             }
-            return result;
 
+            return result;
         }
 
         //Get current hovered character by it's content id because the index is set to 100 when flipping through worlds
         private Character* GetCurrentHoveredCharacter()
         {
-
             var charaSelectCharacterList = CharaSelectCharacterList.Instance();
             var clientObjectManager = ClientObjectManager.Instance();
             if (AgentLobby->HoveredCharacterContentId == 0)
             {
                 return null;
             }
+
             for (var i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
             {
                 if (charaSelectCharacterList->CharacterMapping[i].ContentId == AgentLobby->HoveredCharacterContentId)
@@ -249,6 +256,7 @@ namespace TitleEdit.PluginServices.Lobby
                     return (Character*)clientObjectManager->GetObjectByIndex((ushort)charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
                 }
             }
+
             return null;
         }
 
@@ -273,6 +281,7 @@ namespace TitleEdit.PluginServices.Lobby
                     {
                         RotateCharacter();
                     }
+
                     Services.Log.Debug($"Setting character position {(nint)CurrentCharacter:X}");
                     CurrentCharacter->GameObject.SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
 

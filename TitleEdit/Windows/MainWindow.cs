@@ -10,7 +10,6 @@ namespace TitleEdit.Windows;
 
 public class MainWindow : Window, IDisposable
 {
-
     // We give this window a hidden ID using ##
     // So that the user will see "My Amazing Window" as window title,
     // but for ImGui the ID is "My Amazing Window##With a hidden ID"
@@ -22,7 +21,6 @@ public class MainWindow : Window, IDisposable
             MinimumSize = new Vector2(375, 330),
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
         };
-
     }
 
     private float test1 = 0;
@@ -50,24 +48,29 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle(test1) * Utils.RadToDegreeRatio}");
             ImGui.SliderFloat($"Testing normalizer", ref test2, -720, 720);
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle((float)(test2 * Utils.DegreeToRadRatio)) * Utils.RadToDegreeRatio}");
+            ImGui.TextUnformatted($"Time: {Services.LocationService.TimeOffset}");
             if (ImGui.Button("Remigrate title screens"))
             {
                 Services.MigrationService.MigrateTitleScreenV2Presets();
             }
+
             ImGui.TextUnformatted($"LobbyUiStage {Services.LobbyService.LobbyUiStage}");
             ImGui.TextUnformatted($"TitleCutsceneIsLoaded {Services.LobbyService.TitleCutsceneIsLoaded}");
             if (ImGui.Button("Reload title screen UI"))
             {
                 Services.LobbyService.ReloadTitleScreenUi();
             }
+
             if (ImGui.Button("Reload title screen colors"))
             {
                 Services.LobbyService.RecolorTitleScreenUi();
             }
+
             if (ImGui.Button("Reload title screen"))
             {
                 Services.LobbyService.ReloadTitleScreen();
             }
+
             ImGui.TextUnformatted($"Available expansion {UIState.Instance()->PlayerState.MaxExpansion}");
             if (ImGui.CollapsingHeader("Versions"))
             {

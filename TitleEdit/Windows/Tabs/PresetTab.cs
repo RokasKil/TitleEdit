@@ -41,12 +41,14 @@ namespace TitleEdit.Windows.Tabs
                 {
                     return "0 - None";
                 }
+
                 return $"{mount.RowId} - " + string.Join(" ", mount.Singular.RawString.Split().Select(part =>
                 {
                     if (part.Length > 0)
                     {
                         return part[0].ToString().ToUpper() + part.Substring(1);
                     }
+
                     return part;
                 }));
             });
@@ -91,6 +93,7 @@ namespace TitleEdit.Windows.Tabs
             {
                 currentPresetName = GetPresetEntryName(Services.PresetService.Presets.GetValueOrDefault(currentPreset));
             }
+
             bool stylePopped = false;
 
             GuiUtils.FilterCombo($"##{Title}##presetCombo", currentPresetName, () =>
@@ -100,6 +103,7 @@ namespace TitleEdit.Windows.Tabs
                     ImGui.PopStyleColor();
                     stylePopped = true;
                 }
+
                 foreach (var entry in Services.PresetService.EditablePresetEnumerator)
                 {
                     if (GuiUtils.FilterSelectable($"{GetPresetEntryName(entry.Value)}##{Title}##{entry.Key}", entry.Key == currentPreset))
@@ -107,20 +111,24 @@ namespace TitleEdit.Windows.Tabs
                         SelectPreset(entry.Key);
                         return true;
                     }
+
                     GuiUtils.DrawPresetTooltip(entry.Key);
                 }
+
                 return false;
             });
             if (makingNewPreset && !stylePopped)
             {
                 ImGui.PopStyleColor();
             }
+
             ImGui.SameLine();
             ImGui.BeginDisabled(Services.ClientState.LocalPlayer == null || makingNewPreset);
             if (ImGuiComponents.IconButton($"##{Title}##NewPreset", FontAwesomeIcon.Plus))
             {
                 NewPreset();
             }
+
             ImGui.EndDisabled();
             GuiUtils.HoverTooltip("Create new preset", ImGuiHoveredFlags.AllowWhenDisabled);
             ImGui.SameLine();
@@ -129,6 +137,7 @@ namespace TitleEdit.Windows.Tabs
             {
                 DuplicatePreset(currentPreset);
             }
+
             ImGui.EndDisabled();
             GuiUtils.HoverTooltip("Duplicate preset");
             ImGui.BeginDisabled(makingNewPreset || currentPreset == "");
@@ -142,13 +151,14 @@ namespace TitleEdit.Windows.Tabs
                 {
                     SetupError(ex);
                 }
-
             }
+
             ImGui.SameLine();
             if (ImGui.Button($"Export to file##{Title}"))
             {
                 fileDialogManager.SaveFileDialog($"Export preset##{Title}", ".json", preset.FileName, ".json", ExportPreset, Services.ConfigurationService.LastExportLocation, true);
             }
+
             ImGui.EndDisabled();
             if (ImGui.Button($"Import from clipboard##{Title}"))
             {
@@ -162,6 +172,7 @@ namespace TitleEdit.Windows.Tabs
                     SetupError(ex);
                 }
             }
+
             ImGui.SameLine();
             if (ImGui.Button($"Import from file##{Title}"))
             {
@@ -194,6 +205,7 @@ namespace TitleEdit.Windows.Tabs
             {
                 ImGui.TextUnformatted($"Zone: Unknown");
             }
+
             if (Services.ClientState.LocalPlayer != null)
             {
                 ImGui.SameLine();
@@ -202,6 +214,7 @@ namespace TitleEdit.Windows.Tabs
                 {
                     LoadCurrentTerritory();
                 }
+
                 var currentTerritory = Services.DataManager.GetExcelSheet<TerritoryType>()!.GetRow(Services.ClientState.TerritoryType);
 
                 if (currentTerritory != null)
@@ -230,8 +243,8 @@ namespace TitleEdit.Windows.Tabs
                             return true;
                         }
                     }
-
                 }
+
                 return false;
             });
             if (Services.ClientState.LocalPlayer != null)
@@ -242,29 +255,42 @@ namespace TitleEdit.Windows.Tabs
                 {
                     preset.LocationModel.WeatherId = Services.WeatherService.WeatherId;
                 }
+
                 GuiUtils.HoverTooltip($"Current weather: {weathers[Services.WeatherService.WeatherId]}");
             }
 
             // Time
             // time is stored as a 2 byte integer with HHMM structure
             var time = (int)preset.LocationModel.TimeOffset / 100 * 60 + preset.LocationModel.TimeOffset % 100;
-            if (!liveEditing)
+            if (ImGui.Checkbox($"Use Eorzea time##{Title}", ref preset.LocationModel.UseLiveTime) && liveEditing)
             {
-                if (ImGui.SliderInt($"Time##{Title}", ref time, 0, 24 * 60 - 1, $"{time / 60:00}:{(time % 60):00}", ImGuiSliderFlags.AlwaysClamp | ImGuiSliderFlags.NoInput))
+                UpdateLiveEdit();
+                Services.LobbyService.UpdateLiveEditTime(liveEditingLocationType);
+            }
+
+            ImGuiComponents.HelpMarker("Use in-game time instead of a static time value.");
+
+            if (!preset.LocationModel.UseLiveTime)
+            {
+                if (!liveEditing)
                 {
-                    preset.LocationModel.TimeOffset = (ushort)(time / 60 * 100 + time % 60);
+                    if (ImGui.SliderInt($"Time##{Title}", ref time, 0, 24 * 60 - 1, $"{time / 60:00}:{(time % 60):00}", ImGuiSliderFlags.AlwaysClamp | ImGuiSliderFlags.NoInput))
+                    {
+                        preset.LocationModel.TimeOffset = (ushort)(time / 60 * 100 + time % 60);
+                    }
+                }
+                else
+                {
+                    if (ImGui.DragInt($"Time##LiveEdit##{Title}", ref time, 2, int.MinValue, int.MaxValue, $"{time / 60:00}:{(time % 60):00}", ImGuiSliderFlags.NoInput))
+                    {
+                        time = (ushort)(Utils.Modulo(time, 24 * 60 - 1));
+                        preset.LocationModel.TimeOffset = (ushort)(time / 60 * 100 + time % 60);
+                        UpdateLiveEdit();
+                        Services.LobbyService.UpdateLiveEditTime(liveEditingLocationType);
+                    }
                 }
             }
-            else
-            {
-                if (ImGui.DragInt($"Time##LiveEdit##{Title}", ref time, 2, int.MinValue, int.MaxValue, $"{time / 60:00}:{(time % 60):00}", ImGuiSliderFlags.NoInput))
-                {
-                    time = (ushort)(Utils.Modulo(time, 24 * 60 - 1));
-                    preset.LocationModel.TimeOffset = (ushort)(time / 60 * 100 + time % 60);
-                    UpdateLiveEdit();
-                    Services.LobbyService.UpdateLiveEditTime(liveEditingLocationType);
-                }
-            }
+
             if (Services.ClientState.LocalPlayer != null)
             {
                 var currentTime = Services.LocationService.TimeOffset;
@@ -274,6 +300,7 @@ namespace TitleEdit.Windows.Tabs
                 {
                     preset.LocationModel.TimeOffset = (ushort)currentTime;
                 }
+
                 GuiUtils.HoverTooltip($"Current time: {currentTime / 100:00}:{(currentTime % 100):00}");
             }
 
@@ -281,7 +308,6 @@ namespace TitleEdit.Windows.Tabs
             var bgmId = Services.BgmService.Bgms.ContainsKey(preset.LocationModel.BgmId) ? preset.LocationModel.BgmId : 0;
             GuiUtils.FilterCombo($"Song##{Title}", Services.BgmService.Bgms[bgmId].DisplayName, () =>
             {
-
                 foreach (var entry in Services.BgmService.Bgms)
                 {
                     if (entry.Value.Available)
@@ -295,11 +321,12 @@ namespace TitleEdit.Windows.Tabs
                             Services.LobbyService.UpdateLiveEditBgm(liveEditingLocationType);
                             return true;
                         }
+
                         DrawBgmTooltip(entry.Value);
                     }
                 }
-                return false;
 
+                return false;
             });
             DrawBgmTooltip(Services.BgmService.Bgms[bgmId]);
             if (Services.ClientState.LocalPlayer != null)
@@ -311,6 +338,7 @@ namespace TitleEdit.Windows.Tabs
                     preset.LocationModel.BgmId = Services.BgmService.CurrentSongId;
                     preset.LocationModel.BgmPath = Services.DataManager.GetExcelSheet<BGM>()!.GetRow((uint)Services.BgmService.CurrentSongId)?.File.ToString();
                 }
+
                 if (Services.BgmService.Bgms.TryGetValue(Services.BgmService.CurrentSongId, out var bgm))
                 {
                     GuiUtils.HoverTooltip($"Current song: {bgm.DisplayName}");
@@ -334,6 +362,7 @@ namespace TitleEdit.Windows.Tabs
                     UpdateLiveEdit();
                     Services.LobbyService.UpdateLiveEditCharacterPosition();
                 }
+
                 if (Services.ClientState.LocalPlayer != null)
                 {
                     ImGui.SameLine();
@@ -342,6 +371,7 @@ namespace TitleEdit.Windows.Tabs
                     {
                         preset.LocationModel.Position = Services.ClientState.LocalPlayer!.Position;
                     }
+
                     var pos = Services.ClientState.LocalPlayer!.Position;
                     GuiUtils.HoverTooltip($"Current Position: ({pos.X:F2}; {pos.Y:F2}; {pos.Z:F2})");
                 }
@@ -356,6 +386,7 @@ namespace TitleEdit.Windows.Tabs
                     UpdateLiveEdit();
                     Services.LobbyService.UpdateLiveEditCharacterRotation();
                 }
+
                 if (Services.ClientState.LocalPlayer != null)
                 {
                     ImGui.SameLine();
@@ -364,6 +395,7 @@ namespace TitleEdit.Windows.Tabs
                     {
                         preset.LocationModel.Rotation = Services.ClientState.LocalPlayer!.Rotation;
                     }
+
                     GuiUtils.HoverTooltip($"Current rotation: {Services.ClientState.LocalPlayer!.Rotation * Utils.RadToDegreeRatio:F2}");
                 }
 
@@ -373,6 +405,7 @@ namespace TitleEdit.Windows.Tabs
                     UpdateLiveEdit();
                     Services.LobbyService.UpdateLiveEditCharacterState();
                 }
+
                 if (Services.ClientState.LocalPlayer != null)
                 {
                     ImGui.SameLine();
@@ -384,6 +417,7 @@ namespace TitleEdit.Windows.Tabs
                         {
                             preset.LocationModel.MovementMode = character->MovementMode;
                         }
+
                         GuiUtils.HoverTooltip($"Current mode: {character->MovementMode}");
                     }
                 }
@@ -392,36 +426,38 @@ namespace TitleEdit.Windows.Tabs
                 var mountId = mounts.ContainsKey(preset.LocationModel.Mount.MountId) ? preset.LocationModel.Mount.MountId : 0;
                 var mountLabel = preset.LocationModel.Mount.LastLocationMount ? "Last used mount" : mounts[mountId];
                 if (GuiUtils.FilterCombo($"Mount##{Title}", mountLabel, () =>
-                {
-
-                    if (GuiUtils.FilterSelectable($"Last used mount##{Title}", preset.LocationModel.Mount.LastLocationMount))
                     {
-                        preset.LocationModel.Mount = new() { LastLocationMount = true };
-                        return true;
-                    }
-                    GuiUtils.HoverTooltip("The mount that was summoned when the character logged off, can be unmounted");
-
-                    foreach (var entry in mounts)
-                    {
-                        if (Services.MountService.Mounts.Contains(entry.Key))
+                        if (GuiUtils.FilterSelectable($"Last used mount##{Title}", preset.LocationModel.Mount.LastLocationMount))
                         {
-                            if (GuiUtils.FilterSelectable($"{entry.Value}##{Title}##{entry.Key}", !preset.LocationModel.Mount.LastLocationMount && entry.Key == mountId))
+                            preset.LocationModel.Mount = new() { LastLocationMount = true };
+                            return true;
+                        }
+
+                        GuiUtils.HoverTooltip("The mount that was summoned when the character logged off, can be unmounted");
+
+                        foreach (var entry in mounts)
+                        {
+                            if (Services.MountService.Mounts.Contains(entry.Key))
                             {
-                                preset.LocationModel.Mount = new()
+                                if (GuiUtils.FilterSelectable($"{entry.Value}##{Title}##{entry.Key}", !preset.LocationModel.Mount.LastLocationMount && entry.Key == mountId))
                                 {
-                                    MountId = entry.Key
-                                };
-                                // TODO: fetch chocobo data if chocobo was selected
-                                return true;
+                                    preset.LocationModel.Mount = new()
+                                    {
+                                        MountId = entry.Key
+                                    };
+                                    // TODO: fetch chocobo data if chocobo was selected
+                                    return true;
+                                }
                             }
                         }
-                    }
-                    return false;
-                }))
+
+                        return false;
+                    }))
                 {
                     UpdateLiveEdit();
                     Services.LobbyService.UpdateLiveEditCharacterMount();
                 }
+
                 ImGuiComponents.HelpMarker("You can only select mounts you have unlocked across all of your characters\nTry logging into each character if you think any are missing");
                 if (Services.ClientState.LocalPlayer != null)
                 {
@@ -434,6 +470,7 @@ namespace TitleEdit.Windows.Tabs
                         {
                             Services.LocationService.SetMount(ref preset.LocationModel, &character->Character);
                         }
+
                         GuiUtils.HoverTooltip($"Current mount: {mounts[character->Character.Mount.MountId]}" + (character->Character.Mount.MountId == 1 ? "\nThis will also save your chocobo's gear and color" : ""));
                     }
                 }
@@ -442,7 +479,6 @@ namespace TitleEdit.Windows.Tabs
                 if (GuiUtils.Combo($"Camera follow mode override##{Title}", ref preset.CameraFollowMode))
                 {
                     UpdateLiveEdit();
-
                 }
             }
             else if (preset.LocationModel.LocationType == LocationType.TitleScreen)
@@ -456,6 +492,7 @@ namespace TitleEdit.Windows.Tabs
                 {
                     UpdateLiveEdit();
                 }
+
                 if (Services.ClientState.LocalPlayer != null)
                 {
                     ImGui.SameLine();
@@ -466,6 +503,7 @@ namespace TitleEdit.Windows.Tabs
                         {
                             preset.LocationModel.CameraPosition = Services.CameraService.CurrentCamera->Camera.SceneCamera.Position;
                         }
+
                         var pos = Services.CameraService.CurrentCamera->Camera.SceneCamera.Position;
                         GuiUtils.HoverTooltip($"Current camera Position: ({pos.X:F2}; {pos.Y:F2}; {pos.Z:F2}) ");
                     }
@@ -483,15 +521,18 @@ namespace TitleEdit.Windows.Tabs
                     {
                         UpdateLiveEdit();
                     }
+
                     if (GuiUtils.AngleDrag($"Pitch##{Title}", ref preset.LocationModel.Pitch))
                     {
                         UpdateLiveEdit();
                     }
+
                     if (GuiUtils.AngleDrag($"Roll##{Title}", ref preset.LocationModel.Roll))
                     {
                         UpdateLiveEdit();
                     }
                 }
+
                 if (Services.ClientState.LocalPlayer != null)
                 {
                     ImGui.SameLine();
@@ -506,13 +547,16 @@ namespace TitleEdit.Windows.Tabs
                             preset.LocationModel.Pitch = pitch;
                             preset.LocationModel.Roll = Services.CameraService.CurrentCamera->Roll;
                         }
+
                         GuiUtils.HoverTooltip($"Current camera Orientation: ({yaw * Utils.RadToDegreeRatio:F2}; {pitch * Utils.RadToDegreeRatio:F2}; {Services.CameraService.CurrentCamera->Roll * Utils.RadToDegreeRatio:F2}");
                     }
                 }
+
                 if (ImGui.SliderFloat($"FOV##{Title}", ref preset.LocationModel.Fov, 0.01f, 3f))
                 {
                     UpdateLiveEdit();
                 }
+
                 if (Services.ClientState.LocalPlayer != null)
                 {
                     ImGui.SameLine();
@@ -527,15 +571,16 @@ namespace TitleEdit.Windows.Tabs
                         GuiUtils.HoverTooltip($"Current camera FOV: {Services.CameraService.CurrentCamera->Camera.SceneCamera.RenderCamera->FoV:F2}");
                     }
                 }
+
                 if (GuiUtils.Combo($"Logo##{Title}", ref preset.LocationModel.TitleScreenLogo))
                 {
-
                     UpdateLiveEdit();
                     if (liveEditing)
                     {
                         Services.LobbyService.ReloadTitleScreenUi();
                     }
                 }
+
                 if (GuiUtils.DrawUiColorPicker("Menu color", Title, ref preset.LocationModel.UiColor))
                 {
                     UpdateLiveEdit();
@@ -544,12 +589,13 @@ namespace TitleEdit.Windows.Tabs
                         Services.LobbyService.RecolorTitleScreenUi();
                     }
                 }
+
                 if (GuiUtils.Combo($"Title screen movie##{Title}", ref preset.LocationModel.TitleScreenMovie))
                 {
                     UpdateLiveEdit();
                 }
-                ImGuiComponents.HelpMarker("Defines the cinematic that plays when idling in title screen for 60 seconds");
 
+                ImGuiComponents.HelpMarker("Defines the cinematic that plays when idling in title screen for 60 seconds");
             }
 
             using (var color = ImRaii.PushColor(ImGuiCol.Text, GuiUtils.WarningColor))
@@ -559,6 +605,7 @@ namespace TitleEdit.Windows.Tabs
                     UpdateLiveEdit();
                     LiveEditReloadScene();
                 }
+
                 color.Pop();
 
                 ImGuiComponents.HelpMarker("Experimental feature to save world layout (e.g. changes that happen when you progress MSQ).\nWorks fairly well out in the world but often has issues in instances.\nThis will also increase the preset file size by around 50kb depending on the zone");
@@ -570,6 +617,7 @@ namespace TitleEdit.Windows.Tabs
                         UpdateLiveEdit();
                         LiveEditReloadScene();
                     }
+
                     color.Pop();
                     ImGuiComponents.HelpMarker("The game often leaves \'dead\' vfx objects that will play on load that will play on load.\nUnchecking this option should help with this specific issue.");
                     color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
@@ -579,11 +627,13 @@ namespace TitleEdit.Windows.Tabs
                     }
                 }
             }
+
             if (ImGui.Checkbox($"Save festivals##{Title}", ref preset.LocationModel.SaveFestivals))
             {
                 UpdateLiveEdit();
                 LiveEditReloadScene();
             }
+
             ImGuiComponents.HelpMarker("Festivals are event decorations");
 
             ImGui.TextUnformatted($"Preset file: {preset.FileName}");
@@ -594,6 +644,7 @@ namespace TitleEdit.Windows.Tabs
                     ImGui.TextUnformatted($"Live editing mode enabled!");
                 }
             }
+
             ImGui.EndDisabled();
         }
 
@@ -610,6 +661,7 @@ namespace TitleEdit.Windows.Tabs
                         preset.LocationModel.Inactive = [];
                         preset.LocationModel.VfxTriggerIndexes = [];
                     }
+
                     currentPreset = Services.PresetService.Save(preset);
                     makingNewPreset = false;
                     preset = Services.PresetService.Presets[currentPreset];
@@ -622,8 +674,8 @@ namespace TitleEdit.Windows.Tabs
 
             ImGui.SameLine();
             using (var disabled = ImRaii.Disabled(
-                (preset.LocationModel.LocationType == LocationType.TitleScreen && !Services.LobbyService.CanReloadTitleScreen) ||
-                (preset.LocationModel.LocationType == LocationType.CharacterSelect && Services.LobbyService.CurrentLobbyMap != GameLobbyType.CharaSelect)))
+                       (preset.LocationModel.LocationType == LocationType.TitleScreen && !Services.LobbyService.CanReloadTitleScreen) ||
+                       (preset.LocationModel.LocationType == LocationType.CharacterSelect && Services.LobbyService.CurrentLobbyMap != GameLobbyType.CharaSelect)))
             {
                 if (!liveEditing)
                 {
@@ -633,6 +685,7 @@ namespace TitleEdit.Windows.Tabs
                         liveEditing = true;
                         liveEditingLocationType = preset.LocationModel.LocationType;
                     }
+
                     if (disabled.Success && !buttonsDisabled.Success)
                     {
                         using (ImRaii.Enabled())
@@ -645,10 +698,10 @@ namespace TitleEdit.Windows.Tabs
             {
                 StopLiveEdit();
             }
+
             ImGui.SameLine();
             if (makingNewPreset)
             {
-
                 if (ImGui.Button($"Cancel##{Title}"))
                 {
                     ClearPreset();
@@ -656,7 +709,6 @@ namespace TitleEdit.Windows.Tabs
             }
             else
             {
-
                 if (ImGui.Button($"Delete##{Title}"))
                 {
                     SetupDeleteConfirmation();
@@ -676,10 +728,12 @@ namespace TitleEdit.Windows.Tabs
                 {
                     SetupError(ex);
                 }
+
                 Services.ConfigurationService.LastExportLocation = Path.GetDirectoryName(path);
                 Services.ConfigurationService.Save();
             }
         }
+
         public void ImportPreset(bool confirmed, List<string> path)
         {
             if (confirmed && currentPreset != null && path.Count == 1)
@@ -693,6 +747,7 @@ namespace TitleEdit.Windows.Tabs
                 {
                     SetupError(ex);
                 }
+
                 Services.ConfigurationService.LastImportLocation = Path.GetDirectoryName(path[0]);
                 Services.ConfigurationService.Save();
             }
@@ -726,6 +781,7 @@ namespace TitleEdit.Windows.Tabs
                 currentPreset = "";
                 preset.FileName = "";
             }
+
             StopLiveEdit();
         }
 
@@ -757,6 +813,7 @@ namespace TitleEdit.Windows.Tabs
                 preset.LocationModel.Pitch = pitch;
                 preset.LocationModel.Roll = Services.CameraService.CurrentCamera->Roll;
             }
+
             StopLiveEdit();
         }
 
@@ -810,6 +867,7 @@ namespace TitleEdit.Windows.Tabs
                     SetupError(ex);
                 }
             }
+
             ImGui.SameLine();
             if (ImGui.Button("No")) CloseModal();
         }
@@ -854,6 +912,4 @@ namespace TitleEdit.Windows.Tabs
             }
         }
     }
-
 }
-
