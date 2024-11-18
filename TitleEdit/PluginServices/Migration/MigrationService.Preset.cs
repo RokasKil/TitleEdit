@@ -1,7 +1,9 @@
+using System;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Data.Persistence.Migration;
 using TitleEdit.Utility;
@@ -10,14 +12,14 @@ namespace TitleEdit.PluginServices.Migration
 {
     public partial class MigrationService
     {
-        public static readonly string[] IncludedPresets = { "A Realm Reborn", "Dawntrail", "Endwalker", "Heavensward", "Shadowbringers", "Stormblood" };
+        public static readonly string[] IncludedPresets = ["A Realm Reborn", "Dawntrail", "Endwalker", "Heavensward", "Shadowbringers", "Stormblood"];
         public PresetModel? MigratePreset(string presetTextData) => MigratePreset(presetTextData, out _);
 
         public PresetModel? MigratePreset(string presetTextData, out bool changed)
         {
             changed = false;
             PresetModel? preset = JsonConvert.DeserializeObject<PresetModel>(presetTextData);
-            if (preset == null || preset.Value.Version == null)
+            if (preset?.Version == null)
             {
                 preset = MigrateTitleScreenV2(presetTextData);
                 if (preset == null)
@@ -26,6 +28,7 @@ namespace TitleEdit.PluginServices.Migration
                     return null;
                 }
             }
+
             changed = true;
             switch (preset.Value.Version)
             {
@@ -44,13 +47,24 @@ namespace TitleEdit.PluginServices.Migration
                 default:
                     break;
             }
+
             return preset;
         }
 
         private PresetModel? MigrateTitleScreenV2(string presetTextData)
         {
             Services.Log.Info($"Migrating TitleScreenV2 preset");
-            var oldPreset = JsonConvert.DeserializeObject<TitleEditV2Screen>(presetTextData);
+            TitleEditV2Screen oldPreset;
+            try
+            {
+                oldPreset = JsonConvert.DeserializeObject<TitleEditV2Screen>(presetTextData);
+            }
+            catch (Exception e)
+            {
+                Services.Log.Error(e, $"Failed to read TitleScreenV2 preset: {Convert.ToBase64String(Encoding.UTF8.GetBytes(presetTextData))}");
+                return null;
+            }
+
             if (oldPreset.Name != null &&
                 oldPreset.Logo != null &&
                 oldPreset.TerritoryPath != null &&
@@ -81,6 +95,7 @@ namespace TitleEdit.PluginServices.Migration
                         _ => TitleScreenLogo.None
                     };
                 }
+
                 preset.LocationModel.TerritoryPath = oldPreset.TerritoryPath;
                 preset.LocationModel.TerritoryTypeId = (ushort)Services.LocationService.TerritoryPathsReverse.GetValueOrDefault(oldPreset.TerritoryPath);
                 preset.LocationModel.Position = oldPreset.CameraPos.Value;
@@ -100,6 +115,7 @@ namespace TitleEdit.PluginServices.Migration
                 // Fail if we can't find TerritoryTypeId or BgmId?
                 return preset;
             }
+
             Services.Log.Info($"Failed to migrate TitleScreenV2 preset");
             return null;
         }
@@ -169,6 +185,7 @@ namespace TitleEdit.PluginServices.Migration
                     Services.Log.Info($"Ignoring file {file.Name}");
                 }
             }
+
             return migrated;
         }
     }

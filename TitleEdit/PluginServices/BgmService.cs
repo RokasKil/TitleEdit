@@ -18,7 +18,7 @@ namespace TitleEdit.PluginServices
     // and slightly modified of course
     public class BgmService : AbstractService
     {
-        private const string SheetPath = @"https://docs.google.com/spreadsheets/d/1qAkxPiXWF-EUHbIXdNcO-Ilo2AwLnqvdpW9tjKPitPY/gviz/tq?tqx=out:csv&sheet={0}";
+        private const string SheetPath = @"https://docs.google.com/spreadsheets/d/1s-xJjxqp6pwS7oewNy1aOQnr3gaJbewvIBbyYchZ6No/gviz/tq?tqx=out:csv&sheet={0}";
         private const string SheetFileName = "xiv_bgm_{0}.csv";
         private readonly HttpClient client = new();
 
