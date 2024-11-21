@@ -16,7 +16,7 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-        private delegate void UpdateCharaSelectDisplayDelegate(IntPtr agentLobby, byte p2, byte p3);
+        private delegate void UpdateCharaSelectDisplayDelegate(IntPtr agentLobby, int p2, byte p3);
 
         private delegate nint CreateBattleCharacterDelegate(nint objectManager, uint index, bool assignCompanion);
 
@@ -61,7 +61,7 @@ namespace TitleEdit.PluginServices.Lobby
         }
 
         // Called every frame and is responsible for switching out currently selected character
-        private void UpdateCharaSelectDisplayDetour(nint agentLobby, byte p2, byte p3)
+        private void UpdateCharaSelectDisplayDetour(nint agentLobby, int p2, byte p3)
         {
             //Services.Log.Debug($"UpdateCharaSelectDisplayDetour {p2}, {p3}");
             var preUpdateCharacter = CurrentCharacter;
