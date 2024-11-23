@@ -14,10 +14,13 @@ namespace TitleEdit.PluginServices
 
         public unsafe bool HasExpansion(TitleScreenExpansion expansion)
         {
+            if (expansion == TitleScreenExpansion.ARealmReborn)
+            {
+                return true;
+            }
             var framework = Framework.Instance();
             return IsValidExpansionVersionString(expansion switch
             {
-                TitleScreenExpansion.ARealmReborn => framework->GameVersionString,
                 TitleScreenExpansion.Heavensward => framework->Ex1VersionString,
                 TitleScreenExpansion.Stormblood => framework->Ex2VersionString,
                 TitleScreenExpansion.Shadowbringers => framework->Ex3VersionString,

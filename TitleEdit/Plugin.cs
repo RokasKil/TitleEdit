@@ -73,6 +73,7 @@ public sealed class Plugin : IDalamudPlugin
         Services.PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
 #endif
         Services.Framework.Update += CheckHotkey;
+        MainWindow.IsOpen = true;
     }
 
     public void Dispose()
