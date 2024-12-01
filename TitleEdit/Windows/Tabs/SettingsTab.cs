@@ -48,14 +48,14 @@ namespace TitleEdit.Windows.Tabs
                     Services.LocationService.LayoutSettingsUpdated();
                 }
 
+                color.Pop();
+                using (ImRaii.Enabled()) ImGuiComponents.HelpMarker("Rescanning the layout after something changes may potentially cause stuttering on low-end systems.\nYou can switch that functionality off while specifically in instance");
                 if (SettingCheckbox($"Experimental: Save housing layout##{Title}", ref Services.ConfigurationService.SaveHousing))
                 {
                     Services.LayoutService.SettingsUpdated();
                     Services.LocationService.LayoutSettingsUpdated();
                 }
 
-                color.Pop();
-                using (ImRaii.Enabled()) ImGuiComponents.HelpMarker("Rescanning the layout after something changes may potentially cause stuttering on low-end systems.\nYou can switch that functionality off while specifically in instance");
                 SettingCheckbox($"Save mount##{Title}", ref Services.ConfigurationService.SaveMount);
                 SettingCheckbox($"Save song##{Title}", ref Services.ConfigurationService.SaveBgm);
                 SettingCheckbox($"Save Eorzea time##{Title}", ref Services.ConfigurationService.SaveTime);

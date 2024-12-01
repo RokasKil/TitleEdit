@@ -619,16 +619,16 @@ namespace TitleEdit.Windows.Tabs
 
                     color.Pop();
                     ImGuiComponents.HelpMarker("The game often leaves \'dead\' vfx objects that will play on load that will play on load.\nUnchecking this option should help with this specific issue.");
-                    color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
-                    if (preset.LocationModel.Active?.Count == 0)
-                    {
-                        ImGui.TextWrapped("There is no layout data collected for this preset, you need to go to the zone of this preset and click Apply Current next to the zone name");
-                    }
-
                     if (ImGui.Checkbox($"Experimental: Save housing layout", ref preset.LocationModel.SaveHousing))
                     {
                         UpdateLiveEdit();
                         LiveEditReloadScene();
+                    }
+
+                    color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
+                    if (preset.LocationModel.Active?.Count == 0)
+                    {
+                        ImGui.TextWrapped("There is no layout data collected for this preset, you need to go to the zone of this preset and click Apply Current next to the zone name");
                     }
                 }
             }
@@ -667,6 +667,13 @@ namespace TitleEdit.Windows.Tabs
                         preset.LocationModel.VfxTriggerIndexes = [];
                     }
 
+                    if (preset.LocationModel is not { SaveLayout: true, SaveHousing: true })
+                    {
+                        preset.LocationModel.Furniture = null;
+                        preset.LocationModel.Plots = null;
+                        preset.LocationModel.Estate = null;
+                    }
+                    
                     currentPreset = Services.PresetService.Save(preset);
                     makingNewPreset = false;
                     preset = Services.PresetService.Presets[currentPreset];
@@ -836,10 +843,7 @@ namespace TitleEdit.Windows.Tabs
                 preset.LocationModel.WeatherId = weathers.FirstOrDefault((byte)2);
             }
             
-            if (preset.LocationModel is { SaveLayout: true, SaveHousing: true })
-            {
-                Services.HousingService.SetHousing(ref preset.LocationModel);
-            }
+            Services.HousingService.SetHousing(ref preset.LocationModel);
         }
 
 
