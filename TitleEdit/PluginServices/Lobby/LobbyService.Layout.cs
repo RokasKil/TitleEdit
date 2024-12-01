@@ -100,6 +100,8 @@ namespace TitleEdit.PluginServices.Lobby
                     Services.Log.Debug($"{unknownUUIDs.Count} UUIDs not found in the layout data");
                 }
             }
+            
+            SetupHousing(model);
         }
 
         private void SetActive(ILayoutInstance* instance, bool active, LocationModel model)

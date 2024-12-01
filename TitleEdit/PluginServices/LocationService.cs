@@ -14,12 +14,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Layout;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Extensions;
 using TitleEdit.Utility;
 using static FFXIVClientStructs.FFXIV.Client.Game.Character.DrawDataContainer;
+using HousingFurniture = FFXIVClientStructs.FFXIV.Client.Game.HousingFurniture;
 
 namespace TitleEdit.PluginServices
 {
@@ -151,11 +153,13 @@ namespace TitleEdit.PluginServices
 
                         locationModel.SaveLayout = true;
                         locationModel.SaveFestivals = true;
+                        locationModel.SaveHousing = Services.ConfigurationService.SaveHousing;
                         locationModel.UseVfx = true;
                     }
                     else
                     {
                         locationModel.SaveLayout = false;
+                        locationModel.SaveHousing = false;
                         locationModel.SaveFestivals = false;
                         locationModel.UseVfx = false;
                         locationModel.Active.Clear();
@@ -256,6 +260,11 @@ namespace TitleEdit.PluginServices
             locationModel.Inactive = inactive;
             locationModel.VfxTriggerIndexes = vfxTriggerIndexes;
             locationModel.Festivals = new Span<uint>(Services.LayoutService.LayoutManager->ActiveFestivals.GetPointer(0), 4).ToArray();
+
+            if (locationModel is { SaveLayout: true, SaveHousing: true })
+            {
+                Services.HousingService.SetHousing(ref locationModel);
+            }
         }
 
         public void Save(ulong localContentId)

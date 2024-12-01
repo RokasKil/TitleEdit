@@ -8,12 +8,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using Lumina.Excel.Sheets;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
+using HousingFurniture = Lumina.Excel.Sheets.HousingFurniture;
 
 namespace TitleEdit.Windows.Tabs
 {
@@ -622,6 +624,12 @@ namespace TitleEdit.Windows.Tabs
                     {
                         ImGui.TextWrapped("There is no layout data collected for this preset, you need to go to the zone of this preset and click Apply Current next to the zone name");
                     }
+
+                    if (ImGui.Checkbox($"Experimental: Save housing layout", ref preset.LocationModel.SaveHousing))
+                    {
+                        UpdateLiveEdit();
+                        LiveEditReloadScene();
+                    }
                 }
             }
 
@@ -826,6 +834,11 @@ namespace TitleEdit.Windows.Tabs
             if (!weathers.Contains(preset.LocationModel.WeatherId))
             {
                 preset.LocationModel.WeatherId = weathers.FirstOrDefault((byte)2);
+            }
+            
+            if (preset.LocationModel is { SaveLayout: true, SaveHousing: true })
+            {
+                Services.HousingService.SetHousing(ref preset.LocationModel);
             }
         }
 

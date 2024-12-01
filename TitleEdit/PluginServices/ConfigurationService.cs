@@ -20,6 +20,7 @@ public class ConfigurationService
     public int SavePeriod = 10;
     public bool SaveLayout = true;
     public bool SaveLayoutInInstance = true;
+    public bool SaveHousing = true;
     public bool SaveMount = true;
     public bool SaveBgm = true;
     public bool SaveTime = true;
