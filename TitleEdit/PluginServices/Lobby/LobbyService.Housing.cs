@@ -13,8 +13,9 @@ namespace TitleEdit.PluginServices.Lobby;
 
 public unsafe partial class LobbyService
 {
+    // TitleEdit FurnitureOwnerId - can be used to recognise furniture spawned by us, not currently used
     const uint FurnitureOwnerId = 0x54455046;
-    
+
     [Signature(" E8 ?? ?? ?? ?? FF C5 48 85 C0 0F 84")]
     private readonly delegate*unmanaged<HousingFurniture*, HousingFurniture*, void*, int, HousingObject*> spawnFurnitureObject = null!;
 
@@ -22,14 +23,14 @@ public unsafe partial class LobbyService
     private readonly delegate*unmanaged<HousingManager*, uint, void> initializeHousingLayout = null!;
 
     [Signature("0F B7 0D ?? ?? ?? ?? 66 0F 45 C8 48 89 7C 24", ScanType = ScanType.StaticAddress)]
-    private readonly nint territoryTypeAddress;
+    private readonly nint territoryTypeAddress = 0;
 
     [Signature("E8 ?? ?? ?? ?? 41 8B 4E 20")]
     private readonly delegate*unmanaged<int, uint, ushort, int, byte, void> setInteriorFixture = null!;
 
     private void InitializeHousingLayout(LocationModel model)
     {
-        
+        // Set the territory type the housing manager will be using
         var territory = model.Plots != null ? model.LayoutTerritoryTypeId : 649U;
         SafeMemory.Write(territoryTypeAddress, territory);
 
@@ -46,13 +47,13 @@ public unsafe partial class LobbyService
         }
     }
 
+    // Initialize housing and load furniture
     private void SetupHousing(LocationModel model)
     {
         InitializeHousingLayout(model);
-        
+
         if (model.SaveLayout == false || model.SaveHousing == false) return;
         LoadEstate(model);
-        LoadPlots(model);
         SpawnFurniture(model);
     }
 
@@ -85,29 +86,29 @@ public unsafe partial class LobbyService
     private void SetPlot(HousingPlotModel plotModel)
     {
         if (plotModel.Plot >= 60) return;
-        
+
         var housingManager = HousingManager.Instance();
         if (housingManager == null) return;
         if (housingManager->OutdoorTerritory == null) return;
         var layoutManager = LayoutWorld.Instance()->ActiveLayout;
         if (layoutManager == null) return;
         if (layoutManager->OutdoorAreaData == null) return;
-        
+
         for (byte fixtureIndex = 0; fixtureIndex < plotModel.Fixtures.Length && fixtureIndex < 8; fixtureIndex++)
         {
             layoutManager->OutdoorAreaData->SetFixture(plotModel.Plot + 1U, fixtureIndex, plotModel.Fixtures[fixtureIndex].FixtureId);
             layoutManager->OutdoorAreaData->SetFixtureStain(plotModel.Plot + 1U, fixtureIndex, plotModel.Fixtures[fixtureIndex].StainId);
         }
     }
-    
+
+    // Load outdoor houses
     private void LoadPlots(LocationModel model)
     {
+        if (model.SaveLayout == false || model.SaveHousing == false) return;
         if (model.Plots is not { Count: > 0 }) return;
         foreach (var plotModel in model.Plots)
         {
-            Services.Framework.RunOnTick(() => {
-                SetPlot(plotModel);
-            }, delayTicks: plotModel.Plot * 2);
+            SetPlot(plotModel);
         }
     }
 

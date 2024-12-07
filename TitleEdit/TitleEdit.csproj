@@ -2,7 +2,7 @@
 <Project Sdk="Dalamud.NET.Sdk/11.0.0">
 
     <PropertyGroup>
-        <Version>3.0.3.3</Version>
+        <Version>3.0.4.0</Version>
         <PackageProjectUrl>https://github.com/RokasKil/TitleEdit</PackageProjectUrl>
     </PropertyGroup>
 

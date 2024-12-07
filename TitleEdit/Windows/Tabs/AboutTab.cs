@@ -26,6 +26,7 @@ namespace TitleEdit.Windows.Tabs
                 WrappedBulletText("You can shift+drag most drag inputs to change values rapidly");
                 WrappedBulletText("You can press ctrl+T to open this window while not logged in");
             }
+
             if (ImGui.CollapsingHeader($"Known Issues##{Title}"))
             {
                 ImGui.TextWrapped("Unless specifically otherwise said, these issues only affect the character or title screen");
@@ -41,16 +42,17 @@ namespace TitleEdit.Windows.Tabs
                                       " Penumbra's general settings until it gets fixed.");
                 }
             }
+
             if (ImGui.CollapsingHeader($"Planned Features##{Title}"))
             {
                 ImGui.TextWrapped("These are not confirmed or researched, or have any date planned. They're something I personally think would be nice to have");
                 WrappedBulletText("Character select companion support");
                 WrappedBulletText("Character select ornament support");
                 WrappedBulletText("Character select emote support");
-                WrappedBulletText("House and housing zone furnishing placement saving support for presets with layouts");
                 WrappedBulletText("Layout editor allowing you to turn off/on certain parts of the map");
                 WrappedBulletText("Festival selector for presets");
             }
+
             if (ImGui.CollapsingHeader($"Credits##{Title}"))
             {
                 WrappedBulletText("Speedas - initial Dawntrail update, full plugin rewrite to 3.0");
@@ -58,7 +60,6 @@ namespace TitleEdit.Windows.Tabs
                 WrappedBulletText("perchbird - Custom title screens and supporting features, maintaining the plugin before Dawntrail");
                 WrappedBulletText("ff-meli - BGM now playing code");
                 WrappedBulletText("goat - being a caprine individual");
-
             }
         }
 

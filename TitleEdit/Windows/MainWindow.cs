@@ -82,6 +82,11 @@ public class MainWindow : Window, IDisposable
                 ImGui.TextUnformatted($"Endwalker: {framework->Ex4VersionString} {framework->Ex4VersionString.Length}");
                 ImGui.TextUnformatted($"Dawntrail: {framework->Ex5VersionString} {framework->Ex5VersionString.Length}");
             }
+
+            if (ImGui.Button("Housing test"))
+            {
+                Services.LobbyService.HousingTest();
+            }
         }
     }
 }

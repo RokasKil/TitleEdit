@@ -17,9 +17,13 @@ namespace TitleEdit.PluginServices.Lobby
         private readonly delegate* unmanaged<void> lobbyCameraCharacterSelectedNative = null!;
 
         private delegate void SetCameraCurveMidPointDelegate(LobbyCameraExpanded* self, float value);
+
         private delegate void CalculateCameraCurveLowAndHighPointDelegate(LobbyCameraExpanded* self, float value);
+
         private delegate void LobbySceneLoadedDelegate(ulong p1, int p2, float p3, ushort p4, uint p5, uint p6, uint p7);
+
         private delegate void LobbyCameraFixOnDelegate(LobbyCameraExpanded* self, Vector3 cameraPos, Vector3 focusPos, float fovY);
+
         private delegate float CalculateLobbyCameraLookAtYDelegate(LobbyCameraExpanded* self, float distance, CurvePoint* lowPoint, CurvePoint* midPoint, CurvePoint* highPoint);
 
         private Hook<SetCameraCurveMidPointDelegate> setCameraCurveMidPointHook = null!;
@@ -28,9 +32,7 @@ namespace TitleEdit.PluginServices.Lobby
         private Hook<LobbyCameraFixOnDelegate> lobbyCameraFixOnHook = null!;
         private Hook<CalculateLobbyCameraLookAtYDelegate> calculateLobbyCameraLookAtYHook = null!;
 
-        private CameraFollowMode CameraFollowMode => characterSelectLocationModel.CameraFollowMode == CameraFollowMode.Inherit ?
-            Services.ConfigurationService.CameraFollowMode :
-            characterSelectLocationModel.CameraFollowMode;
+        private CameraFollowMode CameraFollowMode => characterSelectLocationModel.CameraFollowMode == CameraFollowMode.Inherit ? Services.ConfigurationService.CameraFollowMode : characterSelectLocationModel.CameraFollowMode;
 
         private LobbyCameraExpanded* LobbyCamera => (LobbyCameraExpanded*)(FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager.Instance()->LobbCamera);
 
@@ -77,7 +79,7 @@ namespace TitleEdit.PluginServices.Lobby
 
             // Called in character select to decide the Y coordinate of the lookAt vector based on the current distance and 3 points
             // We clamp the distance to the final point so the camera doesn't go haywire with our extended zoom but still keeps the vanilla curve
-            calculateLobbyCameraLookAtYHook = Hook<CalculateLobbyCameraLookAtYDelegate>("48 83 EC ?? F3 41 0F 10 01 0F 28 D1", calculateLobbyCameraLookAtYDetour);
+            calculateLobbyCameraLookAtYHook = Hook<CalculateLobbyCameraLookAtYDelegate>("48 83 EC ?? F3 41 0F 10 01 0F 28 D1", CalculateLobbyCameraLookAtYDetour);
         }
 
         private void CameraTick()
@@ -95,13 +97,13 @@ namespace TitleEdit.PluginServices.Lobby
                     // Tell camera to look at last recorded position
                     CameraLookAtLastPosition();
                 }
+
                 if (shouldSetLookAtY)
                 {
                     // Reset camera lookAt Y position
                     shouldSetLookAtY = false;
                     ForceSetLookAtY();
                 }
-
             }
             else if (CurrentLobbyMap == GameLobbyType.Title)
             {
@@ -126,6 +128,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 lookAt = currentChar->GameObject.Position;
             }
+
             // If drawobject is already made but curve is not enabled that means the game skipped telling camera that we have a character selected
             // because of SetCharSelectCurrentWorldDetour setting the character pointer directly, should figure out how to do this properly,
             // but it's an inlined hell and I don't really want to
@@ -133,6 +136,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 lobbyCameraCharacterSelectedNative();
             }
+
             //Services.Log.Verbose($"[CameraFollowCharacter] {currentChar->GameObject.IsReadyToDraw()} {currentChar->GameObject.RenderFlags} {(drawObject != null ? drawObject->DrawObject.IsVisible : null)}");
             lookAt.Y = LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
             LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(lookAt);
@@ -140,7 +144,6 @@ namespace TitleEdit.PluginServices.Lobby
             lastMidPoint = LobbyCamera->MidPoint.Value;
             lastHighPoint = LobbyCamera->HighPoint.Value;
             lastLookAt = LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector;
-
         }
 
         // Sets default LookAt and Curve values for currently loaded chracter select location
@@ -190,7 +193,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Does some simpleish math which and I would rather call the native code for than rewrite into c#
         private void ForceSetLookAtY()
         {
-            LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y = calculateLobbyCameraLookAtYDetour(
+            LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y = CalculateLobbyCameraLookAtYDetour(
                 LobbyCamera,
                 LobbyCamera->LobbyCamera.Distance,
                 &LobbyCamera->LowPoint,
@@ -199,7 +202,7 @@ namespace TitleEdit.PluginServices.Lobby
             Services.Log.Debug($"Set lookAtVectorY to {LobbyCamera->LobbyCamera.Camera.SceneCamera.LookAtVector.Y} {LobbyCamera->LowPoint.Value} {LobbyCamera->MidPoint.Value} {LobbyCamera->HighPoint.Value}");
         }
 
-        private float calculateLobbyCameraLookAtYDetour(LobbyCameraExpanded* self, float distance, CurvePoint* lowPoint, CurvePoint* midPoint, CurvePoint* highPoint)
+        private float CalculateLobbyCameraLookAtYDetour(LobbyCameraExpanded* self, float distance, CurvePoint* lowPoint, CurvePoint* midPoint, CurvePoint* highPoint)
         {
             // Clamp the distance value to the highpoint to keep vanilla curve and avoid weird behaviour when going past it with extended zoom
             return calculateLobbyCameraLookAtYHook.Original(self, MathF.Min(distance, highPoint->Position), lowPoint, midPoint, highPoint);
@@ -289,6 +292,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 cameraYOffset = 0;
             }
+
             //Services.Log.Debug($"SetCameraCurveMidPointDetour {value}");
             self->MidPoint.Value = value + cameraYOffset;
         }

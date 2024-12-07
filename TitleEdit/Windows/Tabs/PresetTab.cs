@@ -225,7 +225,13 @@ namespace TitleEdit.Windows.Tabs
                     GuiUtils.HoverTooltip($"Zone: Unknown");
                 }
             }
+#if DEBUG
 
+            if (ImGui.Button($"Save layout##{Title}##Zone"))
+            {
+                Services.LocationService.SetLayout(ref preset.LocationModel);
+            }
+#endif
             // Weather
             var weatherId = weathers.ContainsKey(preset.LocationModel.WeatherId) ? preset.LocationModel.WeatherId : 2;
             GuiUtils.Combo($"Weather##{Title}", weathers[preset.LocationModel.WeatherId], () =>
@@ -619,13 +625,13 @@ namespace TitleEdit.Windows.Tabs
 
                     color.Pop();
                     ImGuiComponents.HelpMarker("The game often leaves \'dead\' vfx objects that will play on load that will play on load.\nUnchecking this option should help with this specific issue.");
+                    color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
                     if (ImGui.Checkbox($"Experimental: Save housing layout", ref preset.LocationModel.SaveHousing))
                     {
                         UpdateLiveEdit();
                         LiveEditReloadScene();
                     }
 
-                    color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
                     if (preset.LocationModel.Active?.Count == 0)
                     {
                         ImGui.TextWrapped("There is no layout data collected for this preset, you need to go to the zone of this preset and click Apply Current next to the zone name");
@@ -673,7 +679,7 @@ namespace TitleEdit.Windows.Tabs
                         preset.LocationModel.Plots = null;
                         preset.LocationModel.Estate = null;
                     }
-                    
+
                     currentPreset = Services.PresetService.Save(preset);
                     makingNewPreset = false;
                     preset = Services.PresetService.Presets[currentPreset];
@@ -842,7 +848,7 @@ namespace TitleEdit.Windows.Tabs
             {
                 preset.LocationModel.WeatherId = weathers.FirstOrDefault((byte)2);
             }
-            
+
             Services.HousingService.SetHousing(ref preset.LocationModel);
         }
 
