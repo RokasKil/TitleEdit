@@ -8,12 +8,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using Lumina.Excel.Sheets;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
+using HousingFurniture = Lumina.Excel.Sheets.HousingFurniture;
 
 namespace TitleEdit.Windows.Tabs
 {
@@ -617,6 +619,12 @@ namespace TitleEdit.Windows.Tabs
 
                     color.Pop();
                     ImGuiComponents.HelpMarker("The game often leaves \'dead\' vfx objects that will play on load that will play on load.\nUnchecking this option should help with this specific issue.");
+                    if (ImGui.Checkbox($"Experimental: Save housing layout", ref preset.LocationModel.SaveHousing))
+                    {
+                        UpdateLiveEdit();
+                        LiveEditReloadScene();
+                    }
+
                     color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
                     if (preset.LocationModel.Active?.Count == 0)
                     {
@@ -659,6 +667,13 @@ namespace TitleEdit.Windows.Tabs
                         preset.LocationModel.VfxTriggerIndexes = [];
                     }
 
+                    if (preset.LocationModel is not { SaveLayout: true, SaveHousing: true })
+                    {
+                        preset.LocationModel.Furniture = null;
+                        preset.LocationModel.Plots = null;
+                        preset.LocationModel.Estate = null;
+                    }
+                    
                     currentPreset = Services.PresetService.Save(preset);
                     makingNewPreset = false;
                     preset = Services.PresetService.Presets[currentPreset];
@@ -827,6 +842,8 @@ namespace TitleEdit.Windows.Tabs
             {
                 preset.LocationModel.WeatherId = weathers.FirstOrDefault((byte)2);
             }
+            
+            Services.HousingService.SetHousing(ref preset.LocationModel);
         }
 
 

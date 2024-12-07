@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Lobby;
 
@@ -39,6 +40,7 @@ namespace TitleEdit.Data.Persistence
         public uint[] Festivals = new uint[4];
         public bool SaveLayout = false;
         public bool UseVfx = true;
+        public bool SaveHousing = false;
         public bool SaveFestivals = true;
         // Used to force the title screen expansion to specific one and let the game handle the scene loading natively
         public TitleScreenExpansion? TitleScreenOverride = null;
@@ -46,6 +48,10 @@ namespace TitleEdit.Data.Persistence
         public TitleScreenMovie TitleScreenMovie = TitleScreenMovie.Unspecified;
         public bool UseLiveTime = false;
 
+        public List<HousingFurnitureModel>? Furniture = null;
+        public List<HousingPlotModel>? Plots = null;
+        public HousingEstateModel? Estate = null;
+        
         // Only set when used with a preset
         [NonSerialized]
         public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;
@@ -84,6 +90,9 @@ namespace TitleEdit.Data.Persistence
                        Equals(Festivals, other.Festivals) &&
                        Equals(TitleScreenOverride, other.TitleScreenOverride) &&
                        Equals(UiColor, other.UiColor) &&
+                       Equals(Furniture, other.Furniture) &&
+                       Equals(Plots, other.Plots) &&
+                       Equals(Estate, other.Estate) &&
                        Equals(UseLiveTime, other.UseLiveTime);
             }
 
@@ -113,6 +122,9 @@ namespace TitleEdit.Data.Persistence
             hash.Add(Inactive);
             hash.Add(VfxTriggerIndexes);
             hash.Add(Festivals);
+            hash.Add(Furniture);
+            hash.Add(Plots);
+            hash.Add(Estate);
             return hash.ToHashCode();
         }
     }

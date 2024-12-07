@@ -42,6 +42,7 @@ namespace TitleEdit.Utility
         public static CameraService CameraService { get; set; } = null!;
         public static GroupService GroupService { get; set; } = null!;
         public static ExpansionService ExpansionService { get; set; } = null!;
+        public static HousingService HousingService { get; set; } = null!;
         public static Plugin Plugin { get; set; } = null!;
 
         private static List<AbstractService> ServiceList = [];
@@ -68,6 +69,7 @@ namespace TitleEdit.Utility
                 ServiceList.Add(CameraService = new());
                 ServiceList.Add(GroupService = new());
                 ServiceList.Add(ExpansionService = new());
+                ServiceList.Add(HousingService = new());
             }
             catch
             {
