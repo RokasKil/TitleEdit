@@ -40,7 +40,7 @@ namespace TitleEdit.Data.Persistence
         public uint[] Festivals = new uint[4];
         public bool SaveLayout = false;
         public bool UseVfx = true;
-        public bool SaveHousing = false;
+        public bool SaveHousing = true;
         public bool SaveFestivals = true;
         // Used to force the title screen expansion to specific one and let the game handle the scene loading natively
         public TitleScreenExpansion? TitleScreenOverride = null;
@@ -51,7 +51,7 @@ namespace TitleEdit.Data.Persistence
         public List<HousingFurnitureModel>? Furniture = null;
         public List<HousingPlotModel>? Plots = null;
         public HousingEstateModel? Estate = null;
-        
+
         // Only set when used with a preset
         [NonSerialized]
         public CameraFollowMode CameraFollowMode = CameraFollowMode.Inherit;
