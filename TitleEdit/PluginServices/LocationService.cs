@@ -154,7 +154,6 @@ namespace TitleEdit.PluginServices
                         locationModel.SaveLayout = true;
                         locationModel.SaveFestivals = true;
                         locationModel.SaveHousing = Services.ConfigurationService.SaveHousing;
-                        locationModel.UseVfx = true;
                     }
                     else
                     {
@@ -166,6 +165,9 @@ namespace TitleEdit.PluginServices
                         locationModel.Inactive.Clear();
                         locationModel.VfxTriggerIndexes.Clear();
                         locationModel.Festivals = [];
+                        locationModel.Furniture = null;
+                        locationModel.Plots = null;
+                        locationModel.Estate = null;
                     }
 
                     locations[lastContentId] = locationModel;
@@ -366,6 +368,11 @@ namespace TitleEdit.PluginServices
                 if (!locationModel.BgmPath.IsNullOrEmpty() && !Services.DataManager.FileExists(locationModel.BgmPath))
                 {
                     throw new($"BGM file '{locationModel.BgmPath}' not found");
+                }
+
+                if (locationModel is { Estate: not null, Plots: not null })
+                {
+                    throw new($"Location has both plot and estate data defined");
                 }
             }
             else if (!locationModel.TitleScreenOverride.IsInAvailableExpansion())

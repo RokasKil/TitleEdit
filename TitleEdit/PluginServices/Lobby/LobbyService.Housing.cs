@@ -6,8 +6,10 @@ using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.Interop;
+using Lumina.Excel.Sheets;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
+using HousingFurniture = FFXIVClientStructs.FFXIV.Client.Game.HousingFurniture;
 
 namespace TitleEdit.PluginServices.Lobby;
 
@@ -28,10 +30,23 @@ public unsafe partial class LobbyService
     [Signature("E8 ?? ?? ?? ?? 41 8B 4E 20")]
     private readonly delegate*unmanaged<int, uint, ushort, int, byte, void> setInteriorFixture = null!;
 
+    // Initialize housing system, this call will also reset it and clean out all furniture
     private void InitializeHousingLayout(LocationModel model)
     {
-        // Set the territory type the housing manager will be using
-        var territory = model.Plots != null ? model.LayoutTerritoryTypeId : 649U;
+        Services.Log.Debug("[InitializeHousingLayout]");
+        // Set the territory type the housing manager will be using, if we aren't in a housing zone use a hardcoded value
+        // Game shits itself if we pass a value that isn't housing related and then switch to a indoor housing zone
+        // even though it does the same natively when you're logged in and moving between levels, which means we're doing sometihng worng
+        // to work around that we just always keep it housing by hardcoding it here
+        var territory = 649U; // Private Cotage - Shirogane
+        if (Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(model.TerritoryTypeId, out var territoryTypeRow))
+        {
+            if (territoryTypeRow.TerritoryIntendedUse.RowId == 13) // Housing zone
+            {
+                territory = model.TerritoryTypeId;
+            }
+        }
+
         SafeMemory.Write(territoryTypeAddress, territory);
 
         try
@@ -47,19 +62,10 @@ public unsafe partial class LobbyService
         }
     }
 
-    // Initialize housing and load furniture
-    private void SetupHousing(LocationModel model)
-    {
-        InitializeHousingLayout(model);
-
-        if (model.SaveLayout == false || model.SaveHousing == false) return;
-        LoadEstate(model);
-        SpawnFurniture(model);
-    }
-
+    // Initialize estate fixtures and lighting
     private void LoadEstate(LocationModel model)
     {
-        if (model.Estate == null) return;
+        if (model.SaveLayout == false || model.SaveHousing == false || model.Estate == null) return;
 
         var housingManager = HousingManager.Instance();
         if (housingManager->IndoorTerritory == null) return;
@@ -83,6 +89,7 @@ public unsafe partial class LobbyService
         }
     }
 
+    // Load individual plot
     private void SetPlot(HousingPlotModel plotModel)
     {
         if (plotModel.Plot >= 60) return;
@@ -112,9 +119,10 @@ public unsafe partial class LobbyService
         }
     }
 
-    private void SpawnFurniture(LocationModel model)
+    // Load furniture
+    private void LoadFurniture(LocationModel model)
     {
-        if (model.Furniture is not { Count: > 0 }) return;
+        if (model.SaveLayout == false || model.SaveHousing == false || model.Furniture is not { Count: > 0 }) return;
         var housingManager = HousingManager.Instance();
         if (housingManager == null)
         {

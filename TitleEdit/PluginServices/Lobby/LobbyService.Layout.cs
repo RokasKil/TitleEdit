@@ -43,13 +43,13 @@ namespace TitleEdit.PluginServices.Lobby
             layoutManagerInitHousingHook = Hook<LayoutManagerInitHousingDelegate>("40 57 48 83 EC ?? 48 8B B9 ?? ?? ?? ?? 4C 8B C7", LayoutManagerInitHousingDetour);
         }
 
-        private bool TryGetCurrentLocationModel(out LocationModel model)
+        private bool TryGetCurrentLocationModel(out LocationModel model, bool alwaysGetTitle = false)
         {
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 model = characterSelectLocationModel;
             }
-            else if (CurrentLobbyMap == GameLobbyType.Title && ShouldModifyTitleScreen)
+            else if (CurrentLobbyMap == GameLobbyType.Title && (alwaysGetTitle || ShouldModifyTitleScreen))
             {
                 model = titleScreenLocationModel;
             }
@@ -66,10 +66,17 @@ namespace TitleEdit.PluginServices.Lobby
         {
             Services.Log.Debug($"[LayoutManagerInitWeatherDetour] {layoutManagerEnvironment:X16}");
             layoutManagerInitWeatherHook.Original(layoutManagerEnvironment);
-            if (TryGetCurrentLocationModel(out var model))
+
+            if (TryGetCurrentLocationModel(out var model, true))
+            {
+                InitializeHousingLayout(model);
+            }
+
+            if (TryGetCurrentLocationModel(out model))
             {
                 Services.WeatherService.WeatherId = model.WeatherId;
-                SetupHousing(model);
+                LoadEstate(model);
+                LoadFurniture(model);
             }
         }
 
@@ -87,7 +94,9 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (TryGetCurrentLocationModel(out var model))
             {
-                SetupHousing(model);
+                InitializeHousingLayout(model);
+                LoadEstate(model);
+                LoadFurniture(model);
                 LoadPlots(model);
             }
         }

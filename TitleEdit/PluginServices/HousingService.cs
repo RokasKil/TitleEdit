@@ -9,32 +9,38 @@ public class HousingService : AbstractService
 {
     public unsafe void SetHousing(ref LocationModel model)
     {
+        model.Furniture = null;
+        model.Plots = null;
+        model.Estate = null;
+
         var housingManager = HousingManager.Instance();
+
         if (housingManager == null) return;
-        Span<FFXIVClientStructs.FFXIV.Client.Game.HousingFurniture> furnitureList = null;
+        Span<HousingFurniture> furnitureList = null;
 
         if (housingManager->IndoorTerritory != null)
         {
             furnitureList = housingManager->IndoorTerritory->Furniture;
-            
+
             var layoutManager = LayoutWorld.Instance()->ActiveLayout;
             if (layoutManager != null && layoutManager->IndoorAreaData != null)
             {
                 model.Estate = new HousingEstateModel
                 {
                     LightLevel = layoutManager->IndoorAreaData->LightLevel,
-                    Floors = [
+                    Floors =
+                    [
                         layoutManager->IndoorAreaData->Floor0,
                         layoutManager->IndoorAreaData->Floor1,
                         layoutManager->IndoorAreaData->Floor2,
                     ]
                 };
             }
-        } 
+        }
         else if (housingManager->OutdoorTerritory != null)
         {
             furnitureList = housingManager->OutdoorTerritory->Furniture;
-            
+
             var layoutManager = LayoutWorld.Instance()->ActiveLayout;
             if (layoutManager != null && layoutManager->OutdoorAreaData != null)
             {
