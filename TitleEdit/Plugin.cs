@@ -132,6 +132,10 @@ public sealed class Plugin : IDalamudPlugin
             && canChangeUiVisibility)
         {
             ToggleConfigUI();
+
+#if DEBUG
+            MainWindow.IsOpen = ConfigWindow.IsOpen;
+#endif
             canChangeUiVisibility = false;
             Task.Delay(200).ContinueWith(_ => canChangeUiVisibility = true);
         }

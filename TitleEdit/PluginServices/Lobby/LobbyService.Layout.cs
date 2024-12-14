@@ -67,12 +67,7 @@ namespace TitleEdit.PluginServices.Lobby
             Services.Log.Debug($"[LayoutManagerInitWeatherDetour] {layoutManagerEnvironment:X16}");
             layoutManagerInitWeatherHook.Original(layoutManagerEnvironment);
 
-            if (TryGetCurrentLocationModel(out var model, true))
-            {
-                InitializeHousingLayout(model);
-            }
-
-            if (TryGetCurrentLocationModel(out model))
+            if (TryGetCurrentLocationModel(out var model))
             {
                 Services.WeatherService.WeatherId = model.WeatherId;
                 LoadEstate(model);
@@ -95,9 +90,12 @@ namespace TitleEdit.PluginServices.Lobby
             if (TryGetCurrentLocationModel(out var model))
             {
                 InitializeHousingLayout(model);
-                LoadEstate(model);
-                LoadFurniture(model);
-                LoadPlots(model);
+                Services.Framework.RunOnTick(() =>
+                {
+                    LoadEstate(model);
+                    LoadFurniture(model);
+                    LoadPlots(model);
+                }, delayTicks: 1);
             }
         }
 

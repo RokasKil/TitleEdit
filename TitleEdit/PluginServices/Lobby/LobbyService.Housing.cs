@@ -31,17 +31,18 @@ public unsafe partial class LobbyService
     private readonly delegate*unmanaged<int, uint, ushort, int, byte, void> setInteriorFixture = null!;
 
     // Initialize housing system, this call will also reset it and clean out all furniture
+    // WARNING: It's important to not spawn any furniture on the same frame this call happened because it needs a frame to fully initialize
+    // haven't actually looked what is being initialized, it might not be a frame but depend on pc specs
+    // doesn't apply if housing was already initialized and you're only using this to clean it up
     private void InitializeHousingLayout(LocationModel? model = null)
     {
         Services.Log.Debug("[InitializeHousingLayout]");
-        // Set the territory type the housing manager will be using, if we aren't in a housing zone use a hardcoded value
-        // Game shits itself if we pass a value that isn't housing related and then switch to a indoor housing zone
-        // even though it does the same natively when you're logged in and moving between levels, which means we're doing sometihng worng
-        // to work around that we just always keep it housing by hardcoding it here
+        // Set the territory type the housing manager will be using
+        // We always keep an interior value hardcoded unless the preset has a territory type which is an outdoor housing zone
         var territory = 649U; // Private Cotage - Shirogane
         if (model != null && Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(model.Value.TerritoryTypeId, out var territoryTypeRow))
         {
-            if (territoryTypeRow.TerritoryIntendedUse.RowId == 13) // Housing zone
+            if (territoryTypeRow.TerritoryIntendedUse.RowId == 13) // Outdoor housing zone
             {
                 territory = model.Value.TerritoryTypeId;
             }
@@ -66,7 +67,7 @@ public unsafe partial class LobbyService
     private void LoadEstate(LocationModel model)
     {
         if (model.SaveLayout == false || model.SaveHousing == false || model.Estate == null) return;
-
+        Services.Log.Debug("[LoadEstate]");
         var housingManager = HousingManager.Instance();
         if (housingManager->IndoorTerritory == null) return;
 
@@ -113,6 +114,8 @@ public unsafe partial class LobbyService
     {
         if (model.SaveLayout == false || model.SaveHousing == false) return;
         if (model.Plots is not { Count: > 0 }) return;
+
+        Services.Log.Debug("[LoadPlots]");
         foreach (var plotModel in model.Plots)
         {
             SetPlot(plotModel);
@@ -123,6 +126,7 @@ public unsafe partial class LobbyService
     private void LoadFurniture(LocationModel model)
     {
         if (model.SaveLayout == false || model.SaveHousing == false || model.Furniture is not { Count: > 0 }) return;
+        Services.Log.Debug("[LoadFurniture]");
         var housingManager = HousingManager.Instance();
         if (housingManager == null)
         {

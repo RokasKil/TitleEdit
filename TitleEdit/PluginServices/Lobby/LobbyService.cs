@@ -174,6 +174,7 @@ namespace TitleEdit.PluginServices.Lobby
                 Services.Log.Debug($"[CreateSceneDetour] {territoryPath} {territoryId} {p3} {layerFilterKey} {p5:X} {p6} {contentFinderConditionId}");
                 if (lobbyType == GameLobbyType.CharaSelect)
                 {
+                    InitializeHousingLayout(characterSelectLocationModel);
                     ResetLastCameraLookAtValues();
                     territoryPath = characterSelectLocationModel.TerritoryPath;
                     territoryId = characterSelectLocationModel.LayoutTerritoryTypeId;
@@ -184,14 +185,18 @@ namespace TitleEdit.PluginServices.Lobby
                     SetAllCharacterPostions();
                     return returnVal;
                 }
-                else if (lobbyType == GameLobbyType.Title && ShouldModifyTitleScreen)
+                else if (lobbyType == GameLobbyType.Title)
                 {
-                    territoryPath = titleScreenLocationModel.TerritoryPath;
-                    territoryId = titleScreenLocationModel.LayoutTerritoryTypeId;
-                    layerFilterKey = titleScreenLocationModel.LayoutLayerFilterKey;
-                    Services.Log.Debug($"Loading title screen: {territoryPath}");
-                    var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
-                    return returnVal;
+                    InitializeHousingLayout(titleScreenLocationModel);
+                    if (ShouldModifyTitleScreen)
+                    {
+                        territoryPath = titleScreenLocationModel.TerritoryPath;
+                        territoryId = titleScreenLocationModel.LayoutTerritoryTypeId;
+                        layerFilterKey = titleScreenLocationModel.LayoutLayerFilterKey;
+                        Services.Log.Debug($"Loading title screen: {territoryPath}");
+                        var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
+                        return returnVal;
+                    }
                 }
 
                 if (lastSceneType == GameLobbyType.CharaSelect)
@@ -206,7 +211,7 @@ namespace TitleEdit.PluginServices.Lobby
                         // Probably because it will already be playing the correct music
                         ForcePlaySongIndex(LobbySong.CharacterSelect);
 
-                        // Clean out hasing data
+                        // Clean out housing data
                         InitializeHousingLayout();
                     }
                 }
