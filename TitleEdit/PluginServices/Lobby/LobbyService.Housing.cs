@@ -31,7 +31,7 @@ public unsafe partial class LobbyService
     private readonly delegate*unmanaged<int, uint, ushort, int, byte, void> setInteriorFixture = null!;
 
     // Initialize housing system, this call will also reset it and clean out all furniture
-    private void InitializeHousingLayout(LocationModel model)
+    private void InitializeHousingLayout(LocationModel? model = null)
     {
         Services.Log.Debug("[InitializeHousingLayout]");
         // Set the territory type the housing manager will be using, if we aren't in a housing zone use a hardcoded value
@@ -39,11 +39,11 @@ public unsafe partial class LobbyService
         // even though it does the same natively when you're logged in and moving between levels, which means we're doing sometihng worng
         // to work around that we just always keep it housing by hardcoding it here
         var territory = 649U; // Private Cotage - Shirogane
-        if (Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(model.TerritoryTypeId, out var territoryTypeRow))
+        if (model != null && Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(model.Value.TerritoryTypeId, out var territoryTypeRow))
         {
             if (territoryTypeRow.TerritoryIntendedUse.RowId == 13) // Housing zone
             {
-                territory = model.TerritoryTypeId;
+                territory = model.Value.TerritoryTypeId;
             }
         }
 

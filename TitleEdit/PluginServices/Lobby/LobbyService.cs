@@ -205,6 +205,9 @@ namespace TitleEdit.PluginServices.Lobby
                         // The game doesn't call the function responsible for picking BGM when moving from char select to char creation
                         // Probably because it will already be playing the correct music
                         ForcePlaySongIndex(LobbySong.CharacterSelect);
+
+                        // Clean out hasing data
+                        InitializeHousingLayout();
                     }
                 }
 
@@ -325,6 +328,7 @@ namespace TitleEdit.PluginServices.Lobby
                     ForcePlaySongIndex(LobbySong.CharacterSelect);
                     ClearCameraModifications();
                     ResetCharacters();
+                    InitializeHousingLayout();
                 }
 
                 // Doing a scuffed title screen (Ui won't change) to prevent user from getting stuck in infinite loading screen
@@ -332,6 +336,7 @@ namespace TitleEdit.PluginServices.Lobby
                 if (CanReloadTitleScreen)
                 {
                     ExecuteTitleScreenReload();
+                    InitializeHousingLayout();
                 }
 
                 ResetCameraLookAtOnExitCharacterSelect();
