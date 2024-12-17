@@ -17,7 +17,7 @@ namespace TitleEdit.PluginServices
         private HashSet<uint> mounts = [];
 
         private readonly string filePath;
-        private readonly byte[] lastMountBytes = new byte[MountBitmaskArraySize];
+        private byte[]? lastMountBytes;
 
         public MountService()
         {
@@ -48,6 +48,7 @@ namespace TitleEdit.PluginServices
                     var playerState = PlayerState.Instance();
                     if (playerState != null)
                     {
+                        lastMountBytes ??= new byte[playerState->UnlockedMountsBitmask.Length];
                         if (!playerState->UnlockedMountsBitmask.SequenceEqual(lastMountBytes))
                         {
                             Services.Log.Debug("Mounts changed!");
