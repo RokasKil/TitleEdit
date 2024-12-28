@@ -6,6 +6,7 @@ using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System;
 using System.Numerics;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
@@ -20,7 +21,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         public AgentLobby* AgentLobby => FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLobby.Instance();
 
-        private delegate int CreateSceneDelegate(string territoryPath, uint p2, nint p3, uint p4, nint p5, int p6, uint p7);
+        private delegate int CreateSceneDelegate(string territoryPath, uint territoryId, nint p3, uint layerFilterKey, nint festivals, int p6, uint contentFinderConditionId);
 
         private delegate byte LobbyUpdateDelegate(GameLobbyType mapId, int time);
 
@@ -165,36 +166,43 @@ namespace TitleEdit.PluginServices.Lobby
         }
 
         // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
-        private int CreateSceneDetour(string territoryPath, uint territoryId, nint p3, uint layerFilterKey, nint p5, int p6, uint contentFinderConditionId)
+        private int CreateSceneDetour(string territoryPath, uint territoryId, nint p3, uint layerFilterKey, nint festivals, int p6, uint contentFinderConditionId)
         {
             var lobbyType = loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType;
             try
             {
                 Services.Log.Debug($"Loading Scene {lobbyType}");
-                Services.Log.Debug($"[CreateSceneDetour] {territoryPath} {territoryId} {p3} {layerFilterKey} {p5:X} {p6} {contentFinderConditionId}");
+                Services.Log.Debug($"[CreateSceneDetour] {territoryPath} {territoryId} {p3} {layerFilterKey} {festivals:X} {p6} {contentFinderConditionId}");
+                if (lobbyType is GameLobbyType.Title or GameLobbyType.CharaSelect)
+                {
+                    // There's a 3rd party plugin (HaselTweaks) that prefetches the layout when entering queue
+                    // This causes a rare race condition where if title edit loads the same scene after the prefetch happened
+                    // the game will pass null festivals and crash so we unload any prefetched scene just in case
+                    LayoutWorld.UnloadPrefetchLayout();
+                    InitializeHousingLayout(characterSelectLocationModel);
+                }
+
                 if (lobbyType == GameLobbyType.CharaSelect)
                 {
-                    InitializeHousingLayout(characterSelectLocationModel);
                     ResetLastCameraLookAtValues();
                     territoryPath = characterSelectLocationModel.TerritoryPath;
                     territoryId = characterSelectLocationModel.LayoutTerritoryTypeId;
                     layerFilterKey = characterSelectLocationModel.LayoutLayerFilterKey;
                     Services.Log.Debug($"Loading char select screen: {territoryPath}");
-                    var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
+                    var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, festivals, p6, contentFinderConditionId);
                     ResetSongIndex();
                     SetAllCharacterPostions();
                     return returnVal;
                 }
                 else if (lobbyType == GameLobbyType.Title)
                 {
-                    InitializeHousingLayout(titleScreenLocationModel);
                     if (ShouldModifyTitleScreen)
                     {
                         territoryPath = titleScreenLocationModel.TerritoryPath;
                         territoryId = titleScreenLocationModel.LayoutTerritoryTypeId;
                         layerFilterKey = titleScreenLocationModel.LayoutLayerFilterKey;
                         Services.Log.Debug($"Loading title screen: {territoryPath}");
-                        var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
+                        var returnVal = createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, festivals, p6, contentFinderConditionId);
                         return returnVal;
                     }
                 }
@@ -216,7 +224,7 @@ namespace TitleEdit.PluginServices.Lobby
                     }
                 }
 
-                return createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, p5, p6, contentFinderConditionId);
+                return createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, festivals, p6, contentFinderConditionId);
             } finally
             {
                 lastSceneType = lobbyType;
@@ -299,8 +307,8 @@ namespace TitleEdit.PluginServices.Lobby
             if ((CurrentLobbyMap == GameLobbyType.CharaSelect && !TitleCutsceneIsLoaded) || force)
             {
                 resetCharacterSelectScene = true;
-                forceUpdateCharacter = true;
                 previousCharacterSelectModelRotation = characterSelectLocationModel.Rotation;
+                UpdateCharacter(true);
             }
         }
 

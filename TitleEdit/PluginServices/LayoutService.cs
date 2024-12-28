@@ -21,7 +21,7 @@ namespace TitleEdit.PluginServices
 
         public unsafe delegate void VfxLayoutInstanceSetVfxTriggerIndexDelegate(VfxLayoutInstance* vfxInstance, int index);
 
-        public unsafe delegate void LayoutWorldInitManagerDelegate(IntPtr p1, uint p2, IntPtr p3, uint p4, uint p5, IntPtr p6, uint p7);
+        public unsafe delegate void LayoutWorldInitManagerDelegate(nint layoutWorld, uint p2, nint territoryPath, uint territoryId, uint layerFilterKey, nint festivals, uint contentFinderConditionId);
 
         private Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate> vfxLayoutInstanceSetVfxTriggerIndexHook = null!;
         private Hook<LayoutWorldInitManagerDelegate> layoutWorldInitManagerHook = null!;
@@ -90,9 +90,9 @@ namespace TitleEdit.PluginServices
             }
         }
 
-        private unsafe void LayoutWorldInitManagerDetour(nint p1, uint p2, nint p3, uint p4, uint p5, nint p6, uint p7)
+        private unsafe void LayoutWorldInitManagerDetour(nint layoutWorld, uint p2, nint territoryPath, uint territoryId, uint layerFilterKey, nint festivals, uint contentFinderConditionId)
         {
-            layoutWorldInitManagerHook.Original(p1, p2, p3, p4, p5, p6, p7);
+            layoutWorldInitManagerHook.Original(layoutWorld, p2, territoryPath, territoryId, layerFilterKey, festivals, contentFinderConditionId);
             TerritoryChanged();
         }
 
