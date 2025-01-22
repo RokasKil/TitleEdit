@@ -20,7 +20,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private delegate nint CreateBattleCharacterDelegate(nint objectManager, uint index, bool assignCompanion);
 
-        private delegate void SetCharSelectCurrentWorldDelegate(ulong p1);
+        private delegate void SetCharSelectCurrentWorldDelegate(ulong p1, char p2);
 
         private delegate void CharSelectWorldPreviewEventHandlerDelegate(ulong p1, ulong p2, ulong p3, uint p4);
 
@@ -53,8 +53,7 @@ namespace TitleEdit.PluginServices.Lobby
 
             // Called when you select a new world in character select or cancel selection so it reload the current
             // we use it make sure characters get created with a companion slots,
-            // set the selected character cause SE doesn't do that (???) and initialize it
-            setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 8B 44 24 ?? 4C 8B 64 24 ?? 83 F8", SetCharSelectCurrentWorldDetour);
+            setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 8B 44 24 ?? 83 F8 ?? 75 ?? C6 83", SetCharSelectCurrentWorldDetour);
 
             // Happens on world list hover when loading a world - we use it make sure characters get created with a companion slots (maybe makes selectCharacter2Hook redundant)
             charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? 49 8B CD E8 ?? ?? ?? ?? 41 0F B6 85", CharSelectWorldPreviewEventHandlerDetour);
@@ -127,10 +126,11 @@ namespace TitleEdit.PluginServices.Lobby
         }
 
         // Called when you select a new world in character select or cancel selection so it reload the current
-        private void SetCharSelectCurrentWorldDetour(ulong p1)
+        // if p2 is 1 it doesn't recreate the characters or something along that line it was added in 7.16
+        private void SetCharSelectCurrentWorldDetour(ulong p1, char p2)
         {
             creatingCharSelectGameObjects = true;
-            setCharSelectCurrentWorldHook.Original(p1);
+            setCharSelectCurrentWorldHook.Original(p1, p2);
             creatingCharSelectGameObjects = false;
             Services.Log.Debug("SetCharSelectCurrentWorldDetour");
             foreach (var entry in GetCurrentCharacterNames())
