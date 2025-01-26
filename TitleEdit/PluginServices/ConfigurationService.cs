@@ -59,6 +59,11 @@ public class ConfigurationService
     public string? LastExportLocation;
     public string? LastImportLocation;
     public bool DontInterruptMusicOnSceneSwitch = true;
+    public bool SeasonalEasterEggs = true;
+    public bool HideBuiltInPresets = false;
+    public bool HideVanillaPresets = false;
+    [NonSerialized]
+    public bool IgnoreSeasonalDateCheck = false;
 
     [NonSerialized]
     private string filePath = null!;
@@ -75,6 +80,7 @@ public class ConfigurationService
         {
             configurationService = new();
         }
+
         configurationService.filePath = filePath;
         return configurationService;
     }

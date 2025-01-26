@@ -9,7 +9,6 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-
         private LocationModel characterSelectLocationModel;
 
         private LocationModel titleScreenLocationModel;
@@ -37,8 +36,10 @@ namespace TitleEdit.PluginServices.Lobby
                     characterSelectLocationModel = liveEditCharacterSelectLocationModel!.Value;
                     liveEditCharacterSelectLoaded = true;
                 }
+
                 return characterSelectLocationModel;
             }
+
             var displayOverrideIdx = Services.ConfigurationService.DisplayTypeOverrides.FindIndex((entry) => entry.Key == contentId);
 
             CharacterDisplayTypeOption displayOption;
@@ -101,8 +102,10 @@ namespace TitleEdit.PluginServices.Lobby
                     characterSelectLocationModel = liveEditCharacterSelectLocationModel!.Value;
                     liveEditCharacterSelectLoaded = true;
                 }
+
                 return characterSelectLocationModel;
             }
+
             var displayOption = Services.ConfigurationService.NoCharacterDisplayType;
             LocationModel model;
             if (displayOption.Type == CharacterDisplayType.Preset)
@@ -117,11 +120,13 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 model = Services.PresetService.GetDefaultPreset(LocationType.CharacterSelect).LocationModel;
             }
+
             if (displayOption.Type != CharacterDisplayType.Random)
             {
                 characterSelectGroupModelPath = null;
                 characterSelectGroupPresetPath = null;
             }
+
             model.Position = OffsetPosition(model.Position);
             return model;
         }
@@ -135,8 +140,10 @@ namespace TitleEdit.PluginServices.Lobby
                     titleScreenLocationModel = liveEditTitleScreenLocationModel!.Value;
                     liveEditTitleScreenLoaded = true;
                 }
+
                 return titleScreenLocationModel;
             }
+
             var displayOption = Services.ConfigurationService.TitleDisplayTypeOption;
             LocationModel model;
             if (displayOption.Type == TitleDisplayType.Preset)
@@ -151,6 +158,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 model = Services.PresetService.GetDefaultPreset(LocationType.TitleScreen).LocationModel;
             }
+
             model.CameraPosition = OffsetPosition(model.CameraPosition);
             return model;
         }
@@ -168,8 +176,20 @@ namespace TitleEdit.PluginServices.Lobby
                 }
                 else
                 {
-                    var presets = Services.PresetService.Presets.Where(preset => preset.Value.LocationModel.LocationType == type);
-                    path = presets.Skip(random.Next(presets.Count())).FirstOrDefault().Key;
+                    var presets = Services.PresetService.Presets
+                                          .Where(preset => preset.Value.LocationModel.LocationType == type &&
+                                                           !(preset.Value.Vanilla && Services.ConfigurationService.HideVanillaPresets) &&
+                                                           !(preset.Value.BuiltIn && Services.ConfigurationService.HideBuiltInPresets)).ToList();
+                    if (presets.Count == 0)
+                    {
+                        Services.Log.Warning($"Failed to find any preset for universal group {groupPath}");
+                        model = Services.PresetService.GetDefaultPreset(type).LocationModel;
+                        return model;
+                    }
+                    else
+                    {
+                        path = presets.Skip(random.Next(presets.Count)).FirstOrDefault().Key;
+                    }
                 }
 
                 if (type == LocationType.CharacterSelect)
@@ -184,6 +204,7 @@ namespace TitleEdit.PluginServices.Lobby
                         characterSelectGroupPresetPath = path;
                     }
                 }
+
                 model = GetPresetLocationModel(path, type);
             }
             else
@@ -191,6 +212,7 @@ namespace TitleEdit.PluginServices.Lobby
                 Services.Log.Error($"Group \"{groupPath}\" not found");
                 model = Services.PresetService.GetDefaultPreset(type).LocationModel;
             }
+
             return model;
         }
 
@@ -212,6 +234,7 @@ namespace TitleEdit.PluginServices.Lobby
                 Services.Log.Error($"Preset \"{presetPath}\" not found");
                 model = Services.PresetService.GetDefaultPreset(type).LocationModel;
             }
+
             return model;
         }
 

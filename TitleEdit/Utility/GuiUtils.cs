@@ -306,11 +306,7 @@ namespace TitleEdit.Utility
 
         public static bool DrawUiColorPicker(string title, string id, ref UiColorModel colorModel, bool allowUnspecified = false)
         {
-            bool changed = false;
-            if (Combo($"{title}##{id}", ref colorModel.Expansion, filter: (entry) => allowUnspecified || entry != UiColorExpansion.Unspecified))
-            {
-                changed = true;
-            }
+            bool changed = Combo($"{title}##{id}", ref colorModel.Expansion, filter: (entry) => allowUnspecified || entry != UiColorExpansion.Unspecified);
 
             if (colorModel.Expansion == UiColorExpansion.Custom)
             {

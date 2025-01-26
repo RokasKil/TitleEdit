@@ -30,11 +30,13 @@ namespace TitleEdit.Windows.Tabs
                 Services.ConfigurationService.Save();
                 Services.LobbyService.ReloadTitleScreenUi();
             }
+
             if (ImGui.Checkbox($"Override preset title screen logo setting##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenLogo))
             {
                 Services.ConfigurationService.Save();
                 Services.LobbyService.ReloadTitleScreenUi();
             }
+
             if (GuiUtils.DrawUiColorPicker("Default title screen colors", Title, ref Services.ConfigurationService.TitleScreenColor))
             {
                 Services.ConfigurationService.Save();
@@ -51,11 +53,13 @@ namespace TitleEdit.Windows.Tabs
             {
                 Services.ConfigurationService.Save();
             }
+
             ImGuiComponents.HelpMarker("Defines the cinematic that plays when idling in title screen for 60 seconds");
             if (ImGui.Checkbox($"Override preset title screen movie setting##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenMovie))
             {
                 Services.ConfigurationService.Save();
             }
+
             ImGui.Separator();
             ImGui.TextUnformatted("Character select screen");
             DrawSelectPresetCombo($"Nothing selected setting##{Title}", Services.ConfigurationService.NoCharacterDisplayType, (result) =>
@@ -64,7 +68,7 @@ namespace TitleEdit.Windows.Tabs
                 unsafe
                 {
                     if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
-                    Services.LobbyService.CurrentContentId == 0)
+                        Services.LobbyService.CurrentContentId == 0)
                     {
                         Services.LobbyService.ReloadCharacterSelect();
                     }
@@ -78,8 +82,8 @@ namespace TitleEdit.Windows.Tabs
                 unsafe
                 {
                     if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
-                    Services.LobbyService.CurrentContentId != 0 &&
-                    !Services.ConfigurationService.DisplayTypeOverrides.Exists(displayOverride => displayOverride.Key == Services.LobbyService.CurrentContentId))
+                        Services.LobbyService.CurrentContentId != 0 &&
+                        !Services.ConfigurationService.DisplayTypeOverrides.Exists(displayOverride => displayOverride.Key == Services.LobbyService.CurrentContentId))
                     {
                         Services.LobbyService.ReloadCharacterSelect();
                     }
@@ -91,6 +95,7 @@ namespace TitleEdit.Windows.Tabs
             {
                 Services.ConfigurationService.Save();
             }
+
             ImGui.Separator();
             ImGui.TextUnformatted("Character overrides");
             var usedIds = new HashSet<ulong>(Services.ConfigurationService.DisplayTypeOverrides.Count);
@@ -121,8 +126,8 @@ namespace TitleEdit.Windows.Tabs
                             unsafe
                             {
                                 if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
-                                Services.LobbyService.CurrentContentId != 0 &&
-                                entry.Key == Services.LobbyService.CurrentContentId)
+                                    Services.LobbyService.CurrentContentId != 0 &&
+                                    entry.Key == Services.LobbyService.CurrentContentId)
                                 {
                                     Services.LobbyService.ReloadCharacterSelect();
                                 }
@@ -137,13 +142,14 @@ namespace TitleEdit.Windows.Tabs
                             unsafe
                             {
                                 if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
-                                Services.LobbyService.CurrentContentId != 0 &&
-                                !Services.ConfigurationService.DisplayTypeOverrides.Exists(displayOverride => displayOverride.Key == Services.LobbyService.CurrentContentId))
+                                    Services.LobbyService.CurrentContentId != 0 &&
+                                    !Services.ConfigurationService.DisplayTypeOverrides.Exists(displayOverride => displayOverride.Key == Services.LobbyService.CurrentContentId))
                                 {
                                     Services.LobbyService.ReloadCharacterSelect();
                                 }
                             }
                         }
+
                         ImGui.TableNextColumn();
                     }
                 }
@@ -163,10 +169,12 @@ namespace TitleEdit.Windows.Tabs
                         return true;
                     }
                 }
+
                 if (empty)
                 {
                     ImGui.TextUnformatted("All characters configured");
                 }
+
                 return false;
             });
             ImGuiComponents.HelpMarker("These characters are collected from the character select screen.\nIf any are missing go through all the worlds with characters created.");
@@ -174,22 +182,22 @@ namespace TitleEdit.Windows.Tabs
             ImGui.BeginDisabled(currentContentId == 0);
             if (ImGuiComponents.IconButton($"##{Title}##New", FontAwesomeIcon.Plus))
             {
-
                 Services.ConfigurationService.DisplayTypeOverrides.Add(new(currentContentId, new() { Type = CharacterDisplayType.LastLocation }));
                 Services.ConfigurationService.Save();
 
                 unsafe
                 {
                     if (Services.LobbyService.CurrentLobbyMap == GameLobbyType.CharaSelect &&
-                    Services.LobbyService.CurrentContentId != 0 &&
-                    currentContentId == Services.LobbyService.CurrentContentId)
+                        Services.LobbyService.CurrentContentId != 0 &&
+                        currentContentId == Services.LobbyService.CurrentContentId)
                     {
                         Services.LobbyService.ReloadCharacterSelect();
                     }
                 }
-                currentContentId = 0;
 
+                currentContentId = 0;
             }
+
             ImGui.EndDisabled();
         }
 
@@ -206,14 +214,12 @@ namespace TitleEdit.Windows.Tabs
             {
                 if (value.PresetPath != null && Services.PresetService.TryGetPreset(value.PresetPath, out var preset, LocationType.CharacterSelect))
                 {
-
                     display = preset.Name;
                 }
                 else
                 {
                     display = "Invalid preset";
                     invalid = true;
-
                 }
             }
             else if (value.Type == CharacterDisplayType.Random)
@@ -240,6 +246,7 @@ namespace TitleEdit.Windows.Tabs
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, GuiUtils.WarningColor);
             }
+
             GuiUtils.FilterCombo(label, display, () =>
             {
                 if (showLastLocationOption)
@@ -253,14 +260,17 @@ namespace TitleEdit.Windows.Tabs
                         Services.ConfigurationService.Save();
                         return true;
                     }
-                    GuiUtils.DrawDisplayTypeTooltip(CharacterDisplayType.LastLocation);
 
+                    GuiUtils.DrawDisplayTypeTooltip(CharacterDisplayType.LastLocation);
                 }
+
                 GuiUtils.FilterSeperator();
 
 
                 foreach (var entry in Services.PresetService.CharacterSelectPresetEnumerator)
                 {
+                    if (entry.Value.Vanilla && Services.ConfigurationService.HideVanillaPresets) continue;
+                    if (entry.Value.BuiltIn && Services.ConfigurationService.HideBuiltInPresets) continue;
                     if (GuiUtils.FilterSelectable($"{entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == CharacterDisplayType.Preset && entry.Key == value.PresetPath))
                     {
                         selectAction.Invoke(new()
@@ -271,8 +281,10 @@ namespace TitleEdit.Windows.Tabs
                         Services.ConfigurationService.Save();
                         return true;
                     }
+
                     GuiUtils.DrawDisplayTypeTooltip(CharacterDisplayType.Preset, entry.Key);
                 }
+
                 foreach (var entry in Services.GroupService.CharacterSelectGroupEnumerator)
                 {
                     if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == CharacterDisplayType.Random && entry.Key == value.PresetPath))
@@ -285,8 +297,10 @@ namespace TitleEdit.Windows.Tabs
                         Services.ConfigurationService.Save();
                         return true;
                     }
+
                     GuiUtils.DrawDisplayTypeTooltip(CharacterDisplayType.Random, entry.Key);
                 }
+
                 return false;
             }, popStyleColor: invalid);
             GuiUtils.DrawDisplayTypeTooltip(value);
@@ -300,14 +314,12 @@ namespace TitleEdit.Windows.Tabs
             {
                 if (value.PresetPath != null && Services.PresetService.TryGetPreset(value.PresetPath, out var preset, LocationType.TitleScreen))
                 {
-
                     display = preset.Name;
                 }
                 else
                 {
                     display = "Invalid preset";
                     invalid = true;
-
                 }
             }
             else if (value.Type == TitleDisplayType.Random)
@@ -334,10 +346,13 @@ namespace TitleEdit.Windows.Tabs
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, GuiUtils.WarningColor);
             }
+
             GuiUtils.FilterCombo(label, display, () =>
             {
                 foreach (var entry in Services.PresetService.TitleScreenPresetEnumerator)
                 {
+                    if (entry.Value.Vanilla && Services.ConfigurationService.HideVanillaPresets) continue;
+                    if (entry.Value.BuiltIn && Services.ConfigurationService.HideBuiltInPresets) continue;
                     if (GuiUtils.FilterSelectable($"{entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == TitleDisplayType.Preset && entry.Key == value.PresetPath))
                     {
                         selectAction.Invoke(new()
@@ -348,9 +363,10 @@ namespace TitleEdit.Windows.Tabs
                         Services.ConfigurationService.Save();
                         return true;
                     }
-                    GuiUtils.DrawDisplayTypeTooltip(TitleDisplayType.Preset, entry.Key);
 
+                    GuiUtils.DrawDisplayTypeTooltip(TitleDisplayType.Preset, entry.Key);
                 }
+
                 foreach (var entry in Services.GroupService.TitleScreenGroupEnumerator)
                 {
                     if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == TitleDisplayType.Random && entry.Key == value.PresetPath))
@@ -363,8 +379,10 @@ namespace TitleEdit.Windows.Tabs
                         Services.ConfigurationService.Save();
                         return true;
                     }
+
                     GuiUtils.DrawDisplayTypeTooltip(TitleDisplayType.Random, entry.Key);
                 }
+
                 return false;
             }, popStyleColor: invalid);
             GuiUtils.DrawDisplayTypeTooltip(value);

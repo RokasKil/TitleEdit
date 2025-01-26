@@ -60,72 +60,10 @@ namespace TitleEdit.Data.Persistence
         [NonSerialized]
         public string ToastNotificationText = "";
 
+        // Currently only used for seasonal easter eggs
+        [NonSerialized]
+        public List<NpcModel>? Npcs = null;
+
         public LocationModel() { }
-
-        public override bool Equals([NotNullWhen(true)] object? obj)
-        {
-            if (obj?.GetType() == typeof(LocationModel))
-            {
-                var other = (LocationModel)obj;
-                return Equals(Version, other.Version) &&
-                       Equals(LocationType, other.LocationType) &&
-                       Equals(TitleScreenLogo, other.TitleScreenLogo) &&
-                       Equals(TerritoryPath, other.TerritoryPath) &&
-                       Equals(TerritoryTypeId, other.TerritoryTypeId) &&
-                       Equals(Position, other.Position) &&
-                       Equals(CameraPosition, other.CameraPosition) &&
-                       Equals(Rotation, other.Rotation) &&
-                       Equals(Yaw, other.Yaw) &&
-                       Equals(Roll, other.Roll) &&
-                       Equals(Pitch, other.Pitch) &&
-                       Equals(Fov, other.Fov) &&
-                       Equals(WeatherId, other.WeatherId) &&
-                       Equals(TimeOffset, other.TimeOffset) &&
-                       Equals(BgmId, other.BgmId) &&
-                       Equals(BgmPath, other.BgmPath) &&
-                       Equals(MovementMode, other.MovementMode) &&
-                       Equals(Active, other.Active) &&
-                       Equals(Inactive, other.Inactive) &&
-                       Equals(VfxTriggerIndexes, other.VfxTriggerIndexes) &&
-                       Equals(Festivals, other.Festivals) &&
-                       Equals(TitleScreenOverride, other.TitleScreenOverride) &&
-                       Equals(UiColor, other.UiColor) &&
-                       Equals(Furniture, other.Furniture) &&
-                       Equals(Plots, other.Plots) &&
-                       Equals(Estate, other.Estate) &&
-                       Equals(UseLiveTime, other.UseLiveTime);
-            }
-
-            return false;
-        }
-
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-            hash.Add(Version);
-            hash.Add(LocationType);
-            hash.Add(TitleScreenLogo);
-            hash.Add(TerritoryPath);
-            hash.Add(TerritoryTypeId);
-            hash.Add(Position);
-            hash.Add(CameraPosition);
-            hash.Add(Rotation);
-            hash.Add(Yaw);
-            hash.Add(Roll);
-            hash.Add(Pitch);
-            hash.Add(WeatherId);
-            hash.Add(TimeOffset);
-            hash.Add(BgmId);
-            hash.Add(BgmPath);
-            hash.Add(MovementMode);
-            hash.Add(Active);
-            hash.Add(Inactive);
-            hash.Add(VfxTriggerIndexes);
-            hash.Add(Festivals);
-            hash.Add(Furniture);
-            hash.Add(Plots);
-            hash.Add(Estate);
-            return hash.ToHashCode();
-        }
     }
 }

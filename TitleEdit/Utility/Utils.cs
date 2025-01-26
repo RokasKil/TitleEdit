@@ -9,8 +9,8 @@ namespace TitleEdit.Utility
 {
     public static class Utils
     {
-        public static readonly float RadToDegreeRatio = 180f / MathF.PI;
-        public static readonly float DegreeToRadRatio = MathF.PI / 180f;
+        public const float RadToDegreeRatio = 180f / MathF.PI;
+        public const float DegreeToRadRatio = MathF.PI / 180f;
 
         public static string Truncate(this string value, int maxLength)
         {
@@ -25,25 +25,29 @@ namespace TitleEdit.Utility
         public static string ToText(this Enum value)
         {
             return value.GetType()?
-                .GetField(value.ToString())?
-                .GetCustomAttributes(typeof(EnumTranslationAttribute), false)
-                .SingleOrDefault() is not EnumTranslationAttribute attribute ? value.ToString() : attribute.Translation;
+                        .GetField(value.ToString())?
+                        .GetCustomAttributes(typeof(EnumTranslationAttribute), false)
+                        .SingleOrDefault() is not EnumTranslationAttribute attribute
+                       ? value.ToString()
+                       : attribute.Translation;
         }
 
         public static string? ToTooltip(this Enum value)
         {
             return value.GetType()?
-                .GetField(value.ToString())?
-                .GetCustomAttributes(typeof(EnumTranslationAttribute), false)
-                .SingleOrDefault() is not EnumTranslationAttribute attribute ? null : attribute.Tooltip;
+                        .GetField(value.ToString())?
+                        .GetCustomAttributes(typeof(EnumTranslationAttribute), false)
+                        .SingleOrDefault() is not EnumTranslationAttribute attribute
+                       ? null
+                       : attribute.Tooltip;
         }
 
         public static bool IsInAvailableExpansion(this Enum value)
         {
             return value.GetType()?
-                .GetField(value.ToString())?
-                .GetCustomAttributes(typeof(EnumExpansionAttribute), false)
-                .SingleOrDefault() is not EnumExpansionAttribute attribute ? true : Services.ExpansionService.HasExpansion(attribute.expansion);
+                        .GetField(value.ToString())?
+                        .GetCustomAttributes(typeof(EnumExpansionAttribute), false)
+                        .SingleOrDefault() is not EnumExpansionAttribute attribute || Services.ExpansionService.HasExpansion(attribute.expansion);
         }
 
         public static float NormalizeAngle(float angle)
@@ -82,6 +86,7 @@ namespace TitleEdit.Utility
             {
                 action(file, path);
             }
+
             foreach (var subDirectory in directory.EnumerateDirectories())
             {
                 if (subDirectory.LinkTarget.IsNullOrEmpty())
@@ -89,7 +94,6 @@ namespace TitleEdit.Utility
                     IterateFiles(subDirectory, action, Path.Join(path, subDirectory.Name));
                 }
             }
-
         }
 
         public unsafe delegate void NodeAction(AtkResNode* node);
@@ -102,6 +106,7 @@ namespace TitleEdit.Utility
             {
                 IterateNodes(node->ChildNode, action);
             }
+
             if (iterateSiblings) // logic yoinked from dalamud cause wtf is this
             {
                 var prevNode = node;
@@ -112,6 +117,7 @@ namespace TitleEdit.Utility
                 while ((nextNode = nextNode->NextSiblingNode) != null)
                     IterateNodes(nextNode, action, false);
             }
+
             if ((int)node->Type >= 1000)
             {
                 var compNode = (AtkComponentNode*)node;
@@ -123,7 +129,6 @@ namespace TitleEdit.Utility
                         action(compNode->Component->UldManager.NodeList[i]);
                     }
                 }
-
             }
         }
     }

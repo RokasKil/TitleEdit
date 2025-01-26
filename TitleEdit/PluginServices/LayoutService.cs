@@ -78,7 +78,7 @@ namespace TitleEdit.PluginServices
 
         private unsafe void HookLayoutInstance(string signature, int offset = 0)
         {
-            // hooking 63th virtual function 
+            // hooking 63rd virtual function 
             var address = Services.SigScanner.GetStaticAddressFromSig(signature, offset) + (63 * 8);
             //Services.Log.Debug($"Hooking {signature} at 0x{address:X16}");
             if (ActiveHooks.ContainsKey(address)) return;

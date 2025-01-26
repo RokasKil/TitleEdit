@@ -67,10 +67,11 @@ namespace TitleEdit.Windows.Tabs
 
             ImGui.Separator();
             SettingCheckbox($"Don't restart the BGM when switching between scenes where the same BGM is used##{Title}", ref Services.ConfigurationService.DontInterruptMusicOnSceneSwitch);
+            SettingCheckbox($"Enable seasonal easter eggs##{Title}", ref Services.ConfigurationService.SeasonalEasterEggs);
             ImGui.Separator();
             SettingCheckbox($"Add a button to character select screen that opens this window##{Title}", ref Services.ConfigurationService.DrawCharacterSelectButton);
             SettingCheckbox($"Display the name of the current screen when loaded##{Title}", ref Services.ConfigurationService.DisplayTitleToast);
-            if (SettingCheckbox($"Hide character names in character select##{Title}", ref Services.ConfigurationService.HideCharacterSelectNames))
+            if (SettingCheckbox($"Hide character names in character select##{Title}", ref Services.ConfigurationService.SeasonalEasterEggs))
             {
                 Services.LobbyService.HideCharacterSelectNamesSettingUpdated();
             }
@@ -81,6 +82,10 @@ namespace TitleEdit.Windows.Tabs
             using (ImRaii.Disabled(Services.ConfigurationService.UseCharacterNameAsAuthor))
                 if (ImGui.InputText($"Default author name##{Title}", ref Services.ConfigurationService.DefaultAuthorName, 256))
                     Services.ConfigurationService.Save();
+            SettingCheckbox($"Hide built in presets##{Title}", ref Services.ConfigurationService.HideBuiltInPresets);
+            ImGuiComponents.HelpMarker("This will also remove them from the random pool");
+            SettingCheckbox($"Hide vanilla presets##{Title}", ref Services.ConfigurationService.HideVanillaPresets);
+            ImGuiComponents.HelpMarker("This will also remove them from the random pool");
         }
 
         private bool SettingCheckbox(string label, ref bool value, bool save = true)

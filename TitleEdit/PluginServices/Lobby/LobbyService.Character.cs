@@ -29,7 +29,8 @@ namespace TitleEdit.PluginServices.Lobby
         private Hook<SetCharSelectCurrentWorldDelegate> setCharSelectCurrentWorldHook = null!;
         private Hook<CharSelectWorldPreviewEventHandlerDelegate> charSelectWorldPreviewEventHandlerHook = null!;
 
-        public Character* CurrentCharacter => CharaSelectCharacterList.GetCurrentCharacter();
+        public Character* CurrentCharacter => FFXIVClientStructs.FFXIV.Client.UI.Agent.CharaSelectCharacterList.GetCurrentCharacter();
+        public CharaSelectCharacterList* CharaSelectCharacterList => FFXIVClientStructs.FFXIV.Client.UI.Agent.CharaSelectCharacterList.Instance();
         public ulong CurrentContentId => AgentLobby->HoveredCharacterContentId;
 
         // A flag if we should modify CreateBattleCharacter behaviour to forcefully include mounts and set position
@@ -140,8 +141,8 @@ namespace TitleEdit.PluginServices.Lobby
 
             Services.CharactersService.SaveCharacters();
 
-            *CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter = GetCurrentHoveredCharacter();
-            Services.Log.Debug($"Set current char to {(nint)(*CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter):X}");
+            *FFXIVClientStructs.FFXIV.Client.UI.Agent.CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter = GetCurrentHoveredCharacter();
+            Services.Log.Debug($"Set current char to {(nint)(*FFXIVClientStructs.FFXIV.Client.UI.Agent.CharaSelectCharacterList.StaticAddressPointers.ppGetCurrentCharacter):X}");
             UpdateCharacter(true);
             RotateCharacter();
         }
@@ -149,17 +150,14 @@ namespace TitleEdit.PluginServices.Lobby
         // When loading a new scene force all character positions to the new location to avoid some camera jank when switching selected characters
         private void SetAllCharacterPostions()
         {
-            var charaSelectCharacterList = CharaSelectCharacterList.Instance();
-            var clientObjectManager = ClientObjectManager.Instance();
-
-            for (int i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
+            for (int i = 0; i < CharaSelectCharacterList->CharacterMapping.Length; i++)
             {
-                if (charaSelectCharacterList->CharacterMapping[i].ContentId == 0)
+                if (CharaSelectCharacterList->CharacterMapping[i].ContentId == 0)
                 {
                     break;
                 }
 
-                var gameObject = clientObjectManager->GetObjectByIndex((ushort)charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
+                var gameObject = ClientObjectManager->GetObjectByIndex((ushort)CharaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
                 if (gameObject != null)
                 {
                     Services.Log.Debug($"Setting position for {(IntPtr)gameObject:X}");
@@ -180,24 +178,19 @@ namespace TitleEdit.PluginServices.Lobby
         // Used to reset state when unloading
         private void ResetCharacters()
         {
-            var charaSelectCharacterList = CharaSelectCharacterList.Instance();
-            var clientObjectManager = ClientObjectManager.Instance();
-            if (charaSelectCharacterList != null && clientObjectManager != null)
+            for (int i = 0; i < CharaSelectCharacterList->CharacterMapping.Length; i++)
             {
-                for (int i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
+                if (CharaSelectCharacterList->CharacterMapping[i].ContentId == 0)
                 {
-                    if (charaSelectCharacterList->CharacterMapping[i].ContentId == 0)
-                    {
-                        break;
-                    }
+                    break;
+                }
 
-                    var clientObjectIndex = charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex;
-                    var gameObject = clientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
-                    if (gameObject != null)
-                    {
-                        gameObject->SetPosition(0, 0, 0);
-                        ((Character*)gameObject)->Mount.CreateAndSetupMount(0, 0, 0, 0, 0, 0, 0);
-                    }
+                var clientObjectIndex = CharaSelectCharacterList->CharacterMapping[i].ClientObjectIndex;
+                var gameObject = ClientObjectManager->GetObjectByIndex((ushort)clientObjectIndex);
+                if (gameObject != null)
+                {
+                    gameObject->SetPosition(0, 0, 0);
+                    ((Character*)gameObject)->Mount.CreateAndSetupMount(0, 0, 0, 0, 0, 0, 0);
                 }
             }
         }
@@ -234,7 +227,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 // When making a new character make sure it's created with a companion and also prematurely set it's position to avoid some camera jank
                 Services.Log.Debug($"[CreateBattleCharacterDetour] setting assignCompanion {index:X} {result:X}");
-                ClientObjectManager.Instance()->GetObjectByIndex((ushort)result)->SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
+                ClientObjectManager->GetObjectByIndex((ushort)result)->SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
             }
 
             return result;
@@ -243,18 +236,16 @@ namespace TitleEdit.PluginServices.Lobby
         //Get current hovered character by it's content id because the index is set to 100 when flipping through worlds
         private Character* GetCurrentHoveredCharacter()
         {
-            var charaSelectCharacterList = CharaSelectCharacterList.Instance();
-            var clientObjectManager = ClientObjectManager.Instance();
             if (CurrentContentId == 0)
             {
                 return null;
             }
 
-            for (var i = 0; i < charaSelectCharacterList->CharacterMapping.Length; i++)
+            for (var i = 0; i < CharaSelectCharacterList->CharacterMapping.Length; i++)
             {
-                if (charaSelectCharacterList->CharacterMapping[i].ContentId == CurrentContentId)
+                if (CharaSelectCharacterList->CharacterMapping[i].ContentId == CurrentContentId)
                 {
-                    return (Character*)clientObjectManager->GetObjectByIndex((ushort)charaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
+                    return (Character*)ClientObjectManager->GetObjectByIndex((ushort)CharaSelectCharacterList->CharacterMapping[i].ClientObjectIndex);
                 }
             }
 

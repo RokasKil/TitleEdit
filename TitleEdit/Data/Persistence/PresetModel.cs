@@ -4,7 +4,7 @@ namespace TitleEdit.Data.Persistence
 {
     public struct PresetModel
     {
-        public readonly static int CurrentVersion = 5;
+        public static readonly int CurrentVersion = 5;
 
         public int? Version = CurrentVersion;
         public string Name = "";
@@ -17,10 +17,11 @@ namespace TitleEdit.Data.Persistence
         public string FileName = "";
         [NonSerialized]
         public string? Tooltip = null;
+        [NonSerialized]
+        public bool BuiltIn = false;
+        [NonSerialized]
+        public bool Vanilla = false;
 
-        public PresetModel()
-        {
-        }
+        public PresetModel() { }
     }
-
 }

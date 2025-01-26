@@ -87,6 +87,8 @@ public class MainWindow : Window, IDisposable
             {
                 Services.LobbyService.HousingTest();
             }
+
+            ImGui.Checkbox("Ignore seasonal date checks", ref Services.ConfigurationService.IgnoreSeasonalDateCheck);
         }
     }
 }

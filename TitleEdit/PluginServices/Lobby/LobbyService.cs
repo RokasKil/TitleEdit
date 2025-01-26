@@ -41,6 +41,7 @@ namespace TitleEdit.PluginServices.Lobby
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.None;
         private GameLobbyType lastSceneType = GameLobbyType.None;
         private GameLobbyType loadingLobbyType = GameLobbyType.None;
+        private GameLobbyType LobbyType => loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType;
 
         // Should reload character select scene
         private bool resetCharacterSelectScene = false;
@@ -100,10 +101,10 @@ namespace TitleEdit.PluginServices.Lobby
             HookCamera();
             HookSong();
             HookUi();
+            HookNpcs();
 
             InitTitle();
             EnableHooks();
-
             Services.Framework.Update += Tick;
             if (CurrentCharacter != null)
             {
@@ -163,17 +164,17 @@ namespace TitleEdit.PluginServices.Lobby
             }
 
             TickTitle();
+            TickNpcs();
         }
 
         // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
         private int CreateSceneDetour(string territoryPath, uint territoryId, nint p3, uint layerFilterKey, nint festivals, int p6, uint contentFinderConditionId)
         {
-            var lobbyType = loadingLobbyType == GameLobbyType.None ? lastLobbyUpdateMapId : loadingLobbyType;
             try
             {
-                Services.Log.Debug($"Loading Scene {lobbyType}");
+                Services.Log.Debug($"Loading Scene {LobbyType}");
                 Services.Log.Debug($"[CreateSceneDetour] {territoryPath} {territoryId} {p3} {layerFilterKey} {festivals:X} {p6} {contentFinderConditionId}");
-                if (lobbyType is GameLobbyType.Title or GameLobbyType.CharaSelect)
+                if (LobbyType is GameLobbyType.Title or GameLobbyType.CharaSelect)
                 {
                     // There's a 3rd party plugin (HaselTweaks) that prefetches the layout when entering queue
                     // This causes a rare race condition where if title edit loads the same scene after the prefetch happened
@@ -182,7 +183,7 @@ namespace TitleEdit.PluginServices.Lobby
                     InitializeHousingLayout(characterSelectLocationModel);
                 }
 
-                if (lobbyType == GameLobbyType.CharaSelect)
+                if (LobbyType == GameLobbyType.CharaSelect)
                 {
                     ResetLastCameraLookAtValues();
                     territoryPath = characterSelectLocationModel.TerritoryPath;
@@ -194,7 +195,7 @@ namespace TitleEdit.PluginServices.Lobby
                     SetAllCharacterPostions();
                     return returnVal;
                 }
-                else if (lobbyType == GameLobbyType.Title)
+                else if (LobbyType == GameLobbyType.Title)
                 {
                     if (ShouldModifyTitleScreen)
                     {
@@ -227,7 +228,7 @@ namespace TitleEdit.PluginServices.Lobby
                 return createSceneHook.Original(territoryPath, territoryId, p3, layerFilterKey, festivals, p6, contentFinderConditionId);
             } finally
             {
-                lastSceneType = lobbyType;
+                lastSceneType = LobbyType;
                 loadingLobbyType = GameLobbyType.None;
             }
         }
@@ -358,6 +359,7 @@ namespace TitleEdit.PluginServices.Lobby
             base.Dispose();
             DisposeTitle();
             DisposeUi();
+            DisposeNpcs();
         }
     }
 }
