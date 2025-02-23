@@ -116,6 +116,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
 
             titleScreenLocationModel = GetTitleLocation();
+            Services.Log.Debug($"Initializing LobbyService {CurrentLobbyMap} {LobbyUiStage} {LobbyInfo->CurrentTitleScreenType} {LobbyInfo->FreeTrial}");
             if (CurrentLobbyMap == GameLobbyType.CharaSelect)
             {
                 resetCharacterSelectScene = true;
@@ -165,6 +166,7 @@ namespace TitleEdit.PluginServices.Lobby
 
             TickTitle();
             TickNpcs();
+            TickUi();
         }
 
         // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff

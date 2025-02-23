@@ -34,13 +34,6 @@ namespace TitleEdit.Windows.Tabs
                 WrappedBulletText("Certain BGM tracks will not loop");
                 WrappedBulletText("With experimental layout enabled some VFX objects will play every time you load the scene often happening in instances");
                 WrappedBulletText("Experimental layout saving being janky in general");
-                if (Services.PluginInterface.InstalledPlugins.Any(plugin => plugin.InternalName == "Penumbra"))
-                {
-                    WrappedBulletText("[Penumbra] In character select screen indivdually assigned collections will not apply or apply to the wrong character " +
-                                      " when you have more than 1 character on that world. The issue has been reported to Penumbra and can only be fixed on their side," +
-                                      " if it bothers you, you can disable mods in character select by unchecking the \"Use Assigned Collections in Lobby\" under" +
-                                      " Penumbra's general settings until it gets fixed.");
-                }
             }
 
             if (ImGui.CollapsingHeader($"Planned Features##{Title}"))

@@ -105,8 +105,6 @@ namespace TitleEdit.PluginServices.Lobby
             // if we don't do this non DT logos will show at the start and then flash when animation triggers
             showAddonHook = Hook<ShowAddon>("E8 ?? ?? ?? ?? 80 A3 ?? ?? ?? ?? ?? 40 80 E7", ShowAddonDetour);
 
-            // Used when unloading TitleScreen menu
-            Services.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_TitleMenu", TitleMenuFinalize);
             // To animate/skip animation of title logo
             Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_TitleLogo", TitleLogoPostSetup);
 
@@ -117,6 +115,18 @@ namespace TitleEdit.PluginServices.Lobby
             foreach (var addon in recolorableAddons)
             {
                 Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, addon, RecolorablePostSetup);
+            }
+        }
+
+        private void TickUi()
+        {
+            // Used when unloading TitleScreen menu
+            // I'm not using RegisterListener with AddonEvent.PreFinalize because there's an edge case where if addon is destroyed early on it doesn't get called
+            // not sure what the actual condition but it causes a rare problem where the game boots up without any menus because I called the removeTitleScreenUi
+            // but never got a PreFinalize event callback so never restored it
+            if (titleMenuFinalizeActions.Count != 0 && Services.GameGui.GetAddonByName("_TitleMenu") != IntPtr.Zero)
+            {
+                TitleMenuFinalize();
             }
         }
 
@@ -427,7 +437,8 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (Services.GameGui.GetAddonByName("_TitleMenu") != IntPtr.Zero)
             {
-                Services.Log.Debug("[OnTitleMenuFinalize] queueing");
+                var titleMenuAddon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleMenu");
+                Services.Log.Debug($"[OnTitleMenuFinalize] queueing {titleMenuAddon->IsVisible} {titleMenuAddon->IsReady} {titleMenuAddon->IsFullyLoaded()} {titleMenuAddon->Flags1A1:X} {titleMenuAddon->Flags1A2:X}");
                 titleMenuFinalizeActions.Enqueue(action);
             }
             else
@@ -438,8 +449,9 @@ namespace TitleEdit.PluginServices.Lobby
         }
 
 
-        private void TitleMenuFinalize(AddonEvent type, AddonArgs args)
+        private void TitleMenuFinalize()
         {
+            Services.Log.Debug("[TitleMenuFinalize]");
             foreach (var action in titleMenuFinalizeActions)
             {
                 action();
@@ -457,7 +469,6 @@ namespace TitleEdit.PluginServices.Lobby
 
         private void DisposeUi()
         {
-            Services.AddonLifecycle.UnregisterListener(TitleMenuFinalize);
             Services.AddonLifecycle.UnregisterListener(RecolorablePostSetup);
             Services.AddonLifecycle.UnregisterListener(TitleLogoPostSetup);
             Services.AddonLifecycle.UnregisterListener(CharaSelectInfoUpdate);
