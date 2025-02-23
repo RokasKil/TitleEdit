@@ -71,7 +71,7 @@ namespace TitleEdit.Windows.Tabs
             ImGui.Separator();
             SettingCheckbox($"Add a button to character select screen that opens this window##{Title}", ref Services.ConfigurationService.DrawCharacterSelectButton);
             SettingCheckbox($"Display the name of the current screen when loaded##{Title}", ref Services.ConfigurationService.DisplayTitleToast);
-            if (SettingCheckbox($"Hide character names in character select##{Title}", ref Services.ConfigurationService.SeasonalEasterEggs))
+            if (SettingCheckbox($"Hide character names in character select##{Title}", ref Services.ConfigurationService.HideCharacterSelectNames))
             {
                 Services.LobbyService.HideCharacterSelectNamesSettingUpdated();
             }
