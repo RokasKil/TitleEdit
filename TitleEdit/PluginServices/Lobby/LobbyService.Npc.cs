@@ -67,7 +67,8 @@ namespace TitleEdit.PluginServices.Lobby
         private void SpawnNpcs(LocationModel model)
         {
             // Do checks 
-            if (model.Npcs is not { Count: > 0 } ||
+            if (!Services.ConfigurationService.SeasonalEasterEggs ||
+                model.Npcs is not { Count: > 0 } ||
                 (DateTime.Now is not { Month: 4, Day: >= 1, Day: <= 3 } && !Services.ConfigurationService.IgnoreSeasonalDateCheck)) return;
 
             foreach (var npc in model.Npcs)
