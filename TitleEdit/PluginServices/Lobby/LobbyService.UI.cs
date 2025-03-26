@@ -95,7 +95,7 @@ namespace TitleEdit.PluginServices.Lobby
         private void HookUi()
         {
             // Called to pick what logo to display for the _TitleLogo addon (one of the vfuncs)
-            pickTitleLogoHook = Hook<PickTitleLogo>("40 57 48 83 EC ?? 48 8B F9 E8 ?? ?? ?? ?? 80 78", PickTitleLogoDetour);
+            pickTitleLogoHook = Hook<PickTitleLogo>("40 57 48 83 EC ?? 48 8B F9 E8 ?? ?? ?? ?? 80 78 ?? ?? 74", PickTitleLogoDetour);
 
             // Called to play animations for the _TitleLogo addon (one of the vfuncs)
             titleLogoRefreshHook = Hook<TitleLogoRefresh>("48 89 5C 24 ?? 56 48 83 EC ?? F6 81 ?? ?? ?? ?? ?? 49 8B F0 48 8B D9 0F 84 ?? ?? ?? ?? 49 8B C8 48 89 7C 24 ?? E8 ?? ?? ?? ?? 8B F8 A8 ?? 74 ?? 48 8B 8B ?? ?? ?? ?? BA ?? ?? ?? ?? C7 83", TitleLogoRefreshDetour);
@@ -124,7 +124,7 @@ namespace TitleEdit.PluginServices.Lobby
             // I'm not using RegisterListener with AddonEvent.PreFinalize because there's an edge case where if addon is destroyed early on it doesn't get called
             // not sure what the actual condition but it causes a rare problem where the game boots up without any menus because I called the removeTitleScreenUi
             // but never got a PreFinalize event callback so never restored it
-            if (titleMenuFinalizeActions.Count != 0 && Services.GameGui.GetAddonByName("_TitleMenu") != IntPtr.Zero)
+            if (titleMenuFinalizeActions.Count != 0 && Services.GameGui.GetAddonByName("_TitleMenu") == IntPtr.Zero)
             {
                 TitleMenuFinalize();
             }
@@ -411,6 +411,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Attempt to reload just the Ui
         public void ReloadTitleScreenUi(bool force = false)
         {
+            Services.Log.Debug($"[ReloadTitleScreenUi] Reloading title screen UI {CanReloadTitleScreen} {reloadingTitleScreen} {reloadingTitleScreenUi}");
             if ((CanReloadTitleScreen && !reloadingTitleScreenUi) || force)
             {
                 if (reloadingTitleScreen) return; // if a full reload is in progress ignore this call
@@ -463,6 +464,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Reload UI by setting LobbyUiStage and letting the game handle it
         private void ExecuteTitleScreenUiReload()
         {
+            Services.Log.Debug("[ExecuteTitleScreenUiReload]");
             LobbyUiStage = LobbyUiStage.LoadingTitleScreen2;
             reloadingTitleScreenUi = false;
         }

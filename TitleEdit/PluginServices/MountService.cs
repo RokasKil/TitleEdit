@@ -28,15 +28,15 @@ namespace TitleEdit.PluginServices
         {
             LoadMounts();
             mounts.Add(0);
-            if (Services.ClientState.LocalPlayer != null)
-            {
-                RefreshMounts();
-            }
         }
 
         public override void Init()
         {
             Services.Framework.Update += Tick;
+            if (Services.ClientState.LocalPlayer != null)
+            {
+                RefreshMounts();
+            }
         }
 
         private void Tick(IFramework framework)
@@ -101,6 +101,7 @@ namespace TitleEdit.PluginServices
                     {
                         if (playerState->IsMountUnlocked(mount.RowId))
                         {
+                            //Services.Log.Info($"Mount unlocked {mount.Singular.ToString()}");
                             mounts.Add(mount.RowId);
                         }
                     }

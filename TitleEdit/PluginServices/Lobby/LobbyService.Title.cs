@@ -13,7 +13,7 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-        [Signature("E8 ?? ?? ?? ?? 48 8D 4F ?? 44 89 77")]
+        [Signature("E8 ?? ?? ?? ?? 48 8D 4F ?? 89 5F ?? E8")]
         private readonly delegate* unmanaged<ScheduleManagement*, IntPtr, void> cancelScheduledTask = null!;
 
         //Some struct holding information about title screen cutscene that plays on DT title
@@ -40,19 +40,20 @@ namespace TitleEdit.PluginServices.Lobby
 
         private Queue<Action> cutsceneStoppedActions = [];
 
-        public bool CanReloadTitleScreen => (new LobbyUiStage[] {
-            //LobbyUiStage.LoadingSplashScreen,
-            //LobbyUiStage.EnteringTitleScreen,
-            //LobbyUiStage.LoadingTitleScreen1,
-            LobbyUiStage.LoadingTitleScreen2,
-            LobbyUiStage.TitleScreen,
-            //LobbyUiStage.LoadingDataCenter,
-            LobbyUiStage.TitleScreenMovies,
-            LobbyUiStage.TitleScreenOptions,
-            LobbyUiStage.TitleScreenLicense,
-            LobbyUiStage.TitleScreenConfiguration,
-            LobbyUiStage.TitleScreenInstallationDetails
-        }).Contains(LobbyUiStage);
+        public bool CanReloadTitleScreen => (new LobbyUiStage[]
+                                                {
+                                                    //LobbyUiStage.LoadingSplashScreen,
+                                                    //LobbyUiStage.EnteringTitleScreen,
+                                                    //LobbyUiStage.LoadingTitleScreen1,
+                                                    LobbyUiStage.LoadingTitleScreen2,
+                                                    LobbyUiStage.TitleScreen,
+                                                    //LobbyUiStage.LoadingDataCenter,
+                                                    LobbyUiStage.TitleScreenMovies,
+                                                    LobbyUiStage.TitleScreenOptions,
+                                                    LobbyUiStage.TitleScreenLicense,
+                                                    LobbyUiStage.TitleScreenConfiguration,
+                                                    LobbyUiStage.TitleScreenInstallationDetails
+                                                }).Contains(LobbyUiStage);
 
         public bool TitleCutsceneIsLoaded
         {
@@ -94,8 +95,10 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     action();
                 }
+
                 cutsceneStoppedActions.Clear();
             }
+
             lastCutsceneStatus = TitleCutsceneIsLoaded;
         }
 
@@ -127,8 +130,10 @@ namespace TitleEdit.PluginServices.Lobby
                     Services.Log.Debug($"[LeavingTitleScreen] restoring {overridenTitleScreenType}, {AgentLobby->IdleTime}");
                     LobbyInfo->CurrentTitleScreenType = overridenTitleScreenType.Value;
                 }
+
                 overridenTitleScreenType = null;
             }
+
             if (idled)
             {
                 LobbyInfo->CurrentTitleScreenMovieType = TitleScreenMovieOption;
@@ -144,6 +149,7 @@ namespace TitleEdit.PluginServices.Lobby
                     });
                     LobbyInfo->CurrentTitleScreenMovieType = TitleScreenMovie.ARealmReborn;
                 }
+
                 Services.Log.Debug($"[LeavingTitleScreen] set current movie to {LobbyInfo->CurrentTitleScreenMovieType}");
             }
         }

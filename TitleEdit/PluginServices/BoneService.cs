@@ -1,4 +1,3 @@
-
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Havok.Animation.Rig;
@@ -8,10 +7,7 @@ namespace TitleEdit.PluginServices
 {
     public class BoneService : AbstractService
     {
-
-        public BoneService()
-        {
-        }
+        public BoneService() { }
 
 
         // Could cache stuff here?
@@ -25,8 +21,8 @@ namespace TitleEdit.PluginServices
             if (skeleton == null) return 0;
 
             var partial = drawObject->Skeleton->PartialSkeletons[1];
-            var animatedPose = partial.GetHavokPose(0);
-            var staticPose = partial.GetHavokPose(3);
+            var animatedPose = partial.GetHavokPose(1);
+            var staticPose = partial.GetHavokPose(2);
             if (animatedPose == null || staticPose == null) return 0;
             var animatedHeadIdx = GetBoneIdx(animatedPose, "j_kao");
             var staticHeadIdx = GetBoneIdx(staticPose, "j_kao");
@@ -48,6 +44,7 @@ namespace TitleEdit.PluginServices
                     return i;
                 }
             }
+
             return -1;
         }
     }

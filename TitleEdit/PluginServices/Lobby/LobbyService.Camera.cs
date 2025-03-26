@@ -293,7 +293,7 @@ namespace TitleEdit.PluginServices.Lobby
                 cameraYOffset = 0;
             }
 
-            //Services.Log.Debug($"SetCameraCurveMidPointDetour {value}");
+            //Services.Log.Verbose($"SetCameraCurveMidPointDetour {value}, {cameraYOffset}");
             self->MidPoint.Value = value + cameraYOffset;
         }
 

@@ -57,21 +57,18 @@ public class HousingService : AbstractService
             }
         }
 
-        if (furnitureList != null)
+        model.Furniture = [];
+        foreach (var furnitureItem in furnitureList)
         {
-            model.Furniture = [];
-            foreach (var furnitureItem in furnitureList)
+            if (furnitureItem.Id == 0) continue;
+            if (furnitureItem.Index == -1) continue;
+            model.Furniture.Add(new HousingFurnitureModel()
             {
-                if (furnitureItem.Id == 0) continue;
-                if (furnitureItem.Index == -1) continue;
-                model.Furniture.Add(new HousingFurnitureModel()
-                {
-                    Id = furnitureItem.Id,
-                    Stain = furnitureItem.Stain,
-                    Position = furnitureItem.Position,
-                    Rotation = furnitureItem.Rotation
-                });
-            }
+                Id = furnitureItem.Id,
+                Stain = furnitureItem.Stain,
+                Position = furnitureItem.Position,
+                Rotation = furnitureItem.Rotation
+            });
         }
     }
 }

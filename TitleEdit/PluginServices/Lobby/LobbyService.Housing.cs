@@ -18,10 +18,10 @@ public unsafe partial class LobbyService
     // TitleEdit FurnitureOwnerId - can be used to recognise furniture spawned by us, not currently used
     const uint FurnitureOwnerId = 0x54455046;
 
-    [Signature(" E8 ?? ?? ?? ?? FF C5 48 85 C0 0F 84")]
+    [Signature("E8 ?? ?? ?? ?? FF C5 48 85 C0 0F 84")]
     private readonly delegate*unmanaged<HousingFurniture*, HousingFurniture*, void*, int, HousingObject*> spawnFurnitureObject = null!;
 
-    [Signature("40 55 41 57 48 83 EC 58")]
+    [Signature("40 55 41 57 48 83 EC ?? 48 89 5C 24 ?? 48 8B D9")]
     private readonly delegate*unmanaged<HousingManager*, uint, void> initializeHousingLayout = null!;
 
     [Signature("0F B7 0D ?? ?? ?? ?? 66 0F 45 C8 48 89 7C 24", ScanType = ScanType.StaticAddress)]

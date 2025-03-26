@@ -14,20 +14,19 @@ namespace TitleEdit.Data.Lobby
         TitleScreen = 9,
         LoadingDataCenter = 12,
         ExitingTitleScreen = 13, // To character select
-        Movie = 15,
-        LoadingCharacterSelect3 = 16,
-        LoadingCharacterCreation = 17,
-        LoggingOut = 19,
-        TitleScreenDataCenter = 20,
-        TitleScreenMovies = 21,
-        TitleScreenOptions = 22,
-        TitleScreenLicense = 23,
-        TitleScreenConfiguration = 25,
-        TitleScreenInstallationDetails = 26,
-        LoadingCharacterSelect1 = 28,
-        LoadingCharacterSelect2 = 29,
-        UnloadingCharacterSelect1 = 31,
-        UnloadingCharacterSelect2 = 32
+        Movie = 14,
+        LoadingCharacterSelect3 = 15,
+        LoadingCharacterCreation = 16,
+        LoggingOut = 18,
+        TitleScreenDataCenter = 19,
+        TitleScreenMovies = 20,
+        TitleScreenOptions = 21,
+        TitleScreenLicense = 22,
+        TitleScreenConfiguration = 24,
+        TitleScreenInstallationDetails = 25,
+        LoadingCharacterSelect1 = 27,
+        LoadingCharacterSelect2 = 28,
+        UnloadingCharacterSelect1 = 30,
+        UnloadingCharacterSelect2 = 31
     }
 }
-
