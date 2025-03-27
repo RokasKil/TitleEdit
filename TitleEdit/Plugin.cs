@@ -21,8 +21,6 @@ public sealed class Plugin : IDalamudPlugin
     private MainWindow MainWindow { get; init; }
     private ConfigButtonOverlay ConfigButtonOverlay { get; init; }
 
-    private IDalamudTextureWrap? logoTexture;
-
     private bool canChangeUiVisibility = true;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
@@ -82,7 +80,6 @@ public sealed class Plugin : IDalamudPlugin
         Services.CommandManager.RemoveHandler(CommandName);
         Services.CommandManager.RemoveHandler(CommandNameAlias);
         Services.Dispose();
-        logoTexture?.Dispose();
     }
 
     private void OnCommand(string command, string args)

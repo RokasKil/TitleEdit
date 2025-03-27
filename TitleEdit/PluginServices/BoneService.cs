@@ -21,8 +21,8 @@ namespace TitleEdit.PluginServices
             if (skeleton == null) return 0;
 
             var partial = drawObject->Skeleton->PartialSkeletons[1];
-            var animatedPose = partial.GetHavokPose(1);
-            var staticPose = partial.GetHavokPose(2);
+            var animatedPose = partial.GetHavokPose(0);
+            var staticPose = partial.GetHavokPose(3);
             if (animatedPose == null || staticPose == null) return 0;
             var animatedHeadIdx = GetBoneIdx(animatedPose, "j_kao");
             var staticHeadIdx = GetBoneIdx(staticPose, "j_kao");
