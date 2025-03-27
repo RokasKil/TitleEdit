@@ -37,17 +37,12 @@ public sealed class Plugin : IDalamudPlugin
 
         Services.Framework.RunOnFrameworkThread(Services.InitServices).ConfigureAwait(false).GetAwaiter().GetResult();
         // Load menu_icon.png from dll resources
+
         Services.PluginInterface.UiBuilder.RunWhenUiPrepared(() =>
         {
             var image = Services.TextureProvider.GetFromManifestResource(Assembly.GetExecutingAssembly(), "TitleEdit.menu_icon.png");
-            return image.RentAsync();
-        }).ContinueWith(imageTask =>
-        {
-            if (!imageTask.IsFaulted)
-            {
-                logoTexture = imageTask.Result;
-                Services.Framework.RunOnFrameworkThread(() => Services.TitleScreenMenu.AddEntry("Title Edit Menu", logoTexture, ToggleConfigUI));
-            }
+            Services.TitleScreenMenu.AddEntry("Title Edit Menu", image, ToggleConfigUI);
+            return true;
         });
 
         ConfigWindow = new();
