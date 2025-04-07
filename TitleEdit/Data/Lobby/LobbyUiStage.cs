@@ -12,8 +12,8 @@ namespace TitleEdit.Data.Lobby
         LoadingTitleScreen1 = 7, // CAN'T RELOAD HERE, WAIT FOR LoadingTitleScreen2
         LoadingTitleScreen2 = 8,
         TitleScreen = 9,
-        LoadingDataCenter = 12,
-        ExitingTitleScreen = 13, // To character select
+        LoadingDataCenter = 11,
+        ExitingTitleScreen = 12, // To character select
         Movie = 14,
         LoadingCharacterSelect3 = 15,
         LoadingCharacterCreation = 16,

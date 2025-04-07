@@ -8,6 +8,7 @@ using System;
 using System.Numerics;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using TitleEdit.Data.BGM;
+using TitleEdit.Data.Layout;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
@@ -36,6 +37,8 @@ namespace TitleEdit.PluginServices.Lobby
 
         private nint lobbyStructAddress;
         private GameLobbyType* lobbyCurrentMapAddress;
+
+        private nint layoutEventStructAddress;
 
         // Data used when loading new scenes and clearing the modification of old ones
         private GameLobbyType lastLobbyUpdateMapId = GameLobbyType.None;
@@ -66,6 +69,9 @@ namespace TitleEdit.PluginServices.Lobby
         // Probably some lobby instance
         public LobbyInfo* LobbyInfo => (LobbyInfo*)lobbyStructAddress;
 
+        // LayoutEventHandler struct
+        public LayoutEventStruct* LayoutEventStruct => *(LayoutEventStruct**)layoutEventStructAddress;
+
         private bool initComplete;
 
         public LobbyService()
@@ -79,6 +85,15 @@ namespace TitleEdit.PluginServices.Lobby
             // Points to a Value that says what Type of lobby map is being displayer
             lobbyCurrentMapAddress = (GameLobbyType*)Services.SigScanner.GetStaticAddressFromSig("0F B7 05 ?? ?? ?? ?? 48 8B CE");
 
+            // After 7.2 patch if your game starts on a Solution 9 preset you will crash on login because
+            // the game creates some EventHandlers and then tries to clean them up but fails in some way
+            // I don't have the time to properly research it so don't know if the EventHandlers are new
+            // or the cleanup failure is new, but something obviously has changed
+            // This struct hold information about those EventHandlers including a flag if they're already loaded
+            // We set that flag when we load a lobby scene to prevent them from ever existing and needing a cleanup
+            // I don't know if this is a proper fix or if something else is wrong but this should prevent further crashes
+            // And I'll maybe cycle back once I have the time to properly work on the plugin again
+            layoutEventStructAddress = Services.SigScanner.GetStaticAddressFromSig("48 83 3D ?? ?? ?? ?? ?? 0F 85 ?? ?? ?? ?? 33 D2 48 89 5C 24 ?? 45 33 C0 8D 4A ?? E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 0F 84 ?? ?? ?? ?? 33 C0 48 89 7C 24 ?? 33 D2 48 89 03 41 B8 ?? ?? ?? ?? 48 89 43 ?? 48 89 43 ?? 8D 48 ?? 66 89 43");
             ScanTitleAddressess();
         }
 
@@ -183,6 +198,18 @@ namespace TitleEdit.PluginServices.Lobby
                     // the game will pass null festivals and crash so we unload any prefetched scene just in case
                     LayoutWorld.UnloadPrefetchLayout();
                     InitializeHousingLayout(characterSelectLocationModel);
+
+                    // Set this flag to true so the game doesn't load EventHandlers it can't later cleanup causing a crash on login screen
+                    // Only seen this happen with initial title screen set to S9 (check the comment on signature scan for more info)
+                    if (LayoutEventStruct != null)
+                    {
+                        Services.Log.Debug("[CreateSceneDetour] LayoutEventStruct->Loaded = true");
+                        LayoutEventStruct->Loaded = true;
+                    }
+                    else
+                    {
+                        Services.Log.Warning("[CreateSceneDetour] LayoutEventStruct was null");
+                    }
                 }
 
                 if (LobbyType == GameLobbyType.CharaSelect)
