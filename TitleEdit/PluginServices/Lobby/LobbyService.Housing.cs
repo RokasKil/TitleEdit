@@ -4,7 +4,6 @@ using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.Interop;
 using Lumina.Excel.Sheets;
 using TitleEdit.Data.Persistence;
@@ -19,7 +18,7 @@ public unsafe partial class LobbyService
     const uint FurnitureOwnerId = 0x54455046;
 
     [Signature("E8 ?? ?? ?? ?? FF C5 48 85 C0 0F 84")]
-    private readonly delegate*unmanaged<HousingFurniture*, HousingFurniture*, void*, int, HousingObject*> spawnFurnitureObject = null!;
+    private readonly delegate*unmanaged<HousingFurniture*, HousingFurniture*, HousingObject*> spawnFurnitureObject = null!;
 
     [Signature("40 55 41 57 48 83 EC ?? 48 89 5C 24 ?? 48 8B D9")]
     private readonly delegate*unmanaged<HousingManager*, uint, void> initializeHousingLayout = null!;
@@ -27,7 +26,7 @@ public unsafe partial class LobbyService
     [Signature("0F B7 0D ?? ?? ?? ?? 66 0F 45 C8 48 89 7C 24", ScanType = ScanType.StaticAddress)]
     private readonly nint territoryTypeAddress = 0;
 
-    [Signature("E8 ?? ?? ?? ?? 41 8B 4E 20")]
+    [Signature("E8 ?? ?? ?? ?? 41 8B 4E ?? 85 C9 74 ?? E8 ?? ?? ?? ?? 48 85 C0 74 ?? 8B 58")]
     private readonly delegate*unmanaged<int, uint, ushort, int, byte, void> setInteriorFixture = null!;
 
     // Initialize housing system, this call will also reset it and clean out all furniture
@@ -159,7 +158,8 @@ public unsafe partial class LobbyService
             furnitureData->Id = furniture.Id & 0x0000FFFF;
             furnitureData->Stain = furniture.Stain;
             furnitureData->Rotation = furniture.Rotation;
-            var spawnedObject = spawnFurnitureObject(furnitureArray, furnitureData, null, 0);
+            Services.Log.Debug($"Spawning {furniture.Id + 196608} {furnitureData->Id} {furnitureData->Position} {furnitureData->Rotation} {furnitureData->Stain}");
+            var spawnedObject = spawnFurnitureObject(furnitureArray, furnitureData);
             if (spawnedObject != null)
             {
                 spawnedObject->OwnerId = FurnitureOwnerId;

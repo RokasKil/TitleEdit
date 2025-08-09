@@ -9,13 +9,13 @@ namespace TitleEdit.Data.Camera
         [FieldOffset(0x00)]
         public FFXIVClientStructs.FFXIV.Client.Game.Camera Camera;
         //Yaw and Pitch is part of Client::Game::Camera
-        [FieldOffset(0x130)]
+        [FieldOffset(0x140)]
         public Vector3 Orientation;
-        [FieldOffset(0x130)]
+        [FieldOffset(0x140)]
         public float Yaw;
-        [FieldOffset(0x134)]
+        [FieldOffset(0x144)]
         public float Pitch;
-        [FieldOffset(0x138)]
+        [FieldOffset(0x148)]
         public float Roll;
     }
 }

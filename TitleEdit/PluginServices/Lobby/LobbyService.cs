@@ -197,7 +197,6 @@ namespace TitleEdit.PluginServices.Lobby
                     // This causes a rare race condition where if title edit loads the same scene after the prefetch happened
                     // the game will pass null festivals and crash so we unload any prefetched scene just in case
                     LayoutWorld.UnloadPrefetchLayout();
-                    InitializeHousingLayout(characterSelectLocationModel);
 
                     // Set this flag to true so the game doesn't load EventHandlers it can't later cleanup causing a crash on login screen
                     // Only seen this happen with initial title screen set to S9 (check the comment on signature scan for more info)
@@ -214,6 +213,7 @@ namespace TitleEdit.PluginServices.Lobby
 
                 if (LobbyType == GameLobbyType.CharaSelect)
                 {
+                    InitializeHousingLayout(characterSelectLocationModel);
                     ResetLastCameraLookAtValues();
                     territoryPath = characterSelectLocationModel.TerritoryPath;
                     territoryId = characterSelectLocationModel.LayoutTerritoryTypeId;
@@ -226,6 +226,7 @@ namespace TitleEdit.PluginServices.Lobby
                 }
                 else if (LobbyType == GameLobbyType.Title)
                 {
+                    InitializeHousingLayout(titleScreenLocationModel);
                     if (ShouldModifyTitleScreen)
                     {
                         territoryPath = titleScreenLocationModel.TerritoryPath;
