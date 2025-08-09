@@ -173,7 +173,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Set _CharaSelectInfo text node visiblity
         private void SetCharaSelectInfoVisibilty(bool visible)
         {
-            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_CharaSelectInfo");
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_CharaSelectInfo").Address;
             if (addon == null) return;
             var node = addon->UldManager.SearchNodeById(3);
             if (node == null) return;
@@ -184,7 +184,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Set _CharaSelectListMenu list text node visiblity
         private void SetCharaSelectListMenuVisibilty(bool visible)
         {
-            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_CharaSelectListMenu");
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_CharaSelectListMenu").Address;
             if (addon == null) return;
             var node = addon->UldManager.SearchNodeById(12);
             if (node == null) return;
@@ -246,7 +246,7 @@ namespace TitleEdit.PluginServices.Lobby
 
         private AtkResNode* GetTitleScreenLogoResNode()
         {
-            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo");
+            var addon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleLogo").Address;
             if (addon == null) return null;
             return addon->RootNode;
         }
@@ -291,7 +291,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (ShouldModifyTitleScreenUiColors)
             {
-                RecolorAddon((AtkUnitBase*)args.Addon);
+                RecolorAddon((AtkUnitBase*)args.Addon.Address);
             }
         }
 
@@ -428,7 +428,7 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 foreach (var addon in recolorableAddons)
                 {
-                    RecolorAddon((AtkUnitBase*)Services.GameGui.GetAddonByName(addon));
+                    RecolorAddon((AtkUnitBase*)Services.GameGui.GetAddonByName(addon).Address);
                 }
             }
         }
@@ -438,7 +438,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (Services.GameGui.GetAddonByName("_TitleMenu") != IntPtr.Zero)
             {
-                var titleMenuAddon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleMenu");
+                var titleMenuAddon = (AtkUnitBase*)Services.GameGui.GetAddonByName("_TitleMenu").Address;
                 Services.Log.Debug($"[OnTitleMenuFinalize] queueing {titleMenuAddon->IsVisible} {titleMenuAddon->IsReady} {titleMenuAddon->IsFullyLoaded()} {titleMenuAddon->Flags1A1:X} {titleMenuAddon->Flags1A2:X}");
                 titleMenuFinalizeActions.Enqueue(action);
             }

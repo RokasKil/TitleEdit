@@ -1,5 +1,5 @@
 using Dalamud.Interface.Windowing;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System;
 using System.Numerics;
 using TitleEdit.Windows.Tabs;
@@ -8,9 +8,8 @@ namespace TitleEdit.Windows;
 
 public class ConfigWindow : Window, IDisposable
 {
-
     private readonly ITab[] tabs =
-{
+    {
         new DisplayTypeTab(),
         new SettingsTab(),
         new PresetTab(),
@@ -28,10 +27,7 @@ public class ConfigWindow : Window, IDisposable
         };
     }
 
-    public void Dispose()
-    {
-
-    }
+    public void Dispose() { }
 
     public override void Draw()
     {
@@ -45,6 +41,7 @@ public class ConfigWindow : Window, IDisposable
                     ImGui.EndTabItem();
                 }
             }
+
             ImGui.EndTabBar();
         }
     }

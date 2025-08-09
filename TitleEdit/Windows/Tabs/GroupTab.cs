@@ -1,7 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,6 +48,7 @@ namespace TitleEdit.Windows.Tabs
             {
                 currentGroupName = GetGroupEntryName(Services.GroupService.Groups.GetValueOrDefault(currentGroup));
             }
+
             bool stylePopped = false;
 
             GuiUtils.FilterCombo($"##{Title}##groupCombo", currentGroupName, () =>
@@ -57,6 +58,7 @@ namespace TitleEdit.Windows.Tabs
                     ImGui.PopStyleColor();
                     stylePopped = true;
                 }
+
                 foreach (var entry in Services.GroupService.EditableGroupEnumerator)
                 {
                     if (GuiUtils.FilterSelectable($"{GetGroupEntryName(entry.Value)}##{Title}##{entry.Key}", entry.Key == currentGroup))
@@ -64,20 +66,24 @@ namespace TitleEdit.Windows.Tabs
                         SelectGroup(entry.Key);
                         return true;
                     }
+
                     GuiUtils.DrawGroupTooltip(entry.Key);
                 }
+
                 return false;
             });
             if (makingNewGroup && !stylePopped)
             {
                 ImGui.PopStyleColor();
             }
+
             ImGui.SameLine();
             ImGui.BeginDisabled(makingNewGroup || currentGroup == "");
             if (ImGuiComponents.IconButton($"##{Title}##Duplicate", FontAwesomeIcon.Copy))
             {
                 DuplicateGroup(currentGroup);
             }
+
             ImGui.EndDisabled();
             GuiUtils.HoverTooltip("Duplicate group");
             ImGui.BeginDisabled(makingNewGroup);
@@ -85,11 +91,13 @@ namespace TitleEdit.Windows.Tabs
             {
                 NewGroup(LocationType.TitleScreen);
             }
+
             ImGui.SameLine();
             if (ImGui.Button($"New Character Select group##{Title}##NewGroup"))
             {
                 NewGroup(LocationType.CharacterSelect);
             }
+
             ImGui.EndDisabled();
         }
 
@@ -131,6 +139,7 @@ namespace TitleEdit.Windows.Tabs
                         {
                             ImGui.PushStyleColor(ImGuiCol.Text, GuiUtils.WarningColor);
                         }
+
                         GuiUtils.FilterCombo($"##{Title}##grouprow{i}", display, () =>
                         {
                             foreach (var entry in Services.PresetService.Presets.Where(preset => preset.Value.LocationModel.LocationType == group.LocationType && !group.PresetFileNames.Contains(preset.Key)))
@@ -140,15 +149,17 @@ namespace TitleEdit.Windows.Tabs
                                     group.PresetFileNames[i] = entry.Key;
                                     return true;
                                 }
-                                GuiUtils.DrawPresetTooltip(entry.Key, group.LocationType);
 
+                                GuiUtils.DrawPresetTooltip(entry.Key, group.LocationType);
                             }
+
                             return false;
                         }, popStyleColor: invalid);
                         if (presetPath != null)
                         {
                             GuiUtils.DrawPresetTooltip(presetPath, group.LocationType);
                         }
+
                         //
                         ImGui.TableNextColumn();
                         if (ImGuiComponents.IconButton($"##{Title}##{i}##Delete", FontAwesomeIcon.Trash))
@@ -163,8 +174,8 @@ namespace TitleEdit.Windows.Tabs
             {
                 group.PresetFileNames.Add(null);
             }
-            ImGui.EndDisabled();
 
+            ImGui.EndDisabled();
         }
 
         private void DrawGroupActions()
@@ -187,7 +198,6 @@ namespace TitleEdit.Windows.Tabs
             ImGui.SameLine();
             if (makingNewGroup)
             {
-
                 if (ImGui.Button($"Cancel##{Title}"))
                 {
                     ClearGroup();
@@ -200,6 +210,7 @@ namespace TitleEdit.Windows.Tabs
                     SetupDeleteConfirmation();
                 }
             }
+
             ImGui.EndDisabled();
         }
 
@@ -269,6 +280,7 @@ namespace TitleEdit.Windows.Tabs
                     SetupError(ex);
                 }
             }
+
             ImGui.SameLine();
             if (ImGui.Button("No")) modal = false;
         }

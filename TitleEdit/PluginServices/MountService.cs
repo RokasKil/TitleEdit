@@ -82,7 +82,7 @@ namespace TitleEdit.PluginServices
             try
             {
                 Services.Log.Debug($"Saving mounts");
-                Util.WriteAllTextSafe(filePath, JsonConvert.SerializeObject(mounts));
+                FilesystemUtil.WriteAllTextSafe(filePath, JsonConvert.SerializeObject(mounts));
             }
             catch (Exception e)
             {

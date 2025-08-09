@@ -131,5 +131,10 @@ namespace TitleEdit.Utility
                 }
             }
         }
+
+        public static T? GetValue<T>(this Span<T> span, int index) where T : unmanaged
+        {
+            return span.Length > index ? span[index] : null;
+        }
     }
 }

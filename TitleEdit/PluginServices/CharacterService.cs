@@ -66,7 +66,7 @@ namespace TitleEdit.PluginServices
                 try
                 {
                     Services.Log.Debug($"Saving characters");
-                    Util.WriteAllTextSafe(filePath, JsonConvert.SerializeObject(characters));
+                    FilesystemUtil.WriteAllTextSafe(filePath, JsonConvert.SerializeObject(characters));
                     changed = false;
                 }
                 catch (Exception e)

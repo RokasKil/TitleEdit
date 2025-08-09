@@ -87,7 +87,7 @@ public class ConfigurationService
 
     public void Save()
     {
-        Util.WriteAllTextSafe(filePath, JsonConvert.SerializeObject(this, Formatting.Indented));
+        FilesystemUtil.WriteAllTextSafe(filePath, JsonConvert.SerializeObject(this, Formatting.Indented));
     }
 
     public static DirectoryInfo GetBaseConfigDirectory()

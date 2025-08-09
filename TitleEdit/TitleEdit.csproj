@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/12.0.2">
+<Project Sdk="Dalamud.NET.Sdk/13.0.0">
 
     <PropertyGroup>
-        <Version>3.0.5.3</Version>
+        <Version>3.0.6.0</Version>
         <PackageProjectUrl>https://github.com/RokasKil/TitleEdit</PackageProjectUrl>
         <TargetFramework>net9.0-windows</TargetFramework>
     </PropertyGroup>

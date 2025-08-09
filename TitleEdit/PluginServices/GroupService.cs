@@ -81,7 +81,7 @@ namespace TitleEdit.PluginServices
             try
             {
                 Services.Log.Debug($"Saving {group.FileName}");
-                Util.WriteAllTextSafe(
+                FilesystemUtil.WriteAllTextSafe(
                     Path.Join(saveDirectory.FullName, group.FileName),
                     JsonConvert.SerializeObject(group)
                 );

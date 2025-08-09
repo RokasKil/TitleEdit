@@ -47,17 +47,17 @@ namespace TitleEdit.PluginServices.Lobby
             // Called every frame and is responsible for switching out currently selected character
             // We had proper methods to hook but they got inlined with release of DT so now we're polling
             // Client::UI::Agent::AgentLobby.UpdateCharaSelectDisplay
-            updateCharaSelectDisplayHook = Hook<UpdateCharaSelectDisplayDelegate>("E8 ?? ?? ?? ?? 84 C0 74 ?? C6 86 ?? ?? ?? ?? ?? 80 BE", UpdateCharaSelectDisplayDetour);
+            updateCharaSelectDisplayHook = Hook<UpdateCharaSelectDisplayDelegate>("E8 ?? ?? ?? ?? 84 C0 74 ?? C6 87 ?? ?? ?? ?? ?? 80 BF ?? ?? ?? ?? ?? 74", UpdateCharaSelectDisplayDetour);
 
             // Called when the game is making a new character - if set by other hooks we force the flag to include a companionObject so we can display a mount
             createBattleCharacterHook = Hook<CreateBattleCharacterDelegate>("E8 ?? ?? ?? ?? 8B D0 41 89 44", CreateBattleCharacterDetour);
 
-            // Called when you select a new world in character select or cancel selection so it reload the current
+            // Called when you load into character select, select a new world in character select or cancel selection so it reload the current
             // we use it make sure characters get created with a companion slots,
-            setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 8B 44 24 ?? 83 F8 ?? 75 ?? C6 83", SetCharSelectCurrentWorldDetour);
+            setCharSelectCurrentWorldHook = Hook<SetCharSelectCurrentWorldDelegate>("E8 ?? ?? ?? ?? 8B 84 24 ?? ?? ?? ?? 83 F8 ?? 75", SetCharSelectCurrentWorldDetour);
 
-            // Happens on world list hover when loading a world - we use it make sure characters get created with a companion slots (maybe makes selectCharacter2Hook redundant)
-            charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? 49 8B CD E8 ?? ?? ?? ?? 41 0F B6 85", CharSelectWorldPreviewEventHandlerDetour);
+            // Happens on world list hover when loading a world - we use it make sure characters get created with a companion slots (
+            charSelectWorldPreviewEventHandlerHook = Hook<CharSelectWorldPreviewEventHandlerDelegate>("E8 ?? ?? ?? ?? 49 8B CF E8 ?? ?? ?? ?? 41 0F B6 87", CharSelectWorldPreviewEventHandlerDetour);
         }
 
         // Called every frame and is responsible for switching out currently selected character
@@ -71,7 +71,7 @@ namespace TitleEdit.PluginServices.Lobby
                 Services.Log.Debug($"CurrentChar changed {(IntPtr)preUpdateCharacter:X} - {(IntPtr)CurrentCharacter:X}");
                 if (lastContentId == 0)
                 {
-                    Services.Log.Debug($"Reseting last character rotation {lastCharacterRotation}");
+                    Services.Log.Debug($"Resetting last character rotation {lastCharacterRotation}");
                 }
 
                 UpdateCharacter();
@@ -213,6 +213,7 @@ namespace TitleEdit.PluginServices.Lobby
         // temporarily set creatingCharSelectGameObjects to true so CreateBattleCharacterDetour activates
         private void CharSelectWorldPreviewEventHandlerDetour(ulong p1, ulong p2, ulong p3, uint p4)
         {
+            Services.Log.Debug($"[CharSelectWorldPreviewEventHandlerDetour] {p1:X} {p2:X} {p3:X} {p4:X}");
             creatingCharSelectGameObjects = true;
             charSelectWorldPreviewEventHandlerHook.Original(p1, p2, p3, p4);
             creatingCharSelectGameObjects = false;

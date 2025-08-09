@@ -1,7 +1,7 @@
 using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System;
 using System.Numerics;
 using TitleEdit.Utility;
@@ -76,11 +76,11 @@ public class MainWindow : Window, IDisposable
             {
                 var framework = Framework.Instance();
                 ImGui.TextUnformatted($"Game version: {framework->GameVersionString} {framework->GameVersionString.Length}");
-                ImGui.TextUnformatted($"Heavensward: {framework->Ex1VersionString} {framework->Ex1VersionString.Length}");
-                ImGui.TextUnformatted($"Stormblood: {framework->Ex2VersionString} {framework->Ex2VersionString.Length}");
-                ImGui.TextUnformatted($"Shadowbringers: {framework->Ex3VersionString} {framework->Ex3VersionString.Length}");
-                ImGui.TextUnformatted($"Endwalker: {framework->Ex4VersionString} {framework->Ex4VersionString.Length}");
-                ImGui.TextUnformatted($"Dawntrail: {framework->Ex5VersionString} {framework->Ex5VersionString.Length}");
+                ImGui.TextUnformatted($"Heavensward: {framework->ExVersions.GetValue(0)?.VersionString} {framework->ExVersions.GetValue(0)?.VersionString.Length}");
+                ImGui.TextUnformatted($"Stormblood: {framework->ExVersions.GetValue(1)?.VersionString} {framework->ExVersions.GetValue(1)?.VersionString.Length}");
+                ImGui.TextUnformatted($"Shadowbringers: {framework->ExVersions.GetValue(2)?.VersionString} {framework->ExVersions.GetValue(2)?.VersionString.Length}");
+                ImGui.TextUnformatted($"Endwalker: {framework->ExVersions.GetValue(3)?.VersionString} {framework->ExVersions.GetValue(3)?.VersionString.Length}");
+                ImGui.TextUnformatted($"Dawntrail: {framework->ExVersions.GetValue(4)?.VersionString} {framework->ExVersions.GetValue(4)?.VersionString.Length}");
             }
 
             if (ImGui.Button("Housing test"))

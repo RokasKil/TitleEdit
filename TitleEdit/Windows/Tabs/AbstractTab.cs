@@ -1,4 +1,4 @@
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System;
 
 namespace TitleEdit.Windows.Tabs
@@ -49,6 +49,5 @@ namespace TitleEdit.Windows.Tabs
         }
 
         protected void CloseModal() => modal = false;
-
     }
 }

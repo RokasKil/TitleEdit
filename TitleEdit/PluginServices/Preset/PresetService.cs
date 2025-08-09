@@ -59,7 +59,6 @@ namespace TitleEdit.PluginServices.Preset
                 else
                 {
                     Services.Log.Debug($"Unknown file in preset directory {relativeFilePath}");
-
                 }
             });
         }
@@ -76,13 +75,14 @@ namespace TitleEdit.PluginServices.Preset
                     while (presets.ContainsKey($"{namePart} ({i}).json")) i++;
                     namePart = $"{namePart} ({i})";
                 }
+
                 preset.FileName = $"{namePart}.json";
             }
 
             try
             {
                 Services.Log.Debug($"Saving {preset.FileName}");
-                Util.WriteAllTextSafe(
+                FilesystemUtil.WriteAllTextSafe(
                     Path.Join(saveDirectory.FullName, preset.FileName),
                     JsonConvert.SerializeObject(preset)
                 );
@@ -92,6 +92,7 @@ namespace TitleEdit.PluginServices.Preset
                 Services.Log.Error(e, e.Message);
                 throw;
             }
+
             presets[preset.FileName] = preset;
             return preset.FileName;
         }
@@ -103,7 +104,7 @@ namespace TitleEdit.PluginServices.Preset
                 try
                 {
                     Services.Log.Debug($"Exporting {preset.FileName} to {filePath}");
-                    Util.WriteAllTextSafe(
+                    FilesystemUtil.WriteAllTextSafe(
                         filePath,
                         JsonConvert.SerializeObject(preset)
                     );
@@ -135,6 +136,7 @@ namespace TitleEdit.PluginServices.Preset
                     throw;
                 }
             }
+
             throw new("Preset not found");
         }
 
@@ -150,6 +152,7 @@ namespace TitleEdit.PluginServices.Preset
                 Services.Log.Error(e, e.Message);
                 throw;
             }
+
             return Save(preset);
         }
 
@@ -162,6 +165,7 @@ namespace TitleEdit.PluginServices.Preset
                 {
                     textData = Encoding.UTF8.GetString(Convert.FromBase64String(textData[3..]));
                 }
+
                 preset = LoadText(textData);
             }
             catch (Exception e)
@@ -169,6 +173,7 @@ namespace TitleEdit.PluginServices.Preset
                 Services.Log.Error(e, e.Message);
                 throw;
             }
+
             return Save(preset);
         }
 
@@ -180,6 +185,7 @@ namespace TitleEdit.PluginServices.Preset
             {
                 preset.FileName = Path.Join(relativePath, file.Name);
             }
+
             return preset;
         }
 
@@ -196,15 +202,18 @@ namespace TitleEdit.PluginServices.Preset
             {
                 throw new("Invalid preset");
             }
+
             var preset = presetOpt.Value;
             if (preset.Version != PresetModel.CurrentVersion)
             {
                 throw new($"Preset Version is not valid {preset.Version}");
             }
+
             if (string.IsNullOrEmpty(preset.Name))
             {
                 throw new("Preset doesn't have a name");
             }
+
             Services.LocationService.Validate(preset.LocationModel);
         }
 
@@ -215,6 +224,7 @@ namespace TitleEdit.PluginServices.Preset
                 File.Delete(Path.Join(saveDirectory.FullName, presetFileName));
                 presets.Remove(presetFileName);
             }
+
             return;
         }
 
@@ -224,6 +234,7 @@ namespace TitleEdit.PluginServices.Preset
             {
                 return true;
             }
+
             return false;
         }
 

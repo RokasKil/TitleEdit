@@ -70,12 +70,12 @@ namespace TitleEdit.PluginServices.Lobby
             calculateCameraCurveLowAndHighPointHook = Hook<CalculateCameraCurveLowAndHighPointDelegate>("F3 0F 10 81 ?? ?? ?? ?? F3 0F 11 89", CalculateCameraCurveLowAndHighPointDetour);
 
             // Some LobbySceneLoaded thingy, called once a new world level is loaded, we use it to restore camera Position
-            lobbySceneLoadedHook = Hook<LobbySceneLoadedDelegate>("E8 ?? ?? ?? ?? 41 0F B7 CE 40 88 2D", LobbySceneLoadedDetour);
+            lobbySceneLoadedHook = Hook<LobbySceneLoadedDelegate>("E8 ?? ?? ?? ?? 0F B7 CD 40 88 35", LobbySceneLoadedDetour);
 
             // Called when the game needs to set LookAt of the lobbyCamera but we override that every frame so it's not needed for that purpose
             // We use this to additionaly override camera position cause it will set stuff to 0, 0, 0 and if the title screen and character select use the same level
             // this might cause the loud sound bug
-            lobbyCameraFixOnHook = Hook<LobbyCameraFixOnDelegate>("E8 ?? ?? ?? ?? 89 9C 24 ?? ?? ?? ?? E8", LobbyCameraFixOnDetour);
+            lobbyCameraFixOnHook = Hook<LobbyCameraFixOnDelegate>("C6 81 ?? ?? ?? ?? ?? 0F 28 CB 8B 02", LobbyCameraFixOnDetour);
 
             // Called in character select to decide the Y coordinate of the lookAt vector based on the current distance and 3 points
             // We clamp the distance to the final point so the camera doesn't go haywire with our extended zoom but still keeps the vanilla curve

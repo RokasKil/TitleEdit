@@ -13,7 +13,7 @@ namespace TitleEdit.PluginServices.Lobby
 {
     public unsafe partial class LobbyService
     {
-        [Signature("E8 ?? ?? ?? ?? 48 8D 4F ?? 89 5F ?? E8")]
+        [Signature("E8 ?? ?? ?? ?? 49 8D 4E ?? E8 ?? ?? ?? ?? 48 8B 0D")]
         private readonly delegate* unmanaged<ScheduleManagement*, IntPtr, void> cancelScheduledTask = null!;
 
         //Some struct holding information about title screen cutscene that plays on DT title

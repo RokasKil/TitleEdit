@@ -277,7 +277,7 @@ namespace TitleEdit.PluginServices
             {
                 if (locations.TryGetValue(localContentId, out LocationModel locationModel))
                 {
-                    Util.WriteAllTextSafe(
+                    FilesystemUtil.WriteAllTextSafe(
                         Path.Join(saveDirectory.FullName, $"{localContentId:X16}.json"),
                         JsonConvert.SerializeObject(locationModel)
                     );

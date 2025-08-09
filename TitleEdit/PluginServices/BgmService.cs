@@ -98,7 +98,7 @@ namespace TitleEdit.PluginServices
 
         private void SaveLocalSheet(string text, string code)
         {
-            Util.WriteAllTextSafe(Path.Combine(Services.PluginInterface.AssemblyLocation.DirectoryName!, string.Format(SheetFileName, code)), text);
+            FilesystemUtil.WriteAllTextSafe(Path.Combine(Services.PluginInterface.AssemblyLocation.DirectoryName!, string.Format(SheetFileName, code)), text);
         }
 
         private void LoadLangSheet(string sheetText, string code)

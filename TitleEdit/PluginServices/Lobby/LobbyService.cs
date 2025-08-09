@@ -80,10 +80,10 @@ namespace TitleEdit.PluginServices.Lobby
 
             // Points to a struct with a value that indicates the current lobby bgm and current title screen type (among other things)
             // No direct usages left, signature points to the getter and offset is to the LEA call
-            lobbyStructAddress = Services.SigScanner.GetStaticAddressFromSig("E8 ?? ?? ?? ?? 33 ED BF", 0x60);
+            lobbyStructAddress = Services.SigScanner.GetStaticAddressFromSig("E8 ?? ?? ?? ?? 41 B0 ?? 8B 70", 0x60);
 
-            // Points to a Value that says what Type of lobby map is being displayer
-            lobbyCurrentMapAddress = (GameLobbyType*)Services.SigScanner.GetStaticAddressFromSig("0F B7 05 ?? ?? ?? ?? 48 8B CE");
+            // Points to a Value that says what Type of lobby map is being displayed
+            lobbyCurrentMapAddress = (GameLobbyType*)Services.SigScanner.GetStaticAddressFromSig("66 89 05 ?? ?? ?? ?? 66 89 05 ?? ?? ?? ?? 66 89 05 ?? ?? ?? ?? 48 8B 4B");
 
             // After 7.2 patch if your game starts on a Solution 9 preset you will crash on login because
             // the game creates some EventHandlers and then tries to clean them up but fails in some way
@@ -100,14 +100,14 @@ namespace TitleEdit.PluginServices.Lobby
         public override void Init()
         {
             // Called when creating a new scene in lobby (main menu, character select, character creation) - Used to switch out the level that loads and reset stuff
-            createSceneHook = Hook<CreateSceneDelegate>("E8 ?? ?? ?? ?? 66 89 1D ?? ?? ?? ?? E9 ?? ?? ?? ??", CreateSceneDetour);
+            createSceneHook = Hook<CreateSceneDelegate>("E8 ?? ?? ?? ?? 66 89 3D ?? ?? ?? ?? E9", CreateSceneDetour);
 
             // Lobby manager update (I think) - we use this as a point to change the Value at lobbyCurrentMapAddress to reload the scene
-            lobbyUpdateHook = Hook<LobbyUpdateDelegate>("40 56 57 41 56 48 81 EC ?? ?? ?? ?? 8B F9", LobbyUpdateDetour);
+            lobbyUpdateHook = Hook<LobbyUpdateDelegate>("E8 ?? ?? ?? ?? 80 BF ?? ?? ?? ?? ?? 48 8D 35", LobbyUpdateDetour);
 
             // Called when going from title to char select or reverse
             // Important because in those scenarios the game first loads the level and only then sets CurrentLobbyMap value so we can't rely on that
-            loadLobbySceneHook = Hook<LoadLobbyScene>("E8 ?? ?? ?? ?? B0 ?? 88 86", LoadLobbySceneDetour);
+            loadLobbySceneHook = Hook<LoadLobbyScene>("48 89 5C 24 ?? 57 48 83 EC ?? 8B D9 E8", LoadLobbySceneDetour);
 
             updateLobbyUiStageHook = Hook<UpdateLobbyUiStage>(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLobby.Addresses.UpdateLobbyUIStage.String, UpdateLobbyUiStageDetour);
 
@@ -283,6 +283,7 @@ namespace TitleEdit.PluginServices.Lobby
 
                     RecordCameraRotation();
                     CurrentLobbyMap = GameLobbyType.None;
+                    // LobbyUiStage = LobbyUiStage.LoadingCharacterSelect1;
                     resetCharacterSelectScene = false;
                 }
             }

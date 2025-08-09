@@ -71,7 +71,7 @@ namespace TitleEdit.PluginServices
             TerritoryChanged();
             EnableHooks();
             HookLayoutInstance("48 8D 0D ?? ?? ?? ?? 66 90 48 89 50");                                                          // BgPart
-            HookLayoutInstance("48 8D 0D ?? ?? ?? ?? 48 89 78 ?? 89 78");                                                       // Light
+            HookLayoutInstance("48 8D 0D ?? ?? ?? ?? 4C 89 70 ?? 44 89 70");                                                    // Light
             HookLayoutInstance("48 8D 05 ?? ?? ?? ?? 48 89 01 33 D2 48 89 51 ?? 48 89 51");                                     // Vfx
             HookLayoutInstance("48 8D 05 ?? ?? ?? ?? 48 89 07 48 8D 05 ?? ?? ?? ?? 48 89 47 ?? 48 8D 05 ?? ?? ?? ?? 48 89 77"); // SharedGroup
         }
