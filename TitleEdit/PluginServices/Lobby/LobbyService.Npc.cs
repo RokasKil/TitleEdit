@@ -121,7 +121,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
             else if (LobbyType == GameLobbyType.CharaSelect)
             {
-                Services.Log.Warning($"[OnLayoutChange] Spawning chara npcs");
+                Services.Log.Debug($"[OnLayoutChange] Spawning chara npcs");
                 SpawnNpcs(characterSelectLocationModel);
             }
         }

@@ -14,30 +14,32 @@ namespace TitleEdit.Utility
     public static class GuiUtils
     {
         public static readonly Vector4 WarningColor = new Vector4(1, 0.8f, 0, 1);
-        private static readonly Dictionary<string, bool> OpenCombos = [];
-        private static readonly Dictionary<string, string> ComboFilters = [];
+        private static readonly Dictionary<uint, bool> OpenCombos = [];
+        private static readonly Dictionary<uint, string> ComboFilters = [];
 
-        private static readonly Dictionary<string, UiColorExpansion> UiColorPickerSelections = [];
-        private static string? FilterComboTitle = null;
+        private static readonly Dictionary<uint, UiColorExpansion> UiColorPickerSelections = [];
+        private static uint? FilterComboIdHash = null;
         private static bool FilterDrawSeperator = true;
         private static bool FilterDrawTooltip = false;
 
         public static bool Combo(string title, string value, Func<bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false) =>
-            Combo(title, value, (_) => elementsAction.Invoke(), flags);
+            Combo(title, value, (_) => elementsAction.Invoke(), flags, popStyleColor);
 
         public static bool Combo(string title, string value, Func<bool, bool> elementsAction, ImGuiComboFlags flags = ImGuiComboFlags.None, bool popStyleColor = false)
         {
             bool selected = false;
-            if (ImGui.BeginCombo(title, value, flags))
+            using var id = ImRaii.PushId(title);
+            var idHash = ImGui.GetID("");
+            using var combo = ImRaii.Combo(title, value, flags);
+            if (combo)
             {
                 if (popStyleColor)
                 {
                     ImGui.PopStyleColor();
                 }
 
-                selected = elementsAction.Invoke(!OpenCombos.GetValueOrDefault(title));
-                OpenCombos[title] = true;
-                ImGui.EndCombo();
+                selected = elementsAction.Invoke(!OpenCombos.GetValueOrDefault(idHash));
+                OpenCombos[idHash] = true;
             }
             else
             {
@@ -46,7 +48,7 @@ namespace TitleEdit.Utility
                     ImGui.PopStyleColor();
                 }
 
-                OpenCombos[title] = false;
+                OpenCombos[idHash] = false;
             }
 
             return selected;
@@ -59,20 +61,23 @@ namespace TitleEdit.Utility
         {
             return Combo(title, value, (justOpened) =>
             {
+                var idHash = ImGui.GetID("");
                 bool selected = false;
                 if (justOpened)
                 {
                     ImGui.SetKeyboardFocusHere();
-                    ComboFilters[title] = "";
+                    ComboFilters[idHash] = "";
                 }
 
-                string filter = ComboFilters[title];
-                ImGui.InputText($"Search##{title}", ref filter, 256);
-                ComboFilters[title] = filter;
+                string filter = ComboFilters[idHash];
+                ImGui.InputText($"Search", ref filter, 256);
+                ComboFilters[idHash] = filter;
                 ImGui.Separator();
-                if (ImGui.BeginChild($"{title}##Child", new Vector2(-1, ImGui.GetTextLineHeightWithSpacing() * 8)))
+                using var id = ImRaii.PushId("child");
+                using var child = ImRaii.Child(title, new Vector2(-1, ImGui.GetTextLineHeightWithSpacing() * 8));
+                if (child)
                 {
-                    FilterComboTitle = title;
+                    FilterComboIdHash = idHash;
                     FilterDrawSeperator = false;
                     if (elementsAction.Invoke(justOpened, filter))
                     {
@@ -80,8 +85,7 @@ namespace TitleEdit.Utility
                         ImGui.CloseCurrentPopup();
                     }
 
-                    FilterComboTitle = null;
-                    ImGui.EndChild();
+                    FilterComboIdHash = idHash;
                 }
 
                 return selected;
@@ -91,10 +95,10 @@ namespace TitleEdit.Utility
         public static bool FilterSelectable(string label, bool selected)
         {
             FilterDrawTooltip = false;
-            if (FilterComboTitle != null)
+            if (FilterComboIdHash != null)
             {
                 var visibleLabel = label.Contains("##") ? label[..label.IndexOf("##")] : label;
-                if (!visibleLabel.Contains(ComboFilters[FilterComboTitle], StringComparison.OrdinalIgnoreCase))
+                if (!visibleLabel.Contains(ComboFilters[(uint)FilterComboIdHash], StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
@@ -118,11 +122,12 @@ namespace TitleEdit.Utility
         {
             bool selected = false;
 
+            using var id = ImRaii.PushId(title);
             using var combo = ImRaii.Combo(title, value.ToText(), flags);
+            var idHash = ImGui.GetID("");
             HoverTooltip(value);
             if (combo)
             {
-                using var id = ImRaii.PushId(title); // I only discovered this exists after pretty much all of the UI is done, I should go and redo everything one day
                 foreach (T enumValue in Enum.GetValues(typeof(T)))
                 {
                     if ((filter == null || filter.Invoke(enumValue)) && enumValue.IsInAvailableExpansion())
@@ -137,11 +142,11 @@ namespace TitleEdit.Utility
                     }
                 }
 
-                OpenCombos[title] = true;
+                OpenCombos[idHash] = true;
             }
             else
             {
-                OpenCombos[title] = false;
+                OpenCombos[idHash] = false;
             }
 
             return selected;
@@ -176,7 +181,7 @@ namespace TitleEdit.Utility
 
         public static void HoverTooltip(Action element, ImGuiHoveredFlags flags = ImGuiHoveredFlags.None, bool ignoreFilter = false)
         {
-            if (!ignoreFilter && FilterComboTitle != null && !FilterDrawTooltip) return;
+            if (!ignoreFilter && FilterComboIdHash != null && !FilterDrawTooltip) return;
             if (ImGui.IsItemHovered(flags))
             {
                 using var tooltip = ImRaii.Tooltip();
@@ -245,9 +250,8 @@ namespace TitleEdit.Utility
         {
             HoverTooltip(() =>
             {
-                ImGui.PushTextWrapPos(ImGui.GetFont().FontSize * 16);
+                using var wrapPos = ImRaii.TextWrapPos(ImGui.GetFont().FontSize * 16);
                 contentAction.Invoke();
-                ImGui.PopTextWrapPos();
             });
         }
 
@@ -304,36 +308,38 @@ namespace TitleEdit.Utility
             }
         }
 
-        public static bool DrawUiColorPicker(string title, string id, ref UiColorModel colorModel, bool allowUnspecified = false)
+        public static bool DrawUiColorPicker(string title, ref UiColorModel colorModel, bool allowUnspecified = false)
         {
-            bool changed = Combo($"{title}##{id}", ref colorModel.Expansion, filter: (entry) => allowUnspecified || entry != UiColorExpansion.Unspecified);
+            using var id = ImRaii.PushId(title);
+            bool changed = Combo(title, ref colorModel.Expansion, filter: (entry) => allowUnspecified || entry != UiColorExpansion.Unspecified);
 
             if (colorModel.Expansion == UiColorExpansion.Custom)
             {
-                if (ImGui.ColorEdit4($"Text color##{id}", ref colorModel.Color, ImGuiColorEditFlags.NoInputs))
+                if (ImGui.ColorEdit4("Text color", ref colorModel.Color, ImGuiColorEditFlags.NoInputs))
                 {
                     changed = true;
                 }
 
-                if (ImGui.ColorEdit4($"Edge color##{id}", ref colorModel.EdgeColor, ImGuiColorEditFlags.NoInputs))
+                if (ImGui.ColorEdit4("Edge color", ref colorModel.EdgeColor, ImGuiColorEditFlags.NoInputs))
                 {
                     changed = true;
                 }
 
-                if (ImGui.ColorEdit4($"Button highlight color##{id}", ref colorModel.HighlightColor, ImGuiColorEditFlags.NoInputs))
+                if (ImGui.ColorEdit4("Button highlight color", ref colorModel.HighlightColor, ImGuiColorEditFlags.NoInputs))
                 {
                     changed = true;
                 }
 
                 ImGuiComponents.HelpMarker("The button highlight color will not be accurate, because the highlight image itself is blue, I tried to work around that by offsetting the color but it's not perfect");
-                var selection = UiColorPickerSelections.GetValueOrDefault(id, UiColorExpansion.Dawntrail);
-                if (Combo($"##{id}##selectExpansionToApply", ref selection, filter: (entry) => entry != UiColorExpansion.Unspecified && entry != UiColorExpansion.Custom))
+                var idHash = ImGui.GetID("");
+                var selection = UiColorPickerSelections.GetValueOrDefault(idHash, UiColorExpansion.Dawntrail);
+                if (Combo($"##selectExpansionToApply", ref selection, filter: (entry) => entry != UiColorExpansion.Unspecified && entry != UiColorExpansion.Custom))
                 {
-                    UiColorPickerSelections[id] = selection;
+                    UiColorPickerSelections[idHash] = selection;
                 }
 
                 ImGui.SameLine();
-                if (ImGui.Button($"Apply expansion colors##{id}"))
+                if (ImGui.Button($"Apply expansion colors"))
                 {
                     colorModel = UiColors.GetColorModelByExpansion(selection);
                     colorModel.Expansion = UiColorExpansion.Custom;

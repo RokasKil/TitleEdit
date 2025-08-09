@@ -1,5 +1,6 @@
 using Dalamud.Bindings.ImGui;
 using System;
+using Dalamud.Interface.Utility.Raii;
 
 namespace TitleEdit.Windows.Tabs
 {
@@ -15,6 +16,7 @@ namespace TitleEdit.Windows.Tabs
 
         public virtual void Draw()
         {
+            using var id = ImRaii.PushId(Title);
             DrawModal();
         }
 
@@ -22,11 +24,12 @@ namespace TitleEdit.Windows.Tabs
         {
             if (modal)
             {
-                ImGui.OpenPopup($"{modalTitle}##{Title}");
-                if (ImGui.BeginPopupModal($"{modalTitle}##{Title}", ref modal, ImGuiWindowFlags.NoNav | ImGuiWindowFlags.AlwaysAutoResize))
+                using var id = ImRaii.PushId(Title);
+                ImGui.OpenPopup(Title);
+                using var popupModal = ImRaii.PopupModal(Title, ref modal, ImGuiWindowFlags.NoNav | ImGuiWindowFlags.AlwaysAutoResize);
+                if (popupModal)
                 {
                     modalContent?.Invoke();
-                    ImGui.EndPopup();
                 }
             }
         }

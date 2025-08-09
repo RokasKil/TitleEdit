@@ -3,6 +3,7 @@ using Dalamud.Utility.Numerics;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Dalamud.Bindings.ImGui;
 using System.Numerics;
+using Dalamud.Interface.Utility.Raii;
 using TitleEdit.Utility;
 
 namespace TitleEdit.Windows;

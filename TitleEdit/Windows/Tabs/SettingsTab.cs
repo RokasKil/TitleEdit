@@ -21,19 +21,19 @@ namespace TitleEdit.Windows.Tabs
             ImGuiComponents.HelpMarker("Continously track player location to show your character at the location you logged off");
             using (ImRaii.Disabled(!Services.ConfigurationService.TrackPlayerLocation))
             {
-                SettingCheckbox($"Save periodically##{Title}", ref Services.ConfigurationService.PeriodicSaving);
+                SettingCheckbox($"Save periodically", ref Services.ConfigurationService.PeriodicSaving);
                 using (ImRaii.Enabled()) ImGuiComponents.HelpMarker("Periodically save incase of a crash or process termination");
 
                 ImGui.SetNextItemWidth(6f * ImGui.GetFontSize());
                 var savePeriod = Services.ConfigurationService.SavePeriod;
-                if (ImGui.InputInt($"Save period in seconds##{Title}", ref savePeriod))
+                if (ImGui.InputInt($"Save period in seconds", ref savePeriod))
                 {
                     Services.ConfigurationService.SavePeriod = Math.Max(1, savePeriod);
                     Services.ConfigurationService.Save();
                 }
 
                 using var color = ImRaii.PushColor(ImGuiCol.Text, GuiUtils.WarningColor);
-                if (SettingCheckbox($"Experimental: Save layout##{Title}", ref Services.ConfigurationService.SaveLayout))
+                if (SettingCheckbox($"Experimental: Save layout", ref Services.ConfigurationService.SaveLayout))
                 {
                     Services.LayoutService.SettingsUpdated();
                     Services.LocationService.LayoutSettingsUpdated();
@@ -42,7 +42,7 @@ namespace TitleEdit.Windows.Tabs
                 color.Pop();
                 using (ImRaii.Enabled()) ImGuiComponents.HelpMarker("Experimental feature to save world layout (e.g. changes that happen when you progress MSQ).\nWorks fairly well out in the world but often has issues in instances.");
                 color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
-                if (SettingCheckbox($"Experimental: Save layout in instance##{Title}", ref Services.ConfigurationService.SaveLayoutInInstance))
+                if (SettingCheckbox($"Experimental: Save layout in instance", ref Services.ConfigurationService.SaveLayoutInInstance))
                 {
                     Services.LayoutService.SettingsUpdated();
                     Services.LocationService.LayoutSettingsUpdated();
@@ -51,7 +51,7 @@ namespace TitleEdit.Windows.Tabs
                 color.Pop();
                 using (ImRaii.Enabled()) ImGuiComponents.HelpMarker("Rescanning the layout after something changes may potentially cause stuttering on low-end systems.\nYou can switch that functionality off while specifically in instance");
                 color.Push(ImGuiCol.Text, GuiUtils.WarningColor);
-                if (SettingCheckbox($"Experimental: Save housing layout##{Title}", ref Services.ConfigurationService.SaveHousing))
+                if (SettingCheckbox($"Experimental: Save housing layout", ref Services.ConfigurationService.SaveHousing))
                 {
                     Services.LayoutService.SettingsUpdated();
                     Services.LocationService.LayoutSettingsUpdated();
@@ -59,32 +59,32 @@ namespace TitleEdit.Windows.Tabs
 
                 color.Pop();
 
-                SettingCheckbox($"Save mount##{Title}", ref Services.ConfigurationService.SaveMount);
-                SettingCheckbox($"Save song##{Title}", ref Services.ConfigurationService.SaveBgm);
-                SettingCheckbox($"Save Eorzea time##{Title}", ref Services.ConfigurationService.SaveTime);
+                SettingCheckbox($"Save mount", ref Services.ConfigurationService.SaveMount);
+                SettingCheckbox($"Save song", ref Services.ConfigurationService.SaveBgm);
+                SettingCheckbox($"Save Eorzea time", ref Services.ConfigurationService.SaveTime);
                 ImGuiComponents.HelpMarker("If unchecked in-game time will be used instead of the time you logged off at.");
             }
 
             ImGui.Separator();
-            SettingCheckbox($"Don't restart the BGM when switching between scenes where the same BGM is used##{Title}", ref Services.ConfigurationService.DontInterruptMusicOnSceneSwitch);
-            SettingCheckbox($"Enable seasonal easter eggs##{Title}", ref Services.ConfigurationService.SeasonalEasterEggs);
+            SettingCheckbox($"Don't restart the BGM when switching between scenes where the same BGM is used", ref Services.ConfigurationService.DontInterruptMusicOnSceneSwitch);
+            SettingCheckbox($"Enable seasonal easter eggs", ref Services.ConfigurationService.SeasonalEasterEggs);
             ImGui.Separator();
-            SettingCheckbox($"Add a button to character select screen that opens this window##{Title}", ref Services.ConfigurationService.DrawCharacterSelectButton);
-            SettingCheckbox($"Display the name of the current screen when loaded##{Title}", ref Services.ConfigurationService.DisplayTitleToast);
-            if (SettingCheckbox($"Hide character names in character select##{Title}", ref Services.ConfigurationService.HideCharacterSelectNames))
+            SettingCheckbox($"Add a button to character select screen that opens this window", ref Services.ConfigurationService.DrawCharacterSelectButton);
+            SettingCheckbox($"Display the name of the current screen when loaded", ref Services.ConfigurationService.DisplayTitleToast);
+            if (SettingCheckbox($"Hide character names in character select", ref Services.ConfigurationService.HideCharacterSelectNames))
             {
                 Services.LobbyService.HideCharacterSelectNamesSettingUpdated();
             }
 
             ImGuiComponents.HelpMarker("To hide your name when sharing character select presets");
             ImGui.Separator();
-            SettingCheckbox($"Use the logged in character's name as default preset author name##{Title}", ref Services.ConfigurationService.UseCharacterNameAsAuthor);
+            SettingCheckbox($"Use the logged in character's name as default preset author name", ref Services.ConfigurationService.UseCharacterNameAsAuthor);
             using (ImRaii.Disabled(Services.ConfigurationService.UseCharacterNameAsAuthor))
-                if (ImGui.InputText($"Default author name##{Title}", ref Services.ConfigurationService.DefaultAuthorName, 256))
+                if (ImGui.InputText($"Default author name", ref Services.ConfigurationService.DefaultAuthorName, 256))
                     Services.ConfigurationService.Save();
-            SettingCheckbox($"Hide built in presets##{Title}", ref Services.ConfigurationService.HideBuiltInPresets);
+            SettingCheckbox($"Hide built in presets", ref Services.ConfigurationService.HideBuiltInPresets);
             ImGuiComponents.HelpMarker("This will also remove them from the random pool");
-            SettingCheckbox($"Hide vanilla presets##{Title}", ref Services.ConfigurationService.HideVanillaPresets);
+            SettingCheckbox($"Hide vanilla presets", ref Services.ConfigurationService.HideVanillaPresets);
             ImGuiComponents.HelpMarker("This will also remove them from the random pool");
         }
 

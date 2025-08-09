@@ -2,6 +2,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using System;
 using System.Numerics;
+using Dalamud.Interface.Utility.Raii;
 using TitleEdit.Windows.Tabs;
 
 namespace TitleEdit.Windows;
@@ -31,18 +32,18 @@ public class ConfigWindow : Window, IDisposable
 
     public override void Draw()
     {
-        if (ImGui.BeginTabBar($"##{WindowName}##Config Tabs"))
+        using var id = ImRaii.PushId(WindowName);
+        using var tabBar = ImRaii.TabBar("##ConfigTabs");
+        if (tabBar)
         {
             foreach (var tab in tabs)
             {
-                if (ImGui.BeginTabItem(tab.Title))
+                using var tabItem = ImRaii.TabItem(tab.Title);
+                if (tabItem)
                 {
                     tab.Draw();
-                    ImGui.EndTabItem();
                 }
             }
-
-            ImGui.EndTabBar();
         }
     }
 }

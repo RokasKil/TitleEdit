@@ -51,7 +51,7 @@ namespace TitleEdit.Windows.Tabs
 
             bool stylePopped = false;
 
-            GuiUtils.FilterCombo($"##{Title}##groupCombo", currentGroupName, () =>
+            GuiUtils.FilterCombo($"##groupCombo", currentGroupName, () =>
             {
                 if (makingNewGroup)
                 {
@@ -61,7 +61,8 @@ namespace TitleEdit.Windows.Tabs
 
                 foreach (var entry in Services.GroupService.EditableGroupEnumerator)
                 {
-                    if (GuiUtils.FilterSelectable($"{GetGroupEntryName(entry.Value)}##{Title}##{entry.Key}", entry.Key == currentGroup))
+                    using var id = ImRaii.PushId(entry.Key);
+                    if (GuiUtils.FilterSelectable(GetGroupEntryName(entry.Value), entry.Key == currentGroup))
                     {
                         SelectGroup(entry.Key);
                         return true;
@@ -79,7 +80,7 @@ namespace TitleEdit.Windows.Tabs
 
             ImGui.SameLine();
             ImGui.BeginDisabled(makingNewGroup || currentGroup == "");
-            if (ImGuiComponents.IconButton($"##{Title}##Duplicate", FontAwesomeIcon.Copy))
+            if (ImGuiComponents.IconButton($"##Duplicate", FontAwesomeIcon.Copy))
             {
                 DuplicateGroup(currentGroup);
             }
@@ -87,13 +88,13 @@ namespace TitleEdit.Windows.Tabs
             ImGui.EndDisabled();
             GuiUtils.HoverTooltip("Duplicate group");
             ImGui.BeginDisabled(makingNewGroup);
-            if (ImGui.Button($"New Title Screen group##{Title}##NewGroup"))
+            if (ImGui.Button($"New Title Screen group"))
             {
                 NewGroup(LocationType.TitleScreen);
             }
 
             ImGui.SameLine();
-            if (ImGui.Button($"New Character Select group##{Title}##NewGroup"))
+            if (ImGui.Button($"New Character Select group"))
             {
                 NewGroup(LocationType.CharacterSelect);
             }
@@ -105,15 +106,16 @@ namespace TitleEdit.Windows.Tabs
         {
             ImGui.BeginDisabled(!makingNewGroup && currentGroup == "");
 
-            ImGui.InputText($"Name##{Title}", ref group.Name, 256);
+            ImGui.InputText($"Name", ref group.Name, 256);
             var tableHeight = MathF.Max(1f, MathF.Min(8f, group.PresetFileNames.Count) * (ImGui.CalcTextSize(" ").Y + ImGui.GetStyle().CellPadding.Y * 2 + ImGui.GetStyle().FramePadding.Y * 2));
-            using (var table = ImRaii.Table($"Group entries##{Title}", 2, ImGuiTableFlags.ScrollY, new(0f, tableHeight)))
+            using (var table = ImRaii.Table($"Group entries", 2, ImGuiTableFlags.ScrollY, new(0f, tableHeight)))
             {
                 if (table)
                 {
                     var usedPresets = new HashSet<string?>(group.PresetFileNames); // performance?
                     for (int i = 0; i < group.PresetFileNames.Count; i++)
                     {
+                        using var id = ImRaii.PushId(i);
                         var presetPath = group.PresetFileNames[i];
                         ImGui.TableNextColumn();
 
@@ -140,11 +142,12 @@ namespace TitleEdit.Windows.Tabs
                             ImGui.PushStyleColor(ImGuiCol.Text, GuiUtils.WarningColor);
                         }
 
-                        GuiUtils.FilterCombo($"##{Title}##grouprow{i}", display, () =>
+                        GuiUtils.FilterCombo("", display, () =>
                         {
                             foreach (var entry in Services.PresetService.Presets.Where(preset => preset.Value.LocationModel.LocationType == group.LocationType && !group.PresetFileNames.Contains(preset.Key)))
                             {
-                                if (GuiUtils.FilterSelectable($"{entry.Value.Name}##{Title}##grouprow{i}##{entry.Key}", entry.Key == presetPath))
+                                using var id = ImRaii.PushId(entry.Key);
+                                if (GuiUtils.FilterSelectable(entry.Value.Name, entry.Key == presetPath))
                                 {
                                     group.PresetFileNames[i] = entry.Key;
                                     return true;
@@ -162,7 +165,7 @@ namespace TitleEdit.Windows.Tabs
 
                         //
                         ImGui.TableNextColumn();
-                        if (ImGuiComponents.IconButton($"##{Title}##{i}##Delete", FontAwesomeIcon.Trash))
+                        if (ImGuiComponents.IconButton($"##Delete", FontAwesomeIcon.Trash))
                         {
                             group.PresetFileNames.RemoveRange(i, 1);
                         }
@@ -170,7 +173,7 @@ namespace TitleEdit.Windows.Tabs
                 }
             }
 
-            if (ImGui.Button($"Add preset##{Title}##addEntry"))
+            if (ImGui.Button($"Add preset"))
             {
                 group.PresetFileNames.Add(null);
             }
@@ -181,7 +184,7 @@ namespace TitleEdit.Windows.Tabs
         private void DrawGroupActions()
         {
             ImGui.BeginDisabled(!makingNewGroup && currentGroup == "");
-            if (ImGui.Button($"Save##{Title}"))
+            if (ImGui.Button($"Save"))
             {
                 try
                 {
@@ -198,14 +201,14 @@ namespace TitleEdit.Windows.Tabs
             ImGui.SameLine();
             if (makingNewGroup)
             {
-                if (ImGui.Button($"Cancel##{Title}"))
+                if (ImGui.Button($"Cancel"))
                 {
                     ClearGroup();
                 }
             }
             else
             {
-                if (ImGui.Button($"Delete##{Title}"))
+                if (ImGui.Button($"Delete"))
                 {
                     SetupDeleteConfirmation();
                 }

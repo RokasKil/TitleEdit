@@ -20,49 +20,49 @@ namespace TitleEdit.Windows.Tabs
         {
             base.Draw();
             ImGui.TextUnformatted("Title screen");
-            DrawSelectPresetCombo($"Title screen setting##{Title}", Services.ConfigurationService.TitleDisplayTypeOption, (result) =>
+            DrawSelectPresetCombo($"Title screen setting", Services.ConfigurationService.TitleDisplayTypeOption, (result) =>
             {
                 Services.ConfigurationService.TitleDisplayTypeOption = result;
                 Services.LobbyService.ReloadTitleScreen();
             });
-            if (GuiUtils.Combo($"Default title screen logo##{Title}", ref Services.ConfigurationService.TitleScreenLogo, filter: (entry) => entry != TitleScreenLogo.Unspecified))
+            if (GuiUtils.Combo($"Default title screen logo", ref Services.ConfigurationService.TitleScreenLogo, filter: (entry) => entry != TitleScreenLogo.Unspecified))
             {
                 Services.ConfigurationService.Save();
                 Services.LobbyService.ReloadTitleScreenUi();
             }
 
-            if (ImGui.Checkbox($"Override preset title screen logo setting##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenLogo))
+            if (ImGui.Checkbox($"Override preset title screen logo setting", ref Services.ConfigurationService.OverridePresetTitleScreenLogo))
             {
                 Services.ConfigurationService.Save();
                 Services.LobbyService.ReloadTitleScreenUi();
             }
 
-            if (GuiUtils.DrawUiColorPicker("Default title screen colors", Title, ref Services.ConfigurationService.TitleScreenColor))
+            if (GuiUtils.DrawUiColorPicker("Default title screen colors", ref Services.ConfigurationService.TitleScreenColor))
             {
                 Services.ConfigurationService.Save();
                 Services.LobbyService.RecolorTitleScreenUi();
             }
 
-            if (ImGui.Checkbox($"Override preset title screen colors##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenColor))
+            if (ImGui.Checkbox($"Override preset title screen colors", ref Services.ConfigurationService.OverridePresetTitleScreenColor))
             {
                 Services.ConfigurationService.Save();
                 Services.LobbyService.RecolorTitleScreenUi();
             }
 
-            if (GuiUtils.Combo($"Default title screen movie##{Title}", ref Services.ConfigurationService.TitleScreenMovie, filter: (entry) => entry != TitleScreenMovie.Unspecified))
+            if (GuiUtils.Combo($"Default title screen movie", ref Services.ConfigurationService.TitleScreenMovie, filter: (entry) => entry != TitleScreenMovie.Unspecified))
             {
                 Services.ConfigurationService.Save();
             }
 
             ImGuiComponents.HelpMarker("Defines the cinematic that plays when idling in title screen for 60 seconds");
-            if (ImGui.Checkbox($"Override preset title screen movie setting##{Title}", ref Services.ConfigurationService.OverridePresetTitleScreenMovie))
+            if (ImGui.Checkbox($"Override preset title screen movie setting", ref Services.ConfigurationService.OverridePresetTitleScreenMovie))
             {
                 Services.ConfigurationService.Save();
             }
 
             ImGui.Separator();
             ImGui.TextUnformatted("Character select screen");
-            DrawSelectPresetCombo($"Nothing selected setting##{Title}", Services.ConfigurationService.NoCharacterDisplayType, (result) =>
+            DrawSelectPresetCombo($"Nothing selected setting", Services.ConfigurationService.NoCharacterDisplayType, (result) =>
             {
                 Services.ConfigurationService.NoCharacterDisplayType = result;
                 unsafe
@@ -75,7 +75,7 @@ namespace TitleEdit.Windows.Tabs
                 }
             }, false);
             ImGuiComponents.HelpMarker("Preset that is used when no character is selected");
-            DrawSelectPresetCombo($"Global character setting##{Title}", Services.ConfigurationService.GlobalDisplayType, (result) =>
+            DrawSelectPresetCombo($"Global character setting", Services.ConfigurationService.GlobalDisplayType, (result) =>
             {
                 Services.ConfigurationService.GlobalDisplayType = result;
 
@@ -91,7 +91,7 @@ namespace TitleEdit.Windows.Tabs
             });
 
 
-            if (GuiUtils.Combo($"Camera follow mode##{Title}", ref Services.ConfigurationService.CameraFollowMode, filter: (mode) => mode != CameraFollowMode.Inherit))
+            if (GuiUtils.Combo($"Camera follow mode", ref Services.ConfigurationService.CameraFollowMode, filter: (mode) => mode != CameraFollowMode.Inherit))
             {
                 Services.ConfigurationService.Save();
             }
@@ -101,7 +101,7 @@ namespace TitleEdit.Windows.Tabs
             var usedIds = new HashSet<ulong>(Services.ConfigurationService.DisplayTypeOverrides.Count);
             var tableHeight = MathF.Max(1f, MathF.Min(8f, Services.ConfigurationService.DisplayTypeOverrides.Count) * (ImGui.CalcTextSize(" ").Y + ImGui.GetStyle().CellPadding.Y * 2 + ImGui.GetStyle().FramePadding.Y * 2));
 
-            using (var table = ImRaii.Table($"Display Type Overrides##{Title}", 4, ImGuiTableFlags.ScrollY, new(0, tableHeight)))
+            using (var table = ImRaii.Table($"Display Type Overrides", 4, ImGuiTableFlags.ScrollY, new(0, tableHeight)))
             {
                 if (table)
                 {
@@ -112,6 +112,7 @@ namespace TitleEdit.Windows.Tabs
                     ImGui.TableSetupColumn("scrollbar_spacing", ImGuiTableColumnFlags.WidthFixed, ImGui.GetStyle().ScrollbarSize);
                     for (int i = 0; i < Services.ConfigurationService.DisplayTypeOverrides.Count; i++)
                     {
+                        using var id = ImRaii.PushId(i);
                         var entry = Services.ConfigurationService.DisplayTypeOverrides[i];
                         usedIds.Add(entry.Key);
                         ImGui.TableNextColumn();
@@ -120,7 +121,7 @@ namespace TitleEdit.Windows.Tabs
                         ImGui.TableNextColumn();
 
                         ImGui.SetNextItemWidth(16f * ImGui.GetFontSize());
-                        DrawSelectPresetCombo($"##Character override##{i}", entry.Value, (result) =>
+                        DrawSelectPresetCombo($"##Character override", entry.Value, (result) =>
                         {
                             Services.ConfigurationService.DisplayTypeOverrides[i] = new(entry.Key, result);
                             unsafe
@@ -134,7 +135,7 @@ namespace TitleEdit.Windows.Tabs
                             }
                         });
                         ImGui.TableNextColumn();
-                        if (ImGuiComponents.IconButton($"##{Title}##{i}##Delete", FontAwesomeIcon.Trash))
+                        if (ImGuiComponents.IconButton($"##Delete", FontAwesomeIcon.Trash))
                         {
                             Services.ConfigurationService.DisplayTypeOverrides.RemoveRange(i, 1);
                             Services.ConfigurationService.Save();
@@ -155,15 +156,16 @@ namespace TitleEdit.Windows.Tabs
                 }
             }
 
-            var characterLabel = Services.CharactersService.Characters.TryGetValue(currentContentId, out var characterName) ? characterName : "";
-            GuiUtils.FilterCombo($"##{Title}##Character override", characterLabel, () =>
+            var characterLabel = Services.CharactersService.Characters.GetValueOrDefault(currentContentId, "");
+            GuiUtils.FilterCombo($"##Character override", characterLabel, () =>
             {
                 bool empty = true;
                 foreach (var entry in Services.CharactersService.Characters)
                 {
                     if (usedIds.Contains(entry.Key)) continue;
                     empty = false;
-                    if (GuiUtils.FilterSelectable($"{entry.Value}##{Title}##Character override##{entry.Key}", entry.Key == currentContentId))
+                    using var id = ImRaii.PushId(entry.Key.ToString());
+                    if (GuiUtils.FilterSelectable(entry.Value, entry.Key == currentContentId))
                     {
                         currentContentId = entry.Key;
                         return true;
@@ -179,8 +181,8 @@ namespace TitleEdit.Windows.Tabs
             });
             ImGuiComponents.HelpMarker("These characters are collected from the character select screen.\nIf any are missing go through all the worlds with characters created.");
             ImGui.SameLine();
-            ImGui.BeginDisabled(currentContentId == 0);
-            if (ImGuiComponents.IconButton($"##{Title}##New", FontAwesomeIcon.Plus))
+            using var disabled = ImRaii.Disabled(currentContentId == 0);
+            if (ImGuiComponents.IconButton($"##New", FontAwesomeIcon.Plus))
             {
                 Services.ConfigurationService.DisplayTypeOverrides.Add(new(currentContentId, new() { Type = CharacterDisplayType.LastLocation }));
                 Services.ConfigurationService.Save();
@@ -197,8 +199,6 @@ namespace TitleEdit.Windows.Tabs
 
                 currentContentId = 0;
             }
-
-            ImGui.EndDisabled();
         }
 
 
@@ -251,7 +251,7 @@ namespace TitleEdit.Windows.Tabs
             {
                 if (showLastLocationOption)
                 {
-                    if (GuiUtils.FilterSelectable($"Last location##{Title}##{label}##last location", value.Type == CharacterDisplayType.LastLocation))
+                    if (GuiUtils.FilterSelectable("Last location", value.Type == CharacterDisplayType.LastLocation))
                     {
                         selectAction.Invoke(new()
                         {
@@ -271,7 +271,8 @@ namespace TitleEdit.Windows.Tabs
                 {
                     if (entry.Value.Vanilla && Services.ConfigurationService.HideVanillaPresets) continue;
                     if (entry.Value.BuiltIn && Services.ConfigurationService.HideBuiltInPresets) continue;
-                    if (GuiUtils.FilterSelectable($"{entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == CharacterDisplayType.Preset && entry.Key == value.PresetPath))
+                    using var id = ImRaii.PushId(entry.Key);
+                    if (GuiUtils.FilterSelectable(entry.Value.Name, value.Type == CharacterDisplayType.Preset && entry.Key == value.PresetPath))
                     {
                         selectAction.Invoke(new()
                         {
@@ -287,7 +288,8 @@ namespace TitleEdit.Windows.Tabs
 
                 foreach (var entry in Services.GroupService.CharacterSelectGroupEnumerator)
                 {
-                    if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == CharacterDisplayType.Random && entry.Key == value.PresetPath))
+                    using var id = ImRaii.PushId(entry.Key);
+                    if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}", value.Type == CharacterDisplayType.Random && entry.Key == value.PresetPath))
                     {
                         selectAction.Invoke(new()
                         {
@@ -353,7 +355,8 @@ namespace TitleEdit.Windows.Tabs
                 {
                     if (entry.Value.Vanilla && Services.ConfigurationService.HideVanillaPresets) continue;
                     if (entry.Value.BuiltIn && Services.ConfigurationService.HideBuiltInPresets) continue;
-                    if (GuiUtils.FilterSelectable($"{entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == TitleDisplayType.Preset && entry.Key == value.PresetPath))
+                    using var id = ImRaii.PushId(entry.Key);
+                    if (GuiUtils.FilterSelectable(entry.Value.Name, value.Type == TitleDisplayType.Preset && entry.Key == value.PresetPath))
                     {
                         selectAction.Invoke(new()
                         {
@@ -369,7 +372,8 @@ namespace TitleEdit.Windows.Tabs
 
                 foreach (var entry in Services.GroupService.TitleScreenGroupEnumerator)
                 {
-                    if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}##{Title}##{label}##{entry.Key}", value.Type == TitleDisplayType.Random && entry.Key == value.PresetPath))
+                    using var id = ImRaii.PushId(entry.Key);
+                    if (GuiUtils.FilterSelectable($"[G] {entry.Value.Name}", value.Type == TitleDisplayType.Random && entry.Key == value.PresetPath))
                     {
                         selectAction.Invoke(new()
                         {
