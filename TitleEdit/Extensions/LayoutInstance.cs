@@ -6,7 +6,8 @@ namespace TitleEdit.Extensions
     public static class LayoutInstance
     {
         public static ulong UUID(this ILayoutInstance layoutInstance) => layoutInstance.Id.InstanceKey + ((ulong)layoutInstance.SubId << 32);
-        public static unsafe void SetActiveVf54(this ref ILayoutInstance layoutInstance, bool active)
+
+        public static unsafe void SetActiveVf54(this ref ILayoutInstance layoutInstance, byte active)
         {
             fixed (void* ptr = &layoutInstance)
             {
@@ -16,7 +17,7 @@ namespace TitleEdit.Extensions
         }
 
         // I think it's duration I don't remember actually
-        public static unsafe void SetActiveVf41(this ref ILayoutInstance layoutInstance, bool active, float fadeDuration)
+        public static unsafe void SetActiveVf41(this ref ILayoutInstance layoutInstance, byte active, float fadeDuration)
         {
             fixed (void* ptr = &layoutInstance)
             {

@@ -48,11 +48,11 @@ namespace TitleEdit.PluginServices
                     var playerState = PlayerState.Instance();
                     if (playerState != null)
                     {
-                        lastMountBytes ??= new byte[playerState->UnlockedMountsBitmask.Length];
-                        if (!playerState->UnlockedMountsBitmask.SequenceEqual(lastMountBytes))
+                        lastMountBytes ??= new byte[playerState->UnlockedMounts.Length];
+                        if (!playerState->UnlockedMounts.SequenceEqual(lastMountBytes))
                         {
                             Services.Log.Debug("Mounts changed!");
-                            playerState->UnlockedMountsBitmask.CopyTo(lastMountBytes);
+                            playerState->UnlockedMounts.CopyTo(lastMountBytes);
                             RefreshMounts();
                         }
                     }

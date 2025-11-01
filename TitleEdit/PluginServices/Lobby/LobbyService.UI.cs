@@ -273,7 +273,7 @@ namespace TitleEdit.PluginServices.Lobby
             if (node == null) return;
             Services.Log.Debug("Animating dawntrail logo");
             // Values taken by observing what the game calls, no clue what they mean :)
-            node->Timeline->PlayAnimation(AtkTimelineJumpBehavior.LoopForever, 0x65);
+            node->Timeline->PlayAnimation(AtkTimelineJumpBehavior.LoopForever, (ushort)0x65);
         }
 
         // Advances AtkTimeline::FrameTime

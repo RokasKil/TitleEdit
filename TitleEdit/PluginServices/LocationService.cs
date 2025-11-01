@@ -218,13 +218,13 @@ namespace TitleEdit.PluginServices
         }
 
         //Hook on whatever deletes stuff (and maybe adds) so we can get rid of the constant refreshing cause in solution 9 it might cause lag spikes
-        private unsafe void LayoutInstanceSetActive(ILayoutInstance* layout, bool active)
+        private unsafe void LayoutInstanceSetActive(ILayoutInstance* layout, byte active)
         {
             if (Services.ConfigurationService.SaveLayout && !refreshLayout && Services.ClientState.LocalPlayer != null && locations.TryGetValue(Services.ClientState.LocalContentId, out var locationModel))
             {
                 var inActive = locationModel.Active.Contains(layout->UUID());
                 var inInactive = locationModel.Inactive.Contains(layout->UUID());
-                if ((inActive || inInactive) && ((active && !inActive) || (!active && !inInactive)))
+                if ((inActive || inInactive) && ((active != 0 && !inActive) || (active == 0 && !inInactive)))
                 {
                     refreshLayout = true;
                     Services.Log.Debug($"[LayoutSetActiveDetour] refreshLayout");

@@ -17,7 +17,7 @@ namespace TitleEdit.PluginServices
     // This needs rewriting/optimizing
     public class LayoutService : AbstractService
     {
-        public unsafe delegate void LayoutInstanceSetActiveDelegate(ILayoutInstance* instance, bool active);
+        public unsafe delegate void LayoutInstanceSetActiveDelegate(ILayoutInstance* instance, byte active);
 
         public unsafe delegate void VfxLayoutInstanceSetVfxTriggerIndexDelegate(VfxLayoutInstance* vfxInstance, int index);
 
@@ -116,7 +116,7 @@ namespace TitleEdit.PluginServices
             OnLayoutChange?.Invoke();
         }
 
-        private unsafe void LayoutInstanceSetActiveDetour(IntPtr funcAddress, ILayoutInstance* instance, bool active)
+        private unsafe void LayoutInstanceSetActiveDetour(IntPtr funcAddress, ILayoutInstance* instance, byte active)
         {
             if (instance->Layout == LayoutManager)
             {

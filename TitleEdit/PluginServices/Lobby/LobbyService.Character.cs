@@ -18,9 +18,9 @@ namespace TitleEdit.PluginServices.Lobby
     {
         private delegate void UpdateCharaSelectDisplayDelegate(IntPtr agentLobby, int p2, byte p3);
 
-        private delegate nint CreateBattleCharacterDelegate(nint objectManager, uint index, bool assignCompanion);
+        private delegate nint CreateBattleCharacterDelegate(nint objectManager, uint index, byte assignCompanion);
 
-        private delegate void SetCharSelectCurrentWorldDelegate(ulong p1, char p2);
+        private delegate void SetCharSelectCurrentWorldDelegate(ulong p1, byte p2);
 
         private delegate void CharSelectWorldPreviewEventHandlerDelegate(ulong p1, ulong p2, ulong p3, uint p4);
 
@@ -128,12 +128,12 @@ namespace TitleEdit.PluginServices.Lobby
 
         // Called when you select a new world in character select or cancel selection so it reload the current
         // if p2 is 1 it doesn't recreate the characters or something along that line it was added in 7.16
-        private void SetCharSelectCurrentWorldDetour(ulong p1, char p2)
+        private void SetCharSelectCurrentWorldDetour(ulong p1, byte p2)
         {
+            Services.Log.Debug("SetCharSelectCurrentWorldDetour");
             creatingCharSelectGameObjects = true;
             setCharSelectCurrentWorldHook.Original(p1, p2);
             creatingCharSelectGameObjects = false;
-            Services.Log.Debug("SetCharSelectCurrentWorldDetour");
             foreach (var entry in GetCurrentCharacterNames())
             {
                 Services.CharactersService.PutCharacter(entry.Key, entry.Value);
@@ -220,10 +220,9 @@ namespace TitleEdit.PluginServices.Lobby
         }
 
         // Make sure characters are created with companion slot (for mounts) and positioned properly
-        private nint CreateBattleCharacterDetour(nint objectManager, uint index, bool assignCompanion)
+        private nint CreateBattleCharacterDetour(nint objectManager, uint index, byte assignCompanion)
         {
-            var result = createBattleCharacterHook.Original(objectManager, index, assignCompanion || creatingCharSelectGameObjects);
-
+            var result = createBattleCharacterHook.Original(objectManager, index, creatingCharSelectGameObjects ? (byte)1 : assignCompanion);
             if (creatingCharSelectGameObjects)
             {
                 // When making a new character make sure it's created with a companion and also prematurely set it's position to avoid some camera jank

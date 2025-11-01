@@ -145,11 +145,11 @@ namespace TitleEdit.PluginServices.Lobby
                 {
                     if (model.Active.Contains(instance.Value->UUID()))
                     {
-                        SetActive(instance.Value, true, model);
+                        SetActive(instance.Value, 1, model);
                     }
                     else if (model.Inactive.Contains(instance.Value->UUID()))
                     {
-                        SetActive(instance.Value, false, model);
+                        SetActive(instance.Value, 0, model);
                     }
                     else
                     {
@@ -163,7 +163,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
         }
 
-        private void SetActive(ILayoutInstance* instance, bool active, LocationModel model)
+        private void SetActive(ILayoutInstance* instance, byte active, LocationModel model)
         {
             if (instance->Id.Type == InstanceType.Vfx)
             {
@@ -175,7 +175,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
             else
             {
-                instance->SetActive(active);
+                instance->SetActive(active != 0);
             }
         }
 

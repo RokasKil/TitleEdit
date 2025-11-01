@@ -20,7 +20,7 @@ public class HousingService : AbstractService
 
         if (housingManager->IndoorTerritory != null)
         {
-            furnitureList = housingManager->IndoorTerritory->Furniture;
+            furnitureList = housingManager->IndoorTerritory->FurnitureManager.FurnitureMemory;
 
             var layoutManager = LayoutWorld.Instance()->ActiveLayout;
             if (layoutManager != null && layoutManager->IndoorAreaData != null)
@@ -39,7 +39,7 @@ public class HousingService : AbstractService
         }
         else if (housingManager->OutdoorTerritory != null)
         {
-            furnitureList = housingManager->OutdoorTerritory->Furniture;
+            furnitureList = housingManager->OutdoorTerritory->FurnitureStruct.FurnitureMemory;
 
             var layoutManager = LayoutWorld.Instance()->ActiveLayout;
             if (layoutManager != null && layoutManager->OutdoorAreaData != null)

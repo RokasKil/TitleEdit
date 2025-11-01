@@ -139,11 +139,11 @@ public unsafe partial class LobbyService
 
         if (housingManager->IndoorTerritory != null)
         {
-            furnitureArray = housingManager->IndoorTerritory->Furniture.GetPointer(0);
+            furnitureArray = housingManager->IndoorTerritory->FurnitureManager.FurnitureMemory.GetPointer(0);
         }
         else if (housingManager->OutdoorTerritory != null)
         {
-            furnitureArray = housingManager->OutdoorTerritory->Furniture.GetPointer(0);
+            furnitureArray = housingManager->OutdoorTerritory->FurnitureStruct.FurnitureMemory.GetPointer(0);
         }
         else
         {
