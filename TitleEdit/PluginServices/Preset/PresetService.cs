@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 
@@ -156,7 +157,7 @@ namespace TitleEdit.PluginServices.Preset
             return Save(preset);
         }
 
-        public string ImportText(string textData)
+        public async Task<string> ImportText(string textData)
         {
             PresetModel preset;
             try
@@ -166,7 +167,16 @@ namespace TitleEdit.PluginServices.Preset
                     textData = Encoding.UTF8.GetString(Convert.FromBase64String(textData[3..]));
                 }
 
-                preset = LoadText(textData);
+                var shareCode = Services.ShareService.GetCodeFromShareUrl(textData);
+                // Check if it is a share link and download it
+                if (shareCode != null)
+                {
+                    preset = await Services.ShareService.GetPreset(shareCode);
+                }
+                else
+                {
+                    preset = LoadText(textData);
+                }
             }
             catch (Exception e)
             {
@@ -189,7 +199,7 @@ namespace TitleEdit.PluginServices.Preset
             return preset;
         }
 
-        private PresetModel LoadText(string textData)
+        public PresetModel LoadText(string textData)
         {
             var preset = Services.MigrationService.MigratePreset(textData);
             Validate(preset);
