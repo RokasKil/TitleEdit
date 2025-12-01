@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using Lumina.Excel.Sheets;
 
 namespace TitleEdit.Utility
 {
@@ -135,6 +136,18 @@ namespace TitleEdit.Utility
         public static T? GetValue<T>(this Span<T> span, int index) where T : unmanaged
         {
             return span.Length > index ? span[index] : null;
+        }
+
+        public static string? GetTerritoryString(uint territoryTypeId)
+        {
+            if (Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(territoryTypeId, out var territory))
+            {
+                return $"{territory.RowId} - {territory.PlaceNameRegion.Value.Name} > {territory.PlaceName.Value.Name}";
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }

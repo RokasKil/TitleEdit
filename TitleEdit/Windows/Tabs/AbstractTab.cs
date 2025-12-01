@@ -36,7 +36,15 @@ namespace TitleEdit.Windows.Tabs
 
         protected void SetupModal(string modalTitle, Action? modalContent, Exception? ex = null)
         {
-            lastException = ex;
+            if (ex is AggregateException { InnerException: not null } aex)
+            {
+                lastException = aex.InnerException;
+            }
+            else
+            {
+                lastException = ex;
+            }
+
             modal = true;
             this.modalTitle = modalTitle;
             this.modalContent = modalContent;

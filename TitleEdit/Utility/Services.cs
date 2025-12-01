@@ -2,6 +2,7 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using TitleEdit.PluginServices;
 using TitleEdit.PluginServices.Lobby;
 using TitleEdit.PluginServices.Migration;
@@ -45,6 +46,9 @@ namespace TitleEdit.Utility
         public static IObjectTable ObjectTable { get; set; } = null!;
         [PluginService]
         public static IPlayerState PlayerState { get; set; } = null!;
+        [PluginService]
+        [Experimental("DAL_RPC")]
+        public static IPluginLinkHandler PluginLinkHandler { get; set; } = null!;
         public static IDalamudPluginInterface PluginInterface { get; set; } = null!;
         public static ConfigurationService ConfigurationService { get; set; } = null!;
         public static LayoutService LayoutService { get; set; } = null!;
@@ -61,6 +65,8 @@ namespace TitleEdit.Utility
         public static GroupService GroupService { get; set; } = null!;
         public static ExpansionService ExpansionService { get; set; } = null!;
         public static HousingService HousingService { get; set; } = null!;
+        public static UriService UriService { get; set; } = null!;
+        public static ShareService ShareService { get; set; } = null!;
         public static Plugin Plugin { get; set; } = null!;
 
         private static List<AbstractService> ServiceList = [];
@@ -88,6 +94,8 @@ namespace TitleEdit.Utility
                 ServiceList.Add(GroupService = new());
                 ServiceList.Add(ExpansionService = new());
                 ServiceList.Add(HousingService = new());
+                ServiceList.Add(UriService = new());
+                ServiceList.Add(ShareService = new());
             }
             catch
             {

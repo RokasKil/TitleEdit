@@ -62,6 +62,7 @@ public class ConfigurationService
     public bool SeasonalEasterEggs = true;
     public bool HideBuiltInPresets = false;
     public bool HideVanillaPresets = false;
+    public bool PromptForUrlImport = true;
     [NonSerialized]
     public bool IgnoreSeasonalDateCheck = false;
 

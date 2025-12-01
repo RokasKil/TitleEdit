@@ -267,15 +267,7 @@ namespace TitleEdit.Utility
                 }
                 else
                 {
-                    if (Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(preset.LocationModel.TerritoryTypeId, out var territory))
-                    {
-                        ImGui.TextWrapped($"Zone: {territory.RowId} - {territory.PlaceNameRegion.Value.Name} > {territory.PlaceName.Value.Name}");
-                    }
-                    else
-                    {
-                        ImGui.TextWrapped($"Zone: Unknown");
-                    }
-
+                    ImGui.TextWrapped($"Zone: {Utils.GetTerritoryString(preset.LocationModel.TerritoryTypeId) ?? "Unknown"}");
                     if (!string.IsNullOrEmpty(preset.Author))
                     {
                         ImGui.TextWrapped($"Author: {preset.Author.Replace("%", "%%")}");

@@ -19,6 +19,7 @@ public sealed class Plugin : IDalamudPlugin
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
     private ConfigButtonOverlay ConfigButtonOverlay { get; init; }
+    private ShareImportConfirmationPopup ShareImportConfirmationPopup { get; init; }
 
     private bool canChangeUiVisibility = true;
 
@@ -45,6 +46,7 @@ public sealed class Plugin : IDalamudPlugin
         ConfigWindow = new();
         MainWindow = new();
         ConfigButtonOverlay = new();
+        ShareImportConfirmationPopup = new();
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
@@ -107,6 +109,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void DrawUI()
     {
+        ShareImportConfirmationPopup.Draw();
         ConfigButtonOverlay.Draw();
         WindowSystem.Draw();
     }
