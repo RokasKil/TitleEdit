@@ -86,6 +86,8 @@ namespace TitleEdit.Windows.Tabs
             ImGuiComponents.HelpMarker("This will also remove them from the random pool");
             SettingCheckbox($"Hide vanilla presets", ref Services.ConfigurationService.HideVanillaPresets);
             ImGuiComponents.HelpMarker("This will also remove them from the random pool");
+            ImGui.Separator();
+            SettingCheckbox($"Prompt for confirmation when importing presets via share link", ref Services.ConfigurationService.PromptForUrlImport);
         }
 
         private bool SettingCheckbox(string label, ref bool value, bool save = true)

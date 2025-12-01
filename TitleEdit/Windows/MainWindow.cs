@@ -4,7 +4,9 @@ using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using Dalamud.Bindings.ImGui;
 using System;
 using System.Numerics;
+using System.Threading.Tasks;
 using TitleEdit.Utility;
+using Task = System.Threading.Tasks.Task;
 
 namespace TitleEdit.Windows;
 
@@ -89,6 +91,25 @@ public class MainWindow : Window, IDisposable
             }
 
             ImGui.Checkbox("Ignore seasonal date checks", ref Services.ConfigurationService.IgnoreSeasonalDateCheck);
+
+
+            if (ImGui.Button("ShareAll"))
+            {
+                foreach (var entry in Services.PresetService.Presets)
+                {
+                    Task.Run(() => Services.ShareService.SharePreset(entry.Value).ContinueWith(result =>
+                    {
+                        try
+                        {
+                            Services.Log.Debug($"Shared '{entry.Key}': {result.Result}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Services.Log.Error(ex, $"Failed to share '{entry.Key}'");
+                        }
+                    }));
+                }
+            }
         }
     }
 }

@@ -8,12 +8,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
+using Dalamud.Interface.ImGuiNotification;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using Lumina.Excel.Sheets;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Lobby;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
+using Task = System.Threading.Tasks.Task;
 
 namespace TitleEdit.Windows.Tabs
 {
@@ -32,6 +36,9 @@ namespace TitleEdit.Windows.Tabs
         private readonly Dictionary<byte, string> weathers;
 
         private readonly FileDialogManager fileDialogManager = new();
+
+        private Task? shareTask;
+        private Task? importTask;
 
         public PresetTab()
         {
@@ -142,7 +149,7 @@ namespace TitleEdit.Windows.Tabs
                 }
 
                 using (ImRaii.Enabled())
-                    GuiUtils.HoverTooltip("Duplicate preset");
+                    GuiUtils.HoverTooltip("Duplicate preset", ImGuiHoveredFlags.AllowWhenDisabled);
                 if (ImGui.Button($"Export to clipboard"))
                 {
                     try
@@ -160,20 +167,43 @@ namespace TitleEdit.Windows.Tabs
                 {
                     fileDialogManager.SaveFileDialog($"Export preset", ".json", preset.FileName, ".json", ExportPreset, Services.ConfigurationService.LastExportLocation, true);
                 }
+
+                ImGui.SameLine();
+                using (ImRaii.Disabled((!shareTask?.IsCompleted) ?? false))
+                {
+                    if (ImGui.Button($"Create share link"))
+                    {
+                        SharePreset();
+                    }
+
+                    using (ImRaii.Enabled())
+                        GuiUtils.HoverTooltip("Upload this preset and create a link you can share with your friends.\n" +
+                                              "Warning the link will eventually expire, do not use this for long term storage.", ImGuiHoveredFlags.AllowWhenDisabled);
+                }
             }
 
-            if (ImGui.Button($"Import from clipboard"))
+            using (ImRaii.Disabled((!importTask?.IsCompleted) ?? false))
             {
-                try
+                if (ImGui.Button($"Import from clipboard"))
                 {
-                    SelectPreset(Services.PresetService.ImportText(ImGui.GetClipboardText()));
-                    SetupImportSuccess();
+                    importTask = Task.Run(async () => await Services.PresetService.ImportText(ImGui.GetClipboardText()).ContinueWith(result =>
+                    {
+                        try
+                        {
+                            SelectPreset(result.Result);
+                            SetupImportSuccess();
+                        }
+                        catch (Exception ex)
+                        {
+                            SetupError(ex);
+                        }
+                    }));
                 }
-                catch (Exception ex)
-                {
-                    SetupError(ex);
-                }
+
+                using (ImRaii.Enabled())
+                    GuiUtils.HoverTooltip("Will attempt to read both encoded and unencoded preset data or a share link from your clipboard and import it.", ImGuiHoveredFlags.AllowWhenDisabled);
             }
+
 
             ImGui.SameLine();
             if (ImGui.Button($"Import from file"))
@@ -181,6 +211,7 @@ namespace TitleEdit.Windows.Tabs
                 fileDialogManager.OpenFileDialog($"Import preset", ".json", ImportPreset, 1, Services.ConfigurationService.LastImportLocation, true);
             }
         }
+
 
         private void DrawPresetControls()
         {
@@ -197,14 +228,9 @@ namespace TitleEdit.Windows.Tabs
 
             // World stuff
             // Zone
-            if (Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(preset.LocationModel.TerritoryTypeId, out var territory))
-            {
-                ImGui.TextUnformatted($"Zone: {territory.RowId} - {territory.PlaceNameRegion.Value.Name} > {territory.PlaceName.Value.Name}");
-            }
-            else
-            {
-                ImGui.TextUnformatted($"Zone: Unknown");
-            }
+
+            ImGui.TextUnformatted($"Zone: {Utils.GetTerritoryString(preset.LocationModel.TerritoryTypeId) ?? "Unknown"}");
+
 
             if (Services.ClientState.LocalPlayer != null)
             {
@@ -215,14 +241,7 @@ namespace TitleEdit.Windows.Tabs
                     LoadCurrentTerritory();
                 }
 
-                if (Services.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(Services.ClientState.TerritoryType, out var currentTerritory))
-                {
-                    GuiUtils.HoverTooltip($"Current zone: {currentTerritory.RowId} - {currentTerritory.PlaceNameRegion.Value.Name} > {currentTerritory.PlaceName.Value.Name}");
-                }
-                else
-                {
-                    GuiUtils.HoverTooltip($"Zone: Unknown");
-                }
+                GuiUtils.HoverTooltip($"Zone: {Utils.GetTerritoryString(Services.ClientState.TerritoryType) ?? "Unknown"}");
             }
 #if DEBUG
 
@@ -929,6 +948,37 @@ namespace TitleEdit.Windows.Tabs
                     Services.LobbyService.ReloadCharacterSelect();
                 }
             }
+        }
+
+        private void SharePreset()
+        {
+            shareTask = Task.Run(() => Services.ShareService.SharePreset(currentPreset!).ContinueWith(task =>
+            {
+                try
+                {
+                    var url = Services.ShareService.GetShareUrl(task.Result);
+                    Services.Log.Info($"Shared preset: {url}");
+                    ImGui.SetClipboardText(url);
+                    Services.NotificationManager.AddNotification(new()
+                    {
+                        MinimizedText = "Preset shared",
+                        Title = "Preset shared",
+                        Content = $"The share link has been copied to your clipboard.\n{url}",
+                        Type = NotificationType.Success,
+                        Minimized = false
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Services.Log.Error(ex, "Failed to share preset");
+                    Services.NotificationManager.AddNotification(new()
+                    {
+                        Content = "Failed to share preset",
+                        Type = NotificationType.Error,
+                        Minimized = true
+                    });
+                }
+            }));
         }
     }
 }
