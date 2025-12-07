@@ -230,8 +230,7 @@ namespace TitleEdit.Windows.Tabs
             // Zone
 
             ImGui.TextUnformatted($"Zone: {Utils.GetTerritoryString(preset.LocationModel.TerritoryTypeId) ?? "Unknown"}");
-
-
+            
             if (Services.ObjectTable.LocalPlayer != null)
             {
                 ImGui.SameLine();
