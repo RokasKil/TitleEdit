@@ -30,8 +30,8 @@ namespace TitleEdit.PluginServices
         {
             if (Services.ObjectTable.LocalPlayer != null)
             {
-                var world = Services.DataManager.GetExcelSheet<World>(ClientLanguage.English).GetRow(Services.ClientState.LocalPlayer.HomeWorld.RowId);
-                PutCharacter(Services.ClientState.LocalContentId, $"{Services.ClientState.LocalPlayer.Name}@{world.Name}");
+                var world = Services.DataManager.GetExcelSheet<World>(ClientLanguage.English).GetRow(Services.PlayerState.HomeWorld.RowId);
+                PutCharacter(Services.PlayerState.ContentId, $"{Services.PlayerState.CharacterName}@{world.Name}");
             }
 
             foreach (var entry in Services.LobbyService.GetCurrentCharacterNames())
