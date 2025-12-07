@@ -1,6 +1,5 @@
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Command;
-using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -120,7 +119,7 @@ public sealed class Plugin : IDalamudPlugin
         // ctrl+t only on title screen (maybe? (not really but close enough))
         if (Services.KeyState[VirtualKey.CONTROL] &&
             Services.KeyState[VirtualKey.T] &&
-            Services.ClientState.LocalPlayer == null
+            Services.ObjectTable.LocalPlayer == null
             && canChangeUiVisibility)
         {
             ToggleConfigUI();

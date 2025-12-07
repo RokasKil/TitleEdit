@@ -33,7 +33,7 @@ namespace TitleEdit.PluginServices
         public override void Init()
         {
             Services.Framework.Update += Tick;
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.PlayerState.IsLoaded)
             {
                 RefreshMounts();
             }
@@ -41,7 +41,7 @@ namespace TitleEdit.PluginServices
 
         private void Tick(IFramework framework)
         {
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.PlayerState.IsLoaded)
             {
                 unsafe
                 {
@@ -92,7 +92,7 @@ namespace TitleEdit.PluginServices
 
         public unsafe void RefreshMounts()
         {
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.PlayerState.IsLoaded)
             {
                 var playerState = PlayerState.Instance();
                 if (playerState != null)

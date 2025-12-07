@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Linq;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using TitleEdit.Data.Persistence;
+using IndoorFloorLayoutData = TitleEdit.Data.Persistence.IndoorFloorLayoutData;
+using OutdoorPlotFixtureData = TitleEdit.Data.Persistence.OutdoorPlotFixtureData;
 
 namespace TitleEdit.PluginServices;
 
@@ -30,9 +33,9 @@ public class HousingService : AbstractService
                     LightLevel = layoutManager->IndoorAreaData->LightLevel,
                     Floors =
                     [
-                        layoutManager->IndoorAreaData->Floor0,
-                        layoutManager->IndoorAreaData->Floor1,
-                        layoutManager->IndoorAreaData->Floor2,
+                        new IndoorFloorLayoutData(layoutManager->IndoorAreaData->Floor0),
+                        new IndoorFloorLayoutData(layoutManager->IndoorAreaData->Floor1),
+                        new IndoorFloorLayoutData(layoutManager->IndoorAreaData->Floor2)
                     ]
                 };
             }
@@ -52,6 +55,8 @@ public class HousingService : AbstractService
                     {
                         Plot = plotIndex,
                         Fixtures = layoutManager->OutdoorAreaData->Plots[plotIndex].Fixture.ToArray()
+                                                                                   .Select(fixture => new OutdoorPlotFixtureData(fixture))
+                                                                                   .ToArray()
                     });
                 }
             }

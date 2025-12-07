@@ -99,20 +99,20 @@ namespace TitleEdit.PluginServices
         {
             isLoggedIn = Services.ClientState.IsLoggedIn;
             if (!Services.ConfigurationService.TrackPlayerLocation || (DateTime.Now - lastLocationCollection).TotalSeconds < 2) return;
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.ObjectTable.LocalPlayer != null)
             {
-                lastContentId = Services.ClientState.LocalContentId;
+                lastContentId = Services.PlayerState.ContentId;
                 if (TerritoryPath != null)
                 {
-                    var locationModel = locations.ContainsKey(lastContentId) ? locations[lastContentId] : new();
+                    var locationModel = locations.TryGetValue(lastContentId, out var location) ? location : new();
                     locationModel.TerritoryTypeId = Services.ClientState.TerritoryType;
                     locationModel.LayoutTerritoryTypeId = Services.LayoutService.LayoutTerritoryId;
                     locationModel.LayoutLayerFilterKey = Services.LayoutService.LayoutLayerFilterKey;
                     locationModel.TerritoryPath = TerritoryPath;
-                    locationModel.Position = Services.ClientState.LocalPlayer.Position;
-                    locationModel.Rotation = Services.ClientState.LocalPlayer.Rotation;
+                    locationModel.Position = Services.ObjectTable.LocalPlayer.Position;
+                    locationModel.Rotation = Services.ObjectTable.LocalPlayer.Rotation;
                     locationModel.WeatherId = Services.WeatherService.WeatherId;
-                    var character = ((CharacterExpanded*)Services.ClientState.LocalPlayer.Address);
+                    var character = ((CharacterExpanded*)Services.ObjectTable.LocalPlayer.Address);
                     locationModel.MovementMode = character->MovementMode;
                     if (Services.ConfigurationService.SaveMount)
                     {
@@ -220,7 +220,7 @@ namespace TitleEdit.PluginServices
         //Hook on whatever deletes stuff (and maybe adds) so we can get rid of the constant refreshing cause in solution 9 it might cause lag spikes
         private unsafe void LayoutInstanceSetActive(ILayoutInstance* layout, byte active)
         {
-            if (Services.ConfigurationService.SaveLayout && !refreshLayout && Services.ClientState.LocalPlayer != null && locations.TryGetValue(Services.ClientState.LocalContentId, out var locationModel))
+            if (Services.ConfigurationService.SaveLayout && !refreshLayout && Services.PlayerState.IsLoaded && locations.TryGetValue(Services.PlayerState.ContentId, out var locationModel))
             {
                 var inActive = locationModel.Active.Contains(layout->UUID());
                 var inInactive = locationModel.Inactive.Contains(layout->UUID());

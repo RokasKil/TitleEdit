@@ -124,7 +124,7 @@ namespace TitleEdit.Windows.Tabs
             }
 
             ImGui.SameLine();
-            using (ImRaii.Disabled(Services.ClientState.LocalPlayer == null || makingNewPreset))
+            using (ImRaii.Disabled(Services.ObjectTable.LocalPlayer == null || makingNewPreset))
             {
                 if (ImGuiComponents.IconButton($"##NewPreset", FontAwesomeIcon.Plus))
                 {
@@ -206,7 +206,7 @@ namespace TitleEdit.Windows.Tabs
                 ImGui.TextUnformatted($"Zone: Unknown");
             }
 
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.ObjectTable.LocalPlayer != null)
             {
                 ImGui.SameLine();
                 ImGui.SetCursorPosX(buttonPosX);
@@ -252,7 +252,7 @@ namespace TitleEdit.Windows.Tabs
 
                 return false;
             });
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.ObjectTable.LocalPlayer != null)
             {
                 ImGui.SameLine();
                 ImGui.SetCursorPosX(buttonPosX);
@@ -296,7 +296,7 @@ namespace TitleEdit.Windows.Tabs
                 }
             }
 
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.ObjectTable.LocalPlayer != null)
             {
                 var currentTime = Services.LocationService.TimeOffset;
                 ImGui.SameLine();
@@ -335,7 +335,7 @@ namespace TitleEdit.Windows.Tabs
                 return false;
             });
             DrawBgmTooltip(Services.BgmService.Bgms[bgmId]);
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.ObjectTable.LocalPlayer != null)
             {
                 ImGui.SameLine();
                 ImGui.SetCursorPosX(buttonPosX);
@@ -369,16 +369,16 @@ namespace TitleEdit.Windows.Tabs
                     Services.LobbyService.UpdateLiveEditCharacterPosition();
                 }
 
-                if (Services.ClientState.LocalPlayer != null)
+                if (Services.ObjectTable.LocalPlayer != null)
                 {
                     ImGui.SameLine();
                     ImGui.SetCursorPosX(buttonPosX);
                     if (ImGui.Button($"Apply current##Position"))
                     {
-                        preset.LocationModel.Position = Services.ClientState.LocalPlayer!.Position;
+                        preset.LocationModel.Position = Services.ObjectTable.LocalPlayer!.Position;
                     }
 
-                    var pos = Services.ClientState.LocalPlayer!.Position;
+                    var pos = Services.ObjectTable.LocalPlayer!.Position;
                     GuiUtils.HoverTooltip($"Current Position: ({pos.X:F2}; {pos.Y:F2}; {pos.Z:F2})");
                 }
 
@@ -393,16 +393,16 @@ namespace TitleEdit.Windows.Tabs
                     Services.LobbyService.UpdateLiveEditCharacterRotation();
                 }
 
-                if (Services.ClientState.LocalPlayer != null)
+                if (Services.ObjectTable.LocalPlayer != null)
                 {
                     ImGui.SameLine();
                     ImGui.SetCursorPosX(buttonPosX);
                     if (ImGui.Button($"Apply current##Rotation"))
                     {
-                        preset.LocationModel.Rotation = Services.ClientState.LocalPlayer!.Rotation;
+                        preset.LocationModel.Rotation = Services.ObjectTable.LocalPlayer!.Rotation;
                     }
 
-                    GuiUtils.HoverTooltip($"Current rotation: {Services.ClientState.LocalPlayer!.Rotation * Utils.RadToDegreeRatio:F2}");
+                    GuiUtils.HoverTooltip($"Current rotation: {Services.ObjectTable.LocalPlayer!.Rotation * Utils.RadToDegreeRatio:F2}");
                 }
 
                 // Character MovementMode
@@ -412,13 +412,13 @@ namespace TitleEdit.Windows.Tabs
                     Services.LobbyService.UpdateLiveEditCharacterState();
                 }
 
-                if (Services.ClientState.LocalPlayer != null)
+                if (Services.ObjectTable.LocalPlayer != null)
                 {
                     ImGui.SameLine();
                     ImGui.SetCursorPosX(buttonPosX); // should in theory Position it the same as it would normally
                     unsafe
                     {
-                        var character = (CharacterExpanded*)Services.ClientState.LocalPlayer.Address;
+                        var character = (CharacterExpanded*)Services.ObjectTable.LocalPlayer.Address;
                         if (ImGui.Button($"Apply current##moveType"))
                         {
                             preset.LocationModel.MovementMode = character->MovementMode;
@@ -465,13 +465,13 @@ namespace TitleEdit.Windows.Tabs
                 }
 
                 ImGuiComponents.HelpMarker("You can only select mounts you have unlocked across all of your characters\nTry logging into each character if you think any are missing");
-                if (Services.ClientState.LocalPlayer != null)
+                if (Services.ObjectTable.LocalPlayer != null)
                 {
                     ImGui.SameLine();
                     ImGui.SetCursorPosX(buttonPosX);
                     unsafe
                     {
-                        var character = (CharacterExpanded*)Services.ClientState.LocalPlayer.Address;
+                        var character = (CharacterExpanded*)Services.ObjectTable.LocalPlayer.Address;
                         if (ImGui.Button($"Apply current##Mount"))
                         {
                             Services.LocationService.SetMount(ref preset.LocationModel, &character->Character);
@@ -499,7 +499,7 @@ namespace TitleEdit.Windows.Tabs
                     UpdateLiveEdit();
                 }
 
-                if (Services.ClientState.LocalPlayer != null)
+                if (Services.ObjectTable.LocalPlayer != null)
                 {
                     ImGui.SameLine();
                     ImGui.SetCursorPosX(buttonPosX);
@@ -539,7 +539,7 @@ namespace TitleEdit.Windows.Tabs
                     }
                 }
 
-                if (Services.ClientState.LocalPlayer != null)
+                if (Services.ObjectTable.LocalPlayer != null)
                 {
                     ImGui.SameLine();
                     ImGui.SetCursorPosX(buttonPosX);
@@ -563,7 +563,7 @@ namespace TitleEdit.Windows.Tabs
                     UpdateLiveEdit();
                 }
 
-                if (Services.ClientState.LocalPlayer != null)
+                if (Services.ObjectTable.LocalPlayer != null)
                 {
                     ImGui.SameLine();
                     ImGui.SetCursorPosX(buttonPosX);
@@ -807,20 +807,20 @@ namespace TitleEdit.Windows.Tabs
             makingNewPreset = true;
             currentPreset = "";
             preset = new();
-            preset.Author = Services.ConfigurationService.UseCharacterNameAsAuthor ? Services.ClientState.LocalPlayer!.Name.ToString() : Services.ConfigurationService.DefaultAuthorName;
+            preset.Author = Services.ConfigurationService.UseCharacterNameAsAuthor ? Services.PlayerState.CharacterName : Services.ConfigurationService.DefaultAuthorName;
             preset.LocationModel.LocationType = LocationType.TitleScreen;
             LoadCurrentTerritory();
             preset.LocationModel.WeatherId = Services.WeatherService.WeatherId;
             preset.LocationModel.TimeOffset = Services.LocationService.TimeOffset;
             preset.LocationModel.BgmId = Services.BgmService.CurrentSongId;
             preset.LocationModel.BgmPath = Services.DataManager.GetExcelSheet<BGM>().TryGetRow((uint)Services.BgmService.CurrentSongId, out var row) ? row.File.ToString() : null;
-            preset.LocationModel.Position = Services.ClientState.LocalPlayer!.Position;
-            preset.LocationModel.Rotation = Services.ClientState.LocalPlayer!.Rotation;
+            preset.LocationModel.Position = Services.ObjectTable.LocalPlayer!.Position;
+            preset.LocationModel.Rotation = Services.ObjectTable.LocalPlayer!.Rotation;
             preset.LocationModel.TitleScreenLogo = TitleScreenLogo.Dawntrail;
             unsafe
             {
                 preset.LocationModel.Fov = Services.CameraService.CurrentCamera->Camera.SceneCamera.RenderCamera->FoV;
-                var character = (CharacterExpanded*)Services.ClientState.LocalPlayer!.Address;
+                var character = (CharacterExpanded*)Services.ObjectTable.LocalPlayer!.Address;
                 preset.LocationModel.MovementMode = character->MovementMode;
                 Services.LocationService.SetMount(ref preset.LocationModel, &character->Character);
 

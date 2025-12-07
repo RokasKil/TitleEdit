@@ -28,7 +28,7 @@ namespace TitleEdit.PluginServices
 
         public override void Init()
         {
-            if (Services.ClientState.LocalPlayer != null)
+            if (Services.ObjectTable.LocalPlayer != null)
             {
                 var world = Services.DataManager.GetExcelSheet<World>(ClientLanguage.English).GetRow(Services.ClientState.LocalPlayer.HomeWorld.RowId);
                 PutCharacter(Services.ClientState.LocalContentId, $"{Services.ClientState.LocalPlayer.Name}@{world.Name}");

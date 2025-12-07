@@ -1,6 +1,4 @@
-﻿using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
-
-namespace TitleEdit.Data.Persistence;
+﻿namespace TitleEdit.Data.Persistence;
 
 public class HousingEstateModel
 {

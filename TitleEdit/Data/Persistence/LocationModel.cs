@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using TitleEdit.Data.Character;
 using TitleEdit.Data.Lobby;
 
@@ -11,7 +9,7 @@ namespace TitleEdit.Data.Persistence
     // Could seperate these into title screen and character select but I kinda want to allow users to easily convert between the two maybe (also am lazy)
     public struct LocationModel
     {
-        public readonly static int CurrentVersion = 5;
+        public static readonly int CurrentVersion = 5;
 
         public int Version = CurrentVersion;
         public LocationType LocationType = LocationType.TitleScreen;

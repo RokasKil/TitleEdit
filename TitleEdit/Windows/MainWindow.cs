@@ -14,7 +14,8 @@ public class MainWindow : Window, IDisposable
     // So that the user will see "My Amazing Window" as window title,
     // but for ImGui the ID is "My Amazing Window##With a hidden ID"
     public MainWindow()
-        : base("My Amazing Debug Window##TitleScreen", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+        : base("My Amazing Debug Window##TitleScreen",
+               ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         SizeConstraints = new WindowSizeConstraints
         {
@@ -32,12 +33,14 @@ public class MainWindow : Window, IDisposable
     {
         unsafe
         {
-            ImGui.TextUnformatted($"Current character {Services.ClientState.LocalContentId:X16}");
-            ImGui.TextUnformatted($"Selected character {(IntPtr)Services.LobbyService.CurrentCharacter:X16} - {Services.LobbyService.CurrentContentId:X16}");
+            ImGui.TextUnformatted($"Current character {Services.PlayerState.ContentId:X16}");
+            ImGui.TextUnformatted(
+                $"Selected character {(IntPtr)Services.LobbyService.CurrentCharacter:X16} - {Services.LobbyService.CurrentContentId:X16}");
             ImGui.TextUnformatted($"Current weather {Services.WeatherService.WeatherId}");
             ImGui.TextUnformatted($"Current lobbymap {Services.LobbyService.CurrentLobbyMap}");
-            var location = Services.LocationService.GetLocationModel(Services.ClientState.LocalContentId);
-            ImGui.TextUnformatted($"Current layout {location.Active.Count} {location.Inactive.Count} {location.VfxTriggerIndexes.Count}");
+            var location = Services.LocationService.GetLocationModel(Services.PlayerState.ContentId);
+            ImGui.TextUnformatted(
+                $"Current layout {location.Active.Count} {location.Inactive.Count} {location.VfxTriggerIndexes.Count}");
             //ImGui.TextUnformatted($"Current layout2 {Services.LocationService.Active.Count} {Services.LocationService.Inactive.Count} {Services.LocationService.VfxTriggerIndexes.Count}");
             //ImGui.TextUnformatted($"Current layout3 {location.Active.All(Services.LocationService.Active.Contains)} {location.Inactive.All(Services.LocationService.Inactive.Contains)} {location.VfxTriggerIndexes.Keys.Count == Services.LocationService.VfxTriggerIndexes.Keys.Count && location.VfxTriggerIndexes.Keys.All(k => Services.LocationService.VfxTriggerIndexes.ContainsKey(k) && object.Equals(location.VfxTriggerIndexes[k], Services.LocationService.VfxTriggerIndexes[k]))}");
             ImGui.TextUnformatted($"Current Song {Services.BgmService.CurrentSongId}");
@@ -47,7 +50,8 @@ public class MainWindow : Window, IDisposable
             ImGui.SliderAngle($"test", ref test1, -360, 360);
             ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle(test1) * Utils.RadToDegreeRatio}");
             ImGui.SliderFloat($"Testing normalizer", ref test2, -720, 720);
-            ImGui.TextUnformatted($"Normalized {Utils.NormalizeAngle((float)(test2 * Utils.DegreeToRadRatio)) * Utils.RadToDegreeRatio}");
+            ImGui.TextUnformatted(
+                $"Normalized {Utils.NormalizeAngle((float)(test2 * Utils.DegreeToRadRatio)) * Utils.RadToDegreeRatio}");
             ImGui.TextUnformatted($"Time: {Services.LocationService.TimeOffset}");
             if (ImGui.Button("Remigrate title screens"))
             {
@@ -75,12 +79,18 @@ public class MainWindow : Window, IDisposable
             if (ImGui.CollapsingHeader("Versions"))
             {
                 var framework = Framework.Instance();
-                ImGui.TextUnformatted($"Game version: {framework->GameVersionString} {framework->GameVersionString.Length}");
-                ImGui.TextUnformatted($"Heavensward: {framework->ExVersions.GetValue(0)?.VersionString} {framework->ExVersions.GetValue(0)?.VersionString.Length}");
-                ImGui.TextUnformatted($"Stormblood: {framework->ExVersions.GetValue(1)?.VersionString} {framework->ExVersions.GetValue(1)?.VersionString.Length}");
-                ImGui.TextUnformatted($"Shadowbringers: {framework->ExVersions.GetValue(2)?.VersionString} {framework->ExVersions.GetValue(2)?.VersionString.Length}");
-                ImGui.TextUnformatted($"Endwalker: {framework->ExVersions.GetValue(3)?.VersionString} {framework->ExVersions.GetValue(3)?.VersionString.Length}");
-                ImGui.TextUnformatted($"Dawntrail: {framework->ExVersions.GetValue(4)?.VersionString} {framework->ExVersions.GetValue(4)?.VersionString.Length}");
+                ImGui.TextUnformatted(
+                    $"Game version: {framework->GameVersionString} {framework->GameVersionString.Length}");
+                ImGui.TextUnformatted(
+                    $"Heavensward: {framework->ExVersions.GetValue(0)?.VersionString} {framework->ExVersions.GetValue(0)?.VersionString.Length}");
+                ImGui.TextUnformatted(
+                    $"Stormblood: {framework->ExVersions.GetValue(1)?.VersionString} {framework->ExVersions.GetValue(1)?.VersionString.Length}");
+                ImGui.TextUnformatted(
+                    $"Shadowbringers: {framework->ExVersions.GetValue(2)?.VersionString} {framework->ExVersions.GetValue(2)?.VersionString.Length}");
+                ImGui.TextUnformatted(
+                    $"Endwalker: {framework->ExVersions.GetValue(3)?.VersionString} {framework->ExVersions.GetValue(3)?.VersionString.Length}");
+                ImGui.TextUnformatted(
+                    $"Dawntrail: {framework->ExVersions.GetValue(4)?.VersionString} {framework->ExVersions.GetValue(4)?.VersionString.Length}");
             }
 
             if (ImGui.Button("Housing test"))
