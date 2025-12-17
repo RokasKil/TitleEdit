@@ -21,7 +21,7 @@ namespace TitleEdit.PluginServices
 
         public unsafe delegate void VfxLayoutInstanceSetVfxTriggerIndexDelegate(VfxLayoutInstance* vfxInstance, int index);
 
-        public unsafe delegate void LayoutWorldInitManagerDelegate(nint layoutWorld, uint p2, nint territoryPath, uint territoryId, uint layerFilterKey, nint festivals, uint contentFinderConditionId);
+        public delegate void LayoutWorldInitManagerDelegate(nint layoutWorld, uint p2, nint territoryPath, uint territoryId, uint layerFilterKey, nint festivals, uint contentFinderConditionId);
 
         private Hook<VfxLayoutInstanceSetVfxTriggerIndexDelegate> vfxLayoutInstanceSetVfxTriggerIndexHook = null!;
         private Hook<LayoutWorldInitManagerDelegate> layoutWorldInitManagerHook = null!;
