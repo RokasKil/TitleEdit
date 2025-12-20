@@ -121,17 +121,23 @@ namespace TitleEdit.PluginServices.Lobby
 
             if (model is { SaveFestivals: true, Festivals: not null })
             {
-                fixed (uint* pFestivals = model.Festivals)
+                fixed (GameMain.Festival* pFestivals = new GameMain.Festival[LocationModel.FESTIVAL_COUNT])
                 {
-                    Services.LayoutService.LayoutManager->SetActiveFestivals((GameMain.Festival*)pFestivals);
+                    for (int i = 0; i < LocationModel.FESTIVAL_COUNT; i++)
+                    {
+                        pFestivals[i].Id = model.Festivals[i].Id;
+                        pFestivals[i].Phase = model.Festivals[i].Phase;
+                    }
+
+                    Services.LayoutService.LayoutManager->SetActiveFestivals(pFestivals);
                 }
             }
             else
             {
                 Services.Log.Debug("Unsetting festivals");
-                fixed (uint* pFestivals = new uint[4])
+                fixed (GameMain.Festival* pFestivals = new GameMain.Festival[LocationModel.FESTIVAL_COUNT])
                 {
-                    Services.LayoutService.LayoutManager->SetActiveFestivals((GameMain.Festival*)pFestivals);
+                    Services.LayoutService.LayoutManager->SetActiveFestivals(pFestivals);
                 }
             }
 

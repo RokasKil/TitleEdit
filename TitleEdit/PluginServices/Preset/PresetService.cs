@@ -204,7 +204,7 @@ namespace TitleEdit.PluginServices.Preset
             }
 
             var preset = presetOpt.Value;
-            if (preset.Version != PresetModel.CurrentVersion)
+            if (preset.Version != PresetModel.CURRENT_VERSION)
             {
                 throw new($"Preset Version is not valid {preset.Version}");
             }
