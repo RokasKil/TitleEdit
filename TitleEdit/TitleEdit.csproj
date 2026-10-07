@@ -2,8 +2,10 @@
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
 
     <PropertyGroup>
-        <Version>3.0.6.9</Version>
+        <Version>3.1.1.0</Version>
         <PackageProjectUrl>https://github.com/RokasKil/TitleEdit</PackageProjectUrl>
+        <AssemblyTitle>Title Edit Chronicle</AssemblyTitle>
+        <Description>Title Edit fork that follows the logged-in character's MSQ.</Description>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

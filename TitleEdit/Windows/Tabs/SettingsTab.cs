@@ -13,6 +13,13 @@ namespace TitleEdit.Windows.Tabs
         public override void Draw()
         {
             base.Draw();
+            SettingCheckbox(
+    $"Reflect per-character MSQ tracking onto game client's settings##{Title}",
+    ref Services.ConfigurationService.ReflectMsqOntoGameSettings);
+            ImGuiComponents.HelpMarker(
+                "When on, writes System Configuration → Title Screen Displayed on Launch " +
+                "to this character's MSQ expansion (fixed expansion, not account-wide MSQ progression).");
+            ImGui.Separator();
             if (SettingCheckbox($"Track player location##{Title}", ref Services.ConfigurationService.TrackPlayerLocation))
             {
                 Services.LayoutService.SettingsUpdated();

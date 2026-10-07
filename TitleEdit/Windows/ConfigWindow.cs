@@ -19,7 +19,7 @@ public class ConfigWindow : Window, IDisposable
     };
 
     public ConfigWindow() : base(
-        "Title Edit Configuration", ImGuiWindowFlags.AlwaysAutoResize)
+        "Title Edit Chronicle Config", ImGuiWindowFlags.AlwaysAutoResize)
     {
         this.SizeConstraints = new WindowSizeConstraints
         {

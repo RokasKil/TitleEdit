@@ -13,9 +13,10 @@ namespace TitleEdit.Windows.Tabs
         {
             base.Draw();
             using var textWrapPos = ImRaii.TextWrapPos(ImGui.GetFontSize() * 28);
-            ImGui.TextWrapped("Welcome to Title Edit V3, a full remake of the original plugin.");
-            ImGui.TextWrapped("If you encounter any issues that are not listed in the Known Issues or have information about them that you feel " +
-                              "would be valuable you can report it via the feedback button in the Plugin Installer or the Title Edit post in #plugin-help-forum.");
+            ImGui.TextWrapped("Title Edit Chronicle is a fork of Title Edit V3. It keeps every custom title and character-select feature, and adds live Main Scenario tracking so the vanilla title + movie follow the character you are actually playing.");
+            ImGui.TextWrapped("Unlike patch 7.1's built-in setting, Chronicle uses the currently logged-in character (not the furthest on the account), works on Free Trial, and reloads the lobby as soon as you log out — no client relaunch.");
+            ImGui.TextWrapped("Please be advised that this is a fork so exercise your cognizance of where which issues should be reported where. " +
+                                "If you find the addition of functionality added here useful please vouch for its inclusion in the parent (RokasKil) repository." );
 
             ImGui.TextWrapped("If you're looking for more presets head over to Dalamud's official discord and check out the #preset-sharing channel.");
 
@@ -36,18 +37,10 @@ namespace TitleEdit.Windows.Tabs
                 WrappedBulletText("Experimental layout saving being janky in general");
             }
 
-            if (ImGui.CollapsingHeader($"Planned Features##{Title}"))
-            {
-                ImGui.TextWrapped("These are not confirmed or researched, or have any date planned. They're something I personally think would be nice to have");
-                WrappedBulletText("Character select companion support");
-                WrappedBulletText("Character select ornament support");
-                WrappedBulletText("Character select emote support");
-                WrappedBulletText("Layout editor allowing you to turn off/on certain parts of the map");
-                WrappedBulletText("Festival selector for presets");
-            }
 
             if (ImGui.CollapsingHeader($"Credits##{Title}"))
             {
+                WrappedBulletText("RokasKil — current maintainer of TitleEdit");
                 WrappedBulletText("Speedas - initial Dawntrail update, full plugin rewrite to 3.0");
                 WrappedBulletText("attick - Title Edit 1.0 and many functions of 2.0");
                 WrappedBulletText("perchbird - Custom title screens and supporting features, maintaining the plugin before Dawntrail");

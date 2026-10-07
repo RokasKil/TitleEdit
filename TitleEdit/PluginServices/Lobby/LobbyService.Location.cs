@@ -154,6 +154,19 @@ namespace TitleEdit.PluginServices.Lobby
             {
                 model = GetGroupLocationModel(displayOption.PresetPath, LocationType.TitleScreen);
             }
+            else if (displayOption.Type == TitleDisplayType.MsqProgress)
+            {
+                var path = Services.MsqTrackerService.GetVanillaPresetPath();
+                model = GetPresetLocationModel(path, LocationType.TitleScreen);
+                var expansion = Services.MsqTrackerService.GetExpansionForNextLogin();
+                model.ToastNotificationText = $"Now displaying: {expansion} (MSQ — {Services.ConfigurationService.LastLoggedCharacterName})";
+                if (Services.ConfigurationService.BypassFreeTrialTitleLock)
+                {
+                    model.TitleScreenLogo = TitleEdit.Data.Msq.MsqVanillaPresets.Logo(expansion);
+                    model.TitleScreenMovie = TitleEdit.Data.Msq.MsqVanillaPresets.Movie(expansion);
+                    model.TitleScreenOverride = expansion;
+                }
+            }
             else
             {
                 model = Services.PresetService.GetDefaultPreset(LocationType.TitleScreen).LocationModel;

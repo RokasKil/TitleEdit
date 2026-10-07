@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using TitleEdit.Data.BGM;
 using TitleEdit.Data.Lobby;
+using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 
 namespace TitleEdit.PluginServices.Lobby
@@ -139,15 +140,29 @@ namespace TitleEdit.PluginServices.Lobby
                 LobbyInfo->CurrentTitleScreenMovieType = TitleScreenMovieOption;
                 if (!LobbyInfo->CurrentTitleScreenMovieType.IsInAvailableExpansion())
                 {
+                    var silent = Services.ConfigurationService.TitleDisplayTypeOption.Type == TitleDisplayType.MsqProgress;
                     Services.Log.Warning($"[LeavingTitleScreen] Tried to load missing {LobbyInfo->CurrentTitleScreenMovieType.ToText()} movie");
-                    Services.NotificationManager.AddNotification(new()
+                    if (!silent)
                     {
-                        Content = $"Tried to load missing {LobbyInfo->CurrentTitleScreenMovieType.ToText()} movie, adjust your settings or get the full game",
-                        Title = "Missing files",
-                        Type = NotificationType.Error,
-                        Minimized = false
-                    });
+                        Services.NotificationManager.AddNotification(new()
+                        {
+                            Content = $"Tried to load missing {LobbyInfo->CurrentTitleScreenMovieType.ToText()} movie, adjust your settings or get the full game",
+                            Title = "Missing files",
+                            Type = NotificationType.Error,
+                            Minimized = false
+                        });
+                    }
+
                     LobbyInfo->CurrentTitleScreenMovieType = TitleScreenMovie.ARealmReborn;
+                    // Walk down to the highest movie this client actually has.
+                    foreach (var candidate in new[] { TitleScreenMovie.Dawntrail, TitleScreenMovie.Endwalker, TitleScreenMovie.Shadowbringers, TitleScreenMovie.Stormblood, TitleScreenMovie.Heavensward, TitleScreenMovie.ARealmReborn })
+                    {
+                        if (candidate.IsInAvailableExpansion())
+                        {
+                            LobbyInfo->CurrentTitleScreenMovieType = candidate;
+                            break;
+                        }
+                    }
                 }
 
                 Services.Log.Debug($"[LeavingTitleScreen] set current movie to {LobbyInfo->CurrentTitleScreenMovieType}");

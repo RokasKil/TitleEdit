@@ -96,10 +96,10 @@ namespace TitleEdit.PluginServices.Lobby
                     {
                         Services.Log.Debug($"Drawing character {(nint)CurrentCharacter:X} {CurrentCharacter->GameObject.RenderFlags:X}");
                         CurrentCharacter->GameObject.EnableDraw();
-                        if (CurrentCharacter->IsMounted() && CurrentCharacter->CompanionObject != null && CurrentCharacter->CompanionObject->Character.GameObject.IsReadyToDraw())
+                        if (CurrentCharacter->IsMounted() && CurrentCharacter->ChildObject != null && CurrentCharacter->ChildObject->GameObject.IsReadyToDraw())
                         {
-                            Services.Log.Debug($"Drawing companion {(nint)CurrentCharacter->CompanionObject:X} {CurrentCharacter->CompanionObject->Character.GameObject.RenderFlags:X}");
-                            CurrentCharacter->CompanionObject->Character.GameObject.EnableDraw();
+                            Services.Log.Debug($"Drawing companion {(nint)CurrentCharacter->ChildObject:X} {CurrentCharacter->ChildObject->GameObject.RenderFlags:X}");
+                            CurrentCharacter->ChildObject->GameObject.EnableDraw();
                         }
                     }
                 }

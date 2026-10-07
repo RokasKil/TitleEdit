@@ -338,6 +338,10 @@ namespace TitleEdit.Windows.Tabs
                     }
                 }
             }
+            else if (value.Type == TitleDisplayType.MsqProgress)
+            {
+                display = "Follow logged-in character MSQ";
+            }
             else
             {
                 display = "Something went wrong";
@@ -351,6 +355,18 @@ namespace TitleEdit.Windows.Tabs
 
             GuiUtils.FilterCombo(label, display, () =>
             {
+                if (GuiUtils.FilterSelectable("Follow logged-in character MSQ", value.Type == TitleDisplayType.MsqProgress))
+                {
+                    selectAction.Invoke(new()
+                    {
+                        Type = TitleDisplayType.MsqProgress
+                    });
+                    Services.ConfigurationService.Save();
+                    return true;
+                }
+
+                GuiUtils.HoverTooltip("Uses the vanilla title + movie for the expansion the currently logged-in character is playing through. Applies on logout without restarting the client, including on Free Trial.");
+
                 foreach (var entry in Services.PresetService.TitleScreenPresetEnumerator)
                 {
                     if (entry.Value.Vanilla && Services.ConfigurationService.HideVanillaPresets) continue;

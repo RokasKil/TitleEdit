@@ -239,6 +239,10 @@ namespace TitleEdit.Utility
                     case TitleDisplayType.Random:
                         DrawDisplayTypeTooltipGroupInfo(path, LocationType.TitleScreen);
                         break;
+                    case TitleDisplayType.MsqProgress:
+                        ImGui.TextUnformatted("Follow logged-in character MSQ");
+                        ImGui.TextWrapped("Vanilla title screen and idle movie for the expansion the last played character is in. Updates immediately on logout. Works on Free Trial.");
+                        break;
                 }
             });
         }

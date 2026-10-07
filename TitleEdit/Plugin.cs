@@ -51,7 +51,7 @@ public sealed class Plugin : IDalamudPlugin
 
         Services.CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Open Title Edit configuration"
+            HelpMessage = "Open Title Edit Chronicle. '/titleedit msq' prints the mapped title for this character."
         });
         Services.CommandManager.AddHandler(CommandNameAlias, new CommandInfo(OnCommand)
         {
@@ -83,7 +83,12 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnCommand(string command, string args)
     {
-        if (args == "migrate presets")
+        if (args == "msq")
+        {
+            var tracker = Services.MsqTrackerService;
+            Services.ChatGui.Print($"Chronicle: {tracker.CurrentCharacterName} → {tracker.CurrentExpansion} ({tracker.CurrentGateQuest}). Next lobby: {tracker.GetExpansionForNextLogin()}", "Title Edit");
+        }
+        else if (args == "migrate presets")
         {
             var migratedCount = Services.MigrationService.MigrateTitleScreenV2Presets();
             Services.ChatGui.Print($"Migrated {migratedCount} presets", "Title Edit");

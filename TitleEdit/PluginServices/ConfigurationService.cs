@@ -40,21 +40,20 @@ public class ConfigurationService
 
     public TitleDisplayTypeOption TitleDisplayTypeOption = new()
     {
-        Type = TitleDisplayType.Preset,
-        PresetPath = "?/Dawntrail.json"
+        Type = TitleDisplayType.MsqProgress
     };
 
-    public TitleScreenLogo TitleScreenLogo = TitleScreenLogo.Dawntrail;
+    public TitleScreenLogo TitleScreenLogo = TitleScreenLogo.ARealmReborn;
     public bool OverridePresetTitleScreenLogo = false;
     public bool DisplayTitleToast = false;
     public bool DebugLogging = false;
     public bool SettingsMigrated = false;
-    public UiColorModel TitleScreenColor = UiColors.Dawntrail;
+    public UiColorModel TitleScreenColor = UiColors.ARealmReborn;
     public bool OverridePresetTitleScreenColor = false;
     public bool UseCharacterNameAsAuthor = true;
     public string DefaultAuthorName = "";
     public bool HideCharacterSelectNames = false;
-    public TitleScreenMovie TitleScreenMovie = TitleScreenMovie.Dawntrail;
+    public TitleScreenMovie TitleScreenMovie = TitleScreenMovie.ARealmReborn;
     public bool OverridePresetTitleScreenMovie = false;
     public string? LastExportLocation;
     public string? LastImportLocation;
@@ -62,6 +61,14 @@ public class ConfigurationService
     public bool SeasonalEasterEggs = true;
     public bool HideBuiltInPresets = false;
     public bool HideVanillaPresets = false;
+    public bool ApplyMsqTitleImmediately = true;
+    public bool BypassFreeTrialTitleLock = true;
+    public bool ReflectMsqOntoGameSettings = false;
+    public ulong LastLoggedContentId = 0;
+    public string LastLoggedCharacterName = "";
+    public DateTime LastMsqObservedAt = DateTime.MinValue;
+    public Dictionary<string, TitleScreenExpansion> CharacterMsqExpansions = [];
+    public Dictionary<string, string> CharacterMsqGateQuests = [];
     [NonSerialized]
     public bool IgnoreSeasonalDateCheck = false;
 
