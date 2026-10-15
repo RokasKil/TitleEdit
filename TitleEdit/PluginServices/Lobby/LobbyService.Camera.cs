@@ -117,7 +117,7 @@ namespace TitleEdit.PluginServices.Lobby
         // Sets LookAt and Curve values for character depending on current CameraFollowMode
         private void CameraFollowCharacter(Character* currentChar)
         {
-            var drawObject = (CharacterBase*)currentChar->GameObject.GetDrawObject();
+            var drawObject = (CharacterBase*)currentChar->GetDrawObject();
             Vector3 lookAt;
             if (drawObject != null && drawObject->DrawObject.IsVisible && CameraFollowMode == CameraFollowMode.ModelPosition)
             {
@@ -125,7 +125,7 @@ namespace TitleEdit.PluginServices.Lobby
             }
             else
             {
-                lookAt = currentChar->GameObject.Position;
+                lookAt = currentChar->Position;
             }
 
             // If drawobject is already made but curve is not enabled that means the game skipped telling camera that we have a character selected
@@ -136,7 +136,7 @@ namespace TitleEdit.PluginServices.Lobby
                 lobbyCameraCharacterSelectedNative();
             }
 
-            //Services.Log.Verbose($"[CameraFollowCharacter] {currentChar->GameObject.IsReadyToDraw()} {currentChar->GameObject.RenderFlags} {(drawObject != null ? drawObject->DrawObject.IsVisible : null)}");
+            //Services.Log.Verbose($"[CameraFollowCharacter] {currentChar->IsReadyToDraw()} {currentChar->RenderFlags} {(drawObject != null ? drawObject->DrawObject.IsVisible : null)}");
             lookAt.Y = Services.CameraService.LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector.Y;
             Services.CameraService.LobbyCamera->LobbyCamera.Camera.CameraBase.SceneCamera.LookAtVector = OffsetPosition(lookAt);
             lastLowPoint = Services.CameraService.LobbyCamera->LowPoint.Value;

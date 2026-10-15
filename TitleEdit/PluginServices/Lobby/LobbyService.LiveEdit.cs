@@ -98,7 +98,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (ShouldLiveEditCharacterSelect && CurrentCharacter != null)
             {
-                CurrentCharacter->GameObject.SetPosition(characterSelectLocationModel.Position);
+                CurrentCharacter->SetPosition(characterSelectLocationModel.Position);
             }
         }
 
@@ -106,7 +106,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (ShouldLiveEditCharacterSelect && CurrentCharacter != null)
             {
-                CurrentCharacter->GameObject.SetRotation(characterSelectLocationModel.Rotation);
+                CurrentCharacter->SetRotation(characterSelectLocationModel.Rotation);
             }
         }
 

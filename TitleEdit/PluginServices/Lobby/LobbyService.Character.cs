@@ -92,14 +92,14 @@ namespace TitleEdit.PluginServices.Lobby
                     }
 
                     // if needed we force draw character and mount cause they're weird sometimes
-                    if (CurrentCharacter->GameObject.RenderFlags != 0 && CurrentCharacter->GameObject.RenderFlags != (VisibilityFlags)0x40 && CurrentCharacter->GameObject.IsReadyToDraw())
+                    if (CurrentCharacter->RenderFlags != 0 && CurrentCharacter->RenderFlags != (VisibilityFlags)0x40 && CurrentCharacter->IsReadyToDraw())
                     {
-                        Services.Log.Debug($"Drawing character {(nint)CurrentCharacter:X} {CurrentCharacter->GameObject.RenderFlags:X}");
-                        CurrentCharacter->GameObject.EnableDraw();
-                        if (CurrentCharacter->IsMounted() && CurrentCharacter->CompanionObject != null && CurrentCharacter->CompanionObject->Character.GameObject.IsReadyToDraw())
+                        Services.Log.Debug($"Drawing character {(nint)CurrentCharacter:X} {CurrentCharacter->RenderFlags:X}");
+                        CurrentCharacter->EnableDraw();
+                        if (CurrentCharacter->IsMounted() && CurrentCharacter->ChildObject != null && CurrentCharacter->ChildObject->IsReadyToDraw())
                         {
-                            Services.Log.Debug($"Drawing companion {(nint)CurrentCharacter->CompanionObject:X} {CurrentCharacter->CompanionObject->Character.GameObject.RenderFlags:X}");
-                            CurrentCharacter->CompanionObject->Character.GameObject.EnableDraw();
+                            Services.Log.Debug($"Drawing companion {(nint)CurrentCharacter->ChildObject:X} {CurrentCharacter->ChildObject->RenderFlags:X}");
+                            CurrentCharacter->ChildObject->EnableDraw();
                         }
                     }
                 }
@@ -171,7 +171,7 @@ namespace TitleEdit.PluginServices.Lobby
         {
             if (CurrentCharacter != null)
             {
-                CurrentCharacter->GameObject.SetRotation(Utils.NormalizeAngle(lastCharacterRotation + characterSelectLocationModel.Rotation));
+                CurrentCharacter->SetRotation(Utils.NormalizeAngle(lastCharacterRotation + characterSelectLocationModel.Rotation));
             }
         }
 
@@ -275,7 +275,7 @@ namespace TitleEdit.PluginServices.Lobby
                     }
 
                     Services.Log.Debug($"Setting character position {(nint)CurrentCharacter:X}");
-                    CurrentCharacter->GameObject.SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
+                    CurrentCharacter->SetPosition(characterSelectLocationModel.Position.X, characterSelectLocationModel.Position.Y, characterSelectLocationModel.Position.Z);
 
                     ((CharacterExpanded*)CurrentCharacter)->MovementMode = characterSelectLocationModel.MovementMode;
                     if (CurrentCharacter->Mount.MountId != characterSelectLocationModel.Mount.MountId)
