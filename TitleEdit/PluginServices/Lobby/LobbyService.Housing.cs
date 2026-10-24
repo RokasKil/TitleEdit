@@ -6,6 +6,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using FFXIVClientStructs.Interop;
 using Lumina.Excel.Sheets;
+using TitleEdit.Data.Housing;
 using TitleEdit.Data.Persistence;
 using TitleEdit.Utility;
 using HousingFurniture = FFXIVClientStructs.FFXIV.Client.Game.HousingFurniture;
@@ -16,6 +17,12 @@ public unsafe partial class LobbyService
 {
     // TitleEdit FurnitureOwnerId - can be used to recognise furniture spawned by us, not currently used
     const uint FurnitureOwnerId = 0x54455046;
+
+    [Signature("E9 ?? ?? ?? ?? 48 8B 49 ?? 48 85 C9 74 ?? 48 83 C1")]
+    private readonly delegate*unmanaged<HousingFurnitureManager*, SetHousingObjectDataStruct*, void> setHousingObjectData = null!;
+
+    [Signature("48 83 EC ?? B8 ?? ?? ?? ?? 4C 8B D1 66 3B D0")]
+    private readonly delegate*unmanaged<HousingFurnitureManager*, ushort, SetFurnitureStruct*, void> setFurniture = null!;
 
     [Signature("E8 ?? ?? ?? ?? FF C5 48 85 C0 0F 84")]
     private readonly delegate*unmanaged<HousingFurniture*, HousingFurniture*, HousingObject*> spawnFurnitureObject = null!;
@@ -135,31 +142,51 @@ public unsafe partial class LobbyService
 
         if (housingManager->CurrentTerritory == null) return;
 
-        HousingFurniture* furnitureArray;
+        HousingFurnitureManager* housingFurnitureManager;
 
         if (housingManager->IndoorTerritory != null)
         {
-            furnitureArray = housingManager->IndoorTerritory->FurnitureManager.FurnitureMemory.GetPointer(0);
+            housingFurnitureManager = &housingManager->IndoorTerritory->FurnitureManager;
         }
         else if (housingManager->OutdoorTerritory != null)
         {
-            furnitureArray = housingManager->OutdoorTerritory->FurnitureManager.FurnitureMemory.GetPointer(0);
+            housingFurnitureManager = &housingManager->OutdoorTerritory->FurnitureManager;
         }
         else
         {
             return;
         }
 
-        var furnitureData = stackalloc HousingFurniture[1];
-        foreach (var furniture in model.Furniture)
+
+        for (ushort i = 0; i < model.Furniture.Count; i++)
         {
-            furnitureData->Index = -1;
-            furnitureData->Position = furniture.Position;
-            furnitureData->Id = furniture.Id & 0x0000FFFF;
-            furnitureData->Stain = furniture.Stain;
-            furnitureData->Rotation = furniture.Rotation;
-            Services.Log.Debug($"Spawning {furniture.Id + 196608} {furnitureData->Id} {furnitureData->Position} {furnitureData->Rotation} {furnitureData->Stain}");
-            var spawnedObject = spawnFurnitureObject(furnitureArray, furnitureData);
+            var furniture = model.Furniture[i];
+            Services.Log.Debug($"Spawning {i}: {furniture.Id:X} {furniture.Position} {furniture.Rotation} {furniture.Stain} {furniture.HousingObjectData != null}");
+            SetFurnitureStruct furnitureStruct = new()
+            {
+                Id = furniture.Id,
+                Position = furniture.Position,
+                Rotation = furniture.Rotation,
+                Stain = furniture.Stain
+            };
+            setFurniture(housingFurnitureManager, i, &furnitureStruct);
+            if (furniture.HousingObjectData != null)
+            {
+                var data = furniture.HousingObjectData.Value;
+                var setHousingObjectDataStruct = new SetHousingObjectDataStruct();
+                setHousingObjectDataStruct.Count = 8;
+                setHousingObjectDataStruct.Index = i;
+                data.Value1.CopyTo(new Span<ushort>(setHousingObjectDataStruct.Value1, 8));
+                data.Value2.CopyTo(new Span<byte>(setHousingObjectDataStruct.Value2, 8));
+                data.Value3.CopyTo(new Span<byte>(setHousingObjectDataStruct.Value3, 8));
+                data.Value4.CopyTo(new Span<byte>(setHousingObjectDataStruct.Value4, 8));
+                // There is also a Value5 in the actual settled struct but this method doesn't accept that
+                // and computes it instead
+                // Didn't notice any visual effect of not transfering this value 1:1 so I will simply not worry about it
+                setHousingObjectData(housingFurnitureManager, &setHousingObjectDataStruct);
+            }
+
+            var spawnedObject = spawnFurnitureObject(housingFurnitureManager->FurnitureMemory.GetPointer(0), housingFurnitureManager->FurnitureMemory.GetPointer(i));
             if (spawnedObject != null)
             {
                 spawnedObject->OwnerId = FurnitureOwnerId;

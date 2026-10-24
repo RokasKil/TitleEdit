@@ -19,11 +19,11 @@ public class HousingService : AbstractService
         var housingManager = HousingManager.Instance();
 
         if (housingManager == null) return;
-        Span<HousingFurniture> furnitureList = null;
+        HousingFurnitureManager* housingFurnitureManager = null;
 
         if (housingManager->IndoorTerritory != null)
         {
-            furnitureList = housingManager->IndoorTerritory->FurnitureManager.FurnitureMemory;
+            housingFurnitureManager = &housingManager->IndoorTerritory->FurnitureManager;
 
             var layoutManager = LayoutWorld.Instance()->ActiveLayout;
             if (layoutManager != null && layoutManager->IndoorAreaData != null)
@@ -42,7 +42,7 @@ public class HousingService : AbstractService
         }
         else if (housingManager->OutdoorTerritory != null)
         {
-            furnitureList = housingManager->OutdoorTerritory->FurnitureManager.FurnitureMemory;
+            housingFurnitureManager = &housingManager->OutdoorTerritory->FurnitureManager;
 
             var layoutManager = LayoutWorld.Instance()->ActiveLayout;
             if (layoutManager != null && layoutManager->OutdoorAreaData != null)
@@ -62,17 +62,46 @@ public class HousingService : AbstractService
             }
         }
 
+        if (housingFurnitureManager == null) return;
         model.Furniture = [];
-        foreach (var furnitureItem in furnitureList)
+
+        for (int index = 0; index < housingFurnitureManager->FurnitureMemory.Length; index++)
         {
+            var furnitureItem = housingFurnitureManager->FurnitureMemory[index];
             if (furnitureItem.Id == 0) continue;
             if (furnitureItem.Index == -1) continue;
+
+            HousingObjectDataModel? housingObjectDataModel = null;
+            if (housingFurnitureManager->ObjectManager.DataMap.TryGetValuePointer((ushort)index, out var housingObjectData))
+            {
+                var valueSets = housingObjectData->ValueSets;
+                HousingObjectDataModel dataModel = new()
+                {
+                    Value1 = new ushort[valueSets.Length],
+                    Value2 = new byte[valueSets.Length],
+                    Value3 = new byte[valueSets.Length],
+                    Value4 = new byte[valueSets.Length],
+                };
+
+                for (int i = 0; i < valueSets.Length; i++)
+                {
+                    dataModel.Value1[i] = valueSets[i].Value1;
+                    dataModel.Value2[i] = valueSets[i].Value2;
+                    dataModel.Value3[i] = valueSets[i].Value3;
+                    dataModel.Value4[i] = valueSets[i].Value4;
+                }
+
+                housingObjectDataModel = dataModel;
+            }
+
+
             model.Furniture.Add(new HousingFurnitureModel()
             {
                 Id = furnitureItem.Id,
                 Stain = furnitureItem.Stain,
                 Position = furnitureItem.Position,
-                Rotation = furnitureItem.Rotation
+                Rotation = furnitureItem.Rotation,
+                HousingObjectData = housingObjectDataModel
             });
         }
     }
